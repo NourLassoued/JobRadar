@@ -1,0 +1,61 @@
+<div class="login-container">
+  <mat-card class="login-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon class="logo-icon">work</mat-icon>
+        JobRadar
+      </mat-card-title>
+      <mat-card-subtitle>Connectez-vous à votre compte</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form (ngSubmit)="onSubmit()">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Email</mat-label>
+          <input matInput
+                 type="email"
+                 [(ngModel)]="email"
+                 name="email"
+                 required
+                 placeholder="nour@example.com">
+          <mat-icon matSuffix>email</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Mot de passe</mat-label>
+          <input matInput
+                 type="password"
+                 [(ngModel)]="password"
+                 name="password"
+                 required
+                 placeholder="Votre mot de passe">
+          <mat-icon matSuffix>lock</mat-icon>
+        </mat-form-field>
+
+        @if (errorMessage()) {
+          <div class="error-message">
+            <mat-icon>error</mat-icon>
+            {{ errorMessage() }}
+          </div>
+        }
+
+        <button mat-raised-button
+                color="primary"
+                type="submit"
+                class="full-width submit-btn"
+                [disabled]="loading()">
+          @if (loading()) {
+            <span>Connexion...</span>
+          } @else {
+            <span>Se connecter</span>
+          }
+        </button>
+      </form>
+    </mat-card-content>
+
+    <mat-card-actions class="register-link">
+      <span>Pas encore de compte ?</span>
+      <a mat-button color="accent" routerLink="/register">S'inscrire</a>
+    </mat-card-actions>
+  </mat-card>
+</div>
