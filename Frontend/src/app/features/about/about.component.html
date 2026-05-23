@@ -1,0 +1,297 @@
+<div class="about-container">
+
+  <!-- ============================================================ -->
+  <!-- NAVBAR                                                       -->
+  <!-- ============================================================ -->
+  <nav class="navbar">
+    <div class="nav-content">
+      <a routerLink="/" class="logo">
+        <mat-icon class="logo-icon">work</mat-icon>
+        <span class="logo-text">JobRadar</span>
+      </a>
+      <div class="nav-links">
+        <a routerLink="/">Accueil</a>
+        <a routerLink="/about" class="active">À propos</a>
+        <a href="#contact">Contact</a>
+      </div>
+      <div class="nav-actions">
+        <a routerLink="/login" mat-button>Se connecter</a>
+        <a routerLink="/register" mat-raised-button color="primary">Commencer</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ============================================================ -->
+  <!-- HERO : NOTRE HISTOIRE                                        -->
+  <!-- ============================================================ -->
+  <section class="hero-about">
+    <div class="hero-content">
+      <span class="hero-tag">📖 Notre histoire</span>
+      <h1 class="hero-title">
+        Trouver un job ne devrait pas être
+        <span class="gradient-text">un job à plein temps</span>
+      </h1>
+      <p class="hero-subtitle">
+        En France, <strong>6 millions de personnes</strong> cherchent un emploi chaque année.
+        Elles passent en moyenne <strong>11 heures par semaine</strong> à scroller sur 5 sites différents,
+        à adapter leur CV, à écrire des lettres de motivation génériques.
+      </p>
+      <p class="hero-subtitle">
+        <strong>JobRadar a une mission simple :</strong> rendre la recherche d'emploi
+        intelligente, structurée et accessible à tous les secteurs.
+      </p>
+    </div>
+    <div class="hero-illustration">
+      <div class="floating-card card-1">
+        <mat-icon>auto_awesome</mat-icon>
+        <span>Match 95%</span>
+      </div>
+      <div class="floating-card card-2">
+        <mat-icon>work</mat-icon>
+        <span>Dev Full Stack</span>
+      </div>
+      <div class="floating-card card-3">
+        <mat-icon>location_on</mat-icon>
+        <span>Orléans</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- MISSION : CE QU'ON FAIT                                      -->
+  <!-- ============================================================ -->
+  <section class="missions-section">
+    <div class="section-header">
+      <span class="section-tag">💡 Notre mission</span>
+      <h2 class="section-title">3 piliers pour transformer votre recherche</h2>
+    </div>
+
+    <div class="missions-grid">
+      @for (mission of missions; track mission.title; let i = $index) {
+        <div class="mission-card" [class]="'mission-' + mission.color">
+          <div class="mission-icon">
+            <mat-icon>{{ mission.icon }}</mat-icon>
+          </div>
+          <span class="mission-number">0{{ i + 1 }}</span>
+          <h3>{{ mission.title }}</h3>
+          <p>{{ mission.description }}</p>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- POUR QUI                                                     -->
+  <!-- ============================================================ -->
+  <section class="audiences-section">
+    <div class="section-header">
+      <span class="section-tag">🎯 Pour qui ?</span>
+      <h2 class="section-title">JobRadar s'adresse à tous les profils</h2>
+      <p class="section-subtitle">
+        Notre algorithme s'adapte à chaque secteur métier et à chaque parcours.
+      </p>
+    </div>
+
+    <div class="audiences-grid">
+      @for (audience of audiences; track audience.title) {
+        <div class="audience-card">
+          <span class="audience-emoji">{{ audience.emoji }}</span>
+          <h3>{{ audience.title }}</h3>
+          <p>{{ audience.description }}</p>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- COMPARAISON                                                  -->
+  <!-- ============================================================ -->
+  <section class="comparison-section">
+    <div class="section-header">
+      <span class="section-tag">🔥 Pourquoi nous ?</span>
+      <h2 class="section-title">Comment JobRadar se distingue</h2>
+      <p class="section-subtitle">
+        Comparaison avec les solutions existantes sur le marché
+      </p>
+    </div>
+
+    <div class="comparison-table-wrapper">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th class="feature-col">Fonctionnalité</th>
+            <th class="jobradar-col">
+              <strong>JobRadar</strong>
+              <span class="highlight">Notre solution</span>
+            </th>
+            <th>Indeed</th>
+            <th>LinkedIn</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (comp of comparisons; track comp.feature) {
+            <tr>
+              <td class="feature-name">{{ comp.feature }}</td>
+              <td class="jobradar-col">
+                <span class="check-badge" [class]="getCheckColor(comp.jobradar)">
+                  <mat-icon>{{ getCheckIcon(comp.jobradar) }}</mat-icon>
+                  {{ getCheckLabel(comp.jobradar) }}
+                </span>
+              </td>
+              <td>
+                <span class="check-badge" [class]="getCheckColor(comp.indeed)">
+                  <mat-icon>{{ getCheckIcon(comp.indeed) }}</mat-icon>
+                  {{ getCheckLabel(comp.indeed) }}
+                </span>
+              </td>
+              <td>
+                <span class="check-badge" [class]="getCheckColor(comp.linkedin)">
+                  <mat-icon>{{ getCheckIcon(comp.linkedin) }}</mat-icon>
+                  {{ getCheckLabel(comp.linkedin) }}
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- STATS                                                        -->
+  <!-- ============================================================ -->
+  <section class="stats-about">
+    <div class="stats-container">
+      @for (stat of stats; track stat.label) {
+        <div class="stat-card">
+          <div class="stat-value">{{ stat.value }}</div>
+          <div class="stat-label">{{ stat.label }}</div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- TECH STACK                                                   -->
+  <!-- ============================================================ -->
+  <section class="tech-section">
+    <div class="section-header">
+      <span class="section-tag">🛠️ Notre savoir-faire</span>
+      <h2 class="section-title">Stack technique moderne</h2>
+      <p class="section-subtitle">
+        Construite avec les technologies standards de l'industrie
+      </p>
+    </div>
+
+    <div class="tech-grid">
+      @for (cat of techStack; track cat.category) {
+        <div class="tech-category">
+          <h3>{{ cat.category }}</h3>
+          <div class="tech-items">
+            @for (tech of cat.technologies; track tech.name) {
+              <div class="tech-item">
+                <span class="tech-icon">{{ tech.icon }}</span>
+                <span class="tech-name">{{ tech.name }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- ROADMAP                                                      -->
+  <!-- ============================================================ -->
+  <section class="roadmap-section">
+    <div class="section-header">
+      <span class="section-tag">🌍 Notre vision</span>
+      <h2 class="section-title">Roadmap publique</h2>
+      <p class="section-subtitle">
+        Suivez nos prochaines fonctionnalités en transparence
+      </p>
+    </div>
+
+    <div class="roadmap-timeline">
+      @for (item of roadmap; track item.title) {
+        <div class="roadmap-item" [class]="'status-' + item.status">
+          <div class="roadmap-dot"></div>
+          <div class="roadmap-content">
+            <div class="roadmap-title">{{ item.title }}</div>
+            <div class="roadmap-date">{{ item.date }}</div>
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- ÉQUIPE                                                       -->
+  <!-- ============================================================ -->
+  <section class="team-section">
+    <div class="section-header">
+      <span class="section-tag">🤝 L'équipe</span>
+      <h2 class="section-title">Une développeuse, une vision</h2>
+    </div>
+
+    <div class="team-card">
+      <div class="team-avatar">
+        <mat-icon>person</mat-icon>
+      </div>
+      <div class="team-info">
+        <h3>Nour Lassoued</h3>
+        <p class="team-role">Full Stack Developer · Conceptrice de JobRadar</p>
+        <p class="team-bio">
+          Diplômée ESPRIT en ingénierie informatique, j'ai conçu JobRadar comme un outil pratique
+          pour ma propre recherche d'emploi à Orléans, puis ouvert à tous les secteurs. 
+          Stack maîtrisée : Java/Spring Boot, Angular, Docker, PostgreSQL. 
+          Passionnée par l'intégration IA et le DevOps.
+        </p>
+        <div class="team-links">
+          <a href="https://nourstack.netlify.app" target="_blank" mat-button>
+            <mat-icon>public</mat-icon> Portfolio
+          </a>
+          <a href="https://linkedin.com/in/nour-lassoued" target="_blank" mat-button>
+            <mat-icon>link</mat-icon> LinkedIn
+          </a>
+          <a href="https://github.com/NourLassoued" target="_blank" mat-button>
+            <mat-icon>code</mat-icon> GitHub
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- CTA FINAL                                                    -->
+  <!-- ============================================================ -->
+  <section class="cta-final" id="contact">
+    <div class="cta-content">
+      <h2>Prêt à transformer votre recherche d'emploi ?</h2>
+      <p>C'est gratuit, sans engagement, sans publicité.</p>
+      <div class="cta-buttons">
+        <a routerLink="/register" mat-raised-button class="cta-primary">
+          <mat-icon>rocket_launch</mat-icon>
+          Créer mon compte
+        </a>
+        <a href="mailto:nour.lassoued@example.com" mat-stroked-button class="cta-secondary">
+          <mat-icon>email</mat-icon>
+          Nous contacter
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- FOOTER                                                       -->
+  <!-- ============================================================ -->
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-brand">
+        <mat-icon class="logo-icon">work</mat-icon>
+        <span class="logo-text">JobRadar</span>
+      </div>
+      <p>© 2026 JobRadar · Conçu avec ❤️ à Orléans 🇫🇷</p>
+    </div>
+  </footer>
+</div>

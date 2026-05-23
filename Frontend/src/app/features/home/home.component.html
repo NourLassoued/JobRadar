@@ -1,0 +1,179 @@
+<div class="home-container">
+
+  <!-- ============================================================ -->
+  <!-- NAVBAR FIXE GLASSMORPHISM                                    -->
+  <!-- ============================================================ -->
+  <nav class="navbar">
+    <div class="nav-content">
+      <div class="logo">
+        <mat-icon class="logo-icon">work</mat-icon>
+        <span class="logo-text">JobRadar</span>
+      </div>
+      <div class="nav-links">
+        <a href="#features">Fonctionnalités</a>
+        <a href="#how-it-works">Comment ça marche</a>
+        <a href="#stats">Stats</a>
+      </div>
+      <div class="nav-actions">
+        <a routerLink="/login" mat-button>Se connecter</a>
+        <a routerLink="/register" mat-raised-button color="primary">Commencer</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ============================================================ -->
+  <!-- HERO SECTION 3D                                              -->
+  <!-- ============================================================ -->
+  <section class="hero">
+    <!-- Canvas 3D en arrière-plan -->
+    <canvas #canvas3d class="hero-canvas"></canvas>
+
+    <!-- Gradient overlay -->
+    <div class="hero-gradient"></div>
+
+    <!-- Contenu central -->
+    <div class="hero-content">
+      <div class="hero-badge">
+        <mat-icon>auto_awesome</mat-icon>
+        <span>Propulsé par l'IA · 100% gratuit</span>
+      </div>
+
+      <h1 class="hero-title">
+        Trouvez le job qui vous
+        <span class="gradient-text">correspond VRAIMENT</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        JobRadar agrège <strong>390+ offres</strong> de l'API France Travail, 
+        les <strong>score selon votre profil</strong> grâce à un moteur IA, 
+        et vous aide à <strong>gérer vos candidatures</strong> de A à Z.
+      </p>
+
+      <div class="hero-cta">
+        <a routerLink="/register" mat-raised-button class="cta-primary">
+          <mat-icon>rocket_launch</mat-icon>
+          Commencer gratuitement
+        </a>
+        <button mat-stroked-button class="cta-secondary" (click)="scrollToFeatures()">
+          <mat-icon>play_circle</mat-icon>
+          Voir comment ça marche
+        </button>
+      </div>
+
+      <div class="hero-trust">
+        <div class="trust-item">
+          <mat-icon>verified</mat-icon>
+          <span>Source officielle France Travail</span>
+        </div>
+        <div class="trust-item">
+          <mat-icon>lock</mat-icon>
+          <span>100% RGPD compliant</span>
+        </div>
+        <div class="trust-item">
+          <mat-icon>bolt</mat-icon>
+          <span>Temps réel</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scroll indicator -->
+    <div class="scroll-indicator">
+      <mat-icon>keyboard_arrow_down</mat-icon>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- STATS                                                        -->
+  <!-- ============================================================ -->
+  <section class="stats-section" id="stats">
+    <div class="stats-container">
+      @for (stat of stats; track stat.label) {
+        <div class="stat-card">
+          <mat-icon class="stat-icon">{{stat.icon}}</mat-icon>
+          <div class="stat-value">{{stat.value}}</div>
+          <div class="stat-label">{{stat.label}}</div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- FEATURES                                                     -->
+  <!-- ============================================================ -->
+  <section class="features-section" id="features">
+    <div class="section-header">
+      <span class="section-tag">✨ Fonctionnalités</span>
+      <h2 class="section-title">Tout ce dont vous avez besoin</h2>
+      <p class="section-subtitle">
+        Un outil complet pour transformer votre recherche d'emploi
+      </p>
+    </div>
+
+    <div class="features-grid">
+      @for (feature of features; track feature.title) {
+        <div class="feature-card">
+          <div class="feature-icon-wrapper" [ngClass]="'gradient-' + $index">
+            <mat-icon>{{feature.icon}}</mat-icon>
+          </div>
+          <h3>{{feature.title}}</h3>
+          <p>{{feature.description}}</p>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- COMMENT ÇA MARCHE                                            -->
+  <!-- ============================================================ -->
+  <section class="steps-section" id="how-it-works">
+    <div class="section-header">
+      <span class="section-tag">🚀 En 3 étapes</span>
+      <h2 class="section-title">Comment ça marche ?</h2>
+      <p class="section-subtitle">
+        Démarrez votre recherche en 2 minutes chrono
+      </p>
+    </div>
+
+    <div class="steps-grid">
+      @for (step of steps; track step.number) {
+        <div class="step-card">
+          <div class="step-number">{{step.number}}</div>
+          <mat-icon class="step-icon">{{step.icon}}</mat-icon>
+          <h3>{{step.title}}</h3>
+          <p>{{step.description}}</p>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- CTA FINAL                                                    -->
+  <!-- ============================================================ -->
+  <section class="cta-final">
+    <div class="cta-content">
+      <h2>Prêt à trouver votre prochain job ?</h2>
+      <p>Rejoignez les milliers de candidats qui ont gagné du temps avec JobRadar</p>
+      <a routerLink="/register" mat-raised-button class="cta-button">
+        <mat-icon>rocket_launch</mat-icon>
+        Commencer gratuitement
+      </a>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- FOOTER                                                       -->
+  <!-- ============================================================ -->
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-brand">
+        <mat-icon class="logo-icon">work</mat-icon>
+        <span class="logo-text">JobRadar</span>
+        <p>Trouvez le job qui vous correspond</p>
+      </div>
+      <div class="footer-info">
+        <p>© 2026 JobRadar · Développé par Nour Lassoued à Orléans 🇫🇷</p>
+        <p>Données : <a href="https://francetravail.io" target="_blank">France Travail</a></p>
+      </div>
+    </div>
+  </footer>
+</div>

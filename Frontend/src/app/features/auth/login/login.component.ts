@@ -1,63 +1,71 @@
 import { Component, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { CommonModule } from '@angular/common';
+
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
-  selector: 'app-login',
+  selector: 'jr-login',
   standalone: true,
   imports: [
-    CommonModule,
-    FormsModule,
+    ReactiveFormsModule,
     RouterLink,
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule,
-    MatIconModule
+    MatIconModule,
   ],
   templateUrl: './login.component.html',
-  styleUrl: './login.component.scss'
+  styleUrl: './login.component.scss',
 })
 export class LoginComponent {
-
-  private authService = inject(AuthService);
+  private fb = inject(FormBuilder);
+  private auth = inject(AuthService);
   private router = inject(Router);
 
-  // Données du formulaire
-  email = '';
-  password = '';
-
-  // États (Signals)
   loading = signal(false);
+  showPassword = signal(false);
   errorMessage = signal<string | null>(null);
 
-  onSubmit(): void {
-    if (!this.email || !this.password) {
-      this.errorMessage.set('Veuillez remplir tous les champs');
+  form = this.fb.nonNullable.group({
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required, Validators.minLength(8)]],
+  });
+
+  togglePassword(): void {
+    this.showPassword.update(v => !v);
+  }
+  loginWithGoogle(): void {
+  this.auth.loginWithGoogle();
+}
+
+loginWithLinkedIn(): void {
+  this.auth.loginWithLinkedIn();
+}
+
+  submit(): void {
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
       return;
     }
 
     this.loading.set(true);
     this.errorMessage.set(null);
 
-    this.authService.login({ email: this.email, password: this.password })
-      .subscribe({
-        next: () => {
-          this.loading.set(false);
-          this.router.navigate(['/dashboard']);
-        },
-        error: (err) => {
-          this.loading.set(false);
-          this.errorMessage.set('Email ou mot de passe incorrect');
-          console.error('Erreur login:', err);
-        }
-      });
+    this.auth.login(this.form.getRawValue()).subscribe({
+      next: () => this.router.navigate(['/app/dashboard']),
+      error: err => {
+        this.loading.set(false);
+        this.errorMessage.set(
+          err?.error?.message ?? 'Email ou mot de passe incorrect.'
+        );
+      },
+    });
   }
 }

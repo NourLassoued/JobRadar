@@ -1,0 +1,213 @@
+<div class="min-h-screen flex bg-mist">
+
+  <!-- Côté gauche : branding -->
+  <aside class="hidden lg:flex w-1/2 bg-indigo-600 text-white p-12 flex-col justify-between relative overflow-hidden">
+    <div class="flex items-center gap-3 relative z-10">
+      <div class="w-10 h-10 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center">
+        <i class="ti ti-radar-2 text-2xl text-white"></i>
+      </div>
+      <span class="text-lg font-medium">JobRadar</span>
+    </div>
+
+    <div class="relative z-10">
+      <h2 class="text-3xl font-medium tracking-tight leading-tight mb-3">
+        Rejoignez la communauté.
+      </h2>
+      <p class="text-white/80 text-sm leading-relaxed max-w-md mb-6">
+        1M+ offres agrégées · Scoring IA adaptatif · 14 familles de métiers.
+        Inscription en 30 secondes, gratuite à vie.
+      </p>
+
+      <ul class="space-y-2 text-sm text-white/90">
+        <li class="flex items-center gap-2"><i class="ti ti-check"></i> Lettres de motivation par IA</li>
+        <li class="flex items-center gap-2"><i class="ti ti-check"></i> Suivi Kanban des candidatures</li>
+        <li class="flex items-center gap-2"><i class="ti ti-check"></i> Notifications quotidiennes</li>
+      </ul>
+    </div>
+
+    <div class="relative z-10 text-xs text-white/60">
+      🇫🇷 Conçu en France · 100% RGPD
+    </div>
+
+    <div class="absolute -top-24 -right-24 w-80 h-80 bg-white/5 rounded-full"></div>
+    <div class="absolute -bottom-32 -left-16 w-72 h-72 bg-white/5 rounded-full"></div>
+  </aside>
+
+  <!-- Côté droit : formulaire -->
+  <section class="flex-1 flex items-center justify-center px-6 py-12 overflow-y-auto">
+    <div class="w-full max-w-md">
+
+      <div class="lg:hidden flex items-center gap-3 mb-8">
+        <div class="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center">
+          <i class="ti ti-radar-2 text-white text-xl"></i>
+        </div>
+        <span class="text-base font-medium text-ink">JobRadar</span>
+      </div>
+
+      <h1 class="text-2xl font-medium tracking-tight text-ink mb-1">
+        Créer un compte
+      </h1>
+      <p class="text-sm text-muted mb-8">
+        Déjà inscrit ?
+        <a routerLink="/auth/login" class="text-indigo-600 font-medium hover:underline">
+          Se connecter
+        </a>
+      </p>
+
+      <!-- Boutons OAuth2 -->
+      <div class="space-y-3 mb-6">
+        <button type="button" (click)="loginWithGoogle()"
+                class="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 bg-white border border-gray-300 rounded-lg text-sm font-medium text-ink hover:border-indigo-600 hover:bg-indigo-50 transition">
+          <svg class="w-5 h-5" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09 0-.72.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          <span>Continuer avec Google</span>
+        </button>
+
+        <button type="button" (click)="loginWithLinkedIn()"
+                class="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 bg-white border border-gray-300 rounded-lg text-sm font-medium text-ink hover:border-indigo-600 hover:bg-indigo-50 transition">
+          <svg class="w-5 h-5" fill="#0A66C2" viewBox="0 0 24 24">
+            <path d="M19 0H5a5 5 0 0 0-5 5v14a5 5 0 0 0 5 5h14a5 5 0 0 0 5-5V5a5 5 0 0 0-5-5zM8 19H5V8h3v11zM6.5 6.7c-.97 0-1.75-.78-1.75-1.7s.78-1.7 1.75-1.7 1.75.78 1.75 1.7-.78 1.7-1.75 1.7zM20 19h-3v-5.6c0-3.37-4-3.12-4 0V19h-3V8h3v1.77c1.4-2.6 7-2.79 7 2.49V19z"/>
+          </svg>
+          <span>Continuer avec LinkedIn</span>
+        </button>
+      </div>
+
+      <!-- Séparateur OU -->
+      <div class="relative flex items-center my-6">
+        <div class="flex-1 h-px bg-gray-200"></div>
+        <span class="px-4 text-xs text-muted uppercase tracking-wider font-medium">ou avec votre email</span>
+        <div class="flex-1 h-px bg-gray-200"></div>
+      </div>
+
+      @if (errorMessage()) {
+        <div class="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700 flex items-start gap-2">
+          <i class="ti ti-alert-circle text-base mt-0.5"></i>
+          <span>{{ errorMessage() }}</span>
+        </div>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
+
+        <!-- Prénom & Nom -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="firstName" class="block text-sm font-medium text-ink mb-1.5">Prénom</label>
+            <input
+              id="firstName"
+              type="text"
+              formControlName="firstName"
+              placeholder="Nour"
+              autocomplete="given-name"
+              class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition"
+              [class.border-red-400]="form.controls.firstName.invalid && form.controls.firstName.touched"
+            />
+            @if (form.controls.firstName.touched && form.controls.firstName.errors?.['required']) {
+              <p class="text-xs text-red-600 mt-1">Prénom obligatoire.</p>
+            }
+          </div>
+
+          <div>
+            <label for="lastName" class="block text-sm font-medium text-ink mb-1.5">Nom</label>
+            <input
+              id="lastName"
+              type="text"
+              formControlName="lastName"
+              placeholder="Lassoued"
+              autocomplete="family-name"
+              class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition"
+              [class.border-red-400]="form.controls.lastName.invalid && form.controls.lastName.touched"
+            />
+            @if (form.controls.lastName.touched && form.controls.lastName.errors?.['required']) {
+              <p class="text-xs text-red-600 mt-1">Nom obligatoire.</p>
+            }
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div>
+          <label for="email" class="block text-sm font-medium text-ink mb-1.5">Email professionnel</label>
+          <div class="relative">
+            <i class="ti ti-mail absolute left-3 top-1/2 -translate-y-1/2 text-muted"></i>
+            <input
+              id="email"
+              type="email"
+              formControlName="email"
+              placeholder="vous@exemple.com"
+              autocomplete="email"
+              class="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition"
+              [class.border-red-400]="form.controls.email.invalid && form.controls.email.touched"
+            />
+          </div>
+          @if (form.controls.email.touched && form.controls.email.errors) {
+            <p class="text-xs text-red-600 mt-1">
+              @if (form.controls.email.errors['required']) { L'email est obligatoire. }
+              @else if (form.controls.email.errors['email']) { Email invalide. }
+            </p>
+          }
+        </div>
+
+        <!-- Mot de passe -->
+        <div>
+          <label for="password" class="block text-sm font-medium text-ink mb-1.5">Mot de passe</label>
+          <div class="relative">
+            <i class="ti ti-lock absolute left-3 top-1/2 -translate-y-1/2 text-muted"></i>
+            <input
+              id="password"
+              [type]="showPassword() ? 'text' : 'password'"
+              formControlName="password"
+              placeholder="Au moins 8 caractères"
+              autocomplete="new-password"
+              class="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition"
+              [class.border-red-400]="form.controls.password.invalid && form.controls.password.touched"
+            />
+            <button
+              type="button"
+              (click)="togglePassword()"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-ink"
+              [attr.aria-label]="showPassword() ? 'Masquer' : 'Afficher'">
+              <i class="ti" [class]="showPassword() ? 'ti-eye-off' : 'ti-eye'"></i>
+            </button>
+          </div>
+
+          @if (form.controls.password.value) {
+            <div class="mt-2 flex gap-1">
+              @for (n of [1, 2, 3, 4]; track n) {
+                <div
+                  class="h-1 flex-1 rounded-full transition"
+                  [class]="passwordStrength() >= n
+                    ? (passwordStrength() <= 1 ? 'bg-red-500'
+                      : passwordStrength() === 2 ? 'bg-amber-500'
+                      : passwordStrength() === 3 ? 'bg-lime-500'
+                      : 'bg-emerald-500')
+                    : 'bg-gray-200'">
+                </div>
+              }
+            </div>
+          }
+
+          @if (form.controls.password.touched && form.controls.password.errors) {
+            <p class="text-xs text-red-600 mt-1">
+              @if (form.controls.password.errors['required']) { Le mot de passe est obligatoire. }
+              @else if (form.controls.password.errors['minlength']) { Au moins 8 caractères. }
+            </p>
+          }
+        </div>
+
+        <!-- Conditions -->
+        <label class="flex items-start gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            formControlName="acceptTerms"
+            class="mt-0.5 w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+          />
+          <span class="text-xs text-muted leading-relaxed">
+            J'accepte les
+            <a class="text-indigo-600 hover:underline">conditions d'utilisation</a>
+            et la
+            <a class="text-indigo-600 hover:underline">politique de confidentialité</a>.
+          </span>
+        </label>

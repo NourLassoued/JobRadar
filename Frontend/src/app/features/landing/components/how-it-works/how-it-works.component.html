@@ -1,0 +1,33 @@
+<section class="px-7 py-10 bg-mist border-t border-gray-200">
+  <div class="max-w-6xl mx-auto">
+
+    <div class="text-center mb-6">
+      <h2 class="text-2xl font-medium tracking-tight mb-1 text-ink">
+        Comment ça marche
+      </h2>
+      <p class="text-sm text-muted">
+        Trois étapes, dix minutes de configuration.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+      @for (step of steps; track step.index) {
+        <article class="step-card">
+          <div class="step-icon" [class]="step.accentBg">
+            <i class="ti text-lg" [class]="step.icon + ' ' + step.accentText"></i>
+          </div>
+          <div class="text-[11px] font-medium mb-1" [class]="step.accentText">
+            {{ step.index }} — {{ step.label }}
+          </div>
+          <div class="text-sm font-medium mb-1 text-ink">
+            {{ step.title }}
+          </div>
+          <p class="text-xs text-muted leading-relaxed">
+            {{ step.description }}
+          </p>
+        </article>
+      }
+    </div>
+
+  </div>
+</section>

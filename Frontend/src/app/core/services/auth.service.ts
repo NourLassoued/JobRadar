@@ -2,78 +2,59 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { Router } from '@angular/router';
-import { LoginRequest, RegisterRequest, AuthResponse } from '../models/auth.model';
+import { environment } from '../../../environments/environment';
+import { AuthResponse, LoginRequest, RegisterRequest } from '../models/auth.model';
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class AuthService {
-
   private http = inject(HttpClient);
   private router = inject(Router);
 
-  private readonly API_URL = 'http://localhost:8080/api/auth';
+  private readonly API = `${environment.apiUrl}/auth`;
+  private readonly BACKEND_BASE = environment.apiUrl.replace('/api', '');
+  private readonly TOKEN_KEY = 'jr_token';
 
-  // 👉 safe init (SSR compatible)
-  isAuthenticated = signal<boolean>(false);
-  userEmail = signal<string | null>(null);
+  isAuthenticated = signal<boolean>(!!this.getToken());
 
-  constructor() {
-    // 🔒 check only in browser
-    if (typeof window !== 'undefined') {
-      this.isAuthenticated.set(!!localStorage.getItem('jwt_token'));
-      this.userEmail.set(localStorage.getItem('user_email'));
-    }
+  register(payload: RegisterRequest): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.API}/register`, payload).pipe(
+      tap(res => this.storeToken(res.token)),
+    );
   }
 
-  // ================= LOGIN =================
-  login(credentials: LoginRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.API_URL}/login`, credentials)
-      .pipe(
-        tap(response => this.saveAuthData(response))
-      );
+  login(payload: LoginRequest): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.API}/login`, payload).pipe(
+      tap(res => this.storeToken(res.token)),
+    );
   }
 
-  // ================= REGISTER =================
-  register(data: RegisterRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.API_URL}/register`, data)
-      .pipe(
-        tap(response => this.saveAuthData(response))
-      );
+  // OAuth2 : redirection vers le backend qui gère le flow
+  loginWithGoogle(): void {
+    window.location.href = `${this.BACKEND_BASE}/oauth2/authorization/google`;
   }
 
-  // ================= LOGOUT =================
+  loginWithLinkedIn(): void {
+    window.location.href = `${this.BACKEND_BASE}/oauth2/authorization/linkedin`;
+  }
+
+  // Appelé sur la page de callback après redirection OAuth
+  handleOAuthCallback(token: string): void {
+    this.storeToken(token);
+    this.router.navigate(['/app/dashboard']);
+  }
+
   logout(): void {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('jwt_token');
-      localStorage.removeItem('user_email');
-    }
-
+    localStorage.removeItem(this.TOKEN_KEY);
     this.isAuthenticated.set(false);
-    this.userEmail.set(null);
-    this.router.navigate(['/login']);
+    this.router.navigate(['/auth/login']);
   }
 
-  // ================= GET TOKEN =================
   getToken(): string | null {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem('jwt_token');
+    return localStorage.getItem(this.TOKEN_KEY);
   }
 
-  // ================= SAVE DATA =================
-  private saveAuthData(response: AuthResponse): void {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('jwt_token', response.token);
-      localStorage.setItem('user_email', response.email);
-    }
-
+  private storeToken(token: string): void {
+    localStorage.setItem(this.TOKEN_KEY, token);
     this.isAuthenticated.set(true);
-    this.userEmail.set(response.email);
-  }
-
-  // ================= CHECK TOKEN =================
-  private hasValidToken(): boolean {
-    if (typeof window === 'undefined') return false;
-    return !!localStorage.getItem('jwt_token');
   }
 }

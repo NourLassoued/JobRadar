@@ -1,0 +1,752 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+* {
+  font-family: 'Inter', sans-serif;
+}
+
+.about-container {
+  min-height: 100vh;
+  overflow-x: hidden;
+  background: #ffffff;
+}
+
+// ============================================================
+// NAVBAR
+// ============================================================
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.85);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 16px 0;
+
+  .nav-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+
+    .logo-icon { color: #3b82f6; }
+    .logo-text {
+      font-size: 22px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 32px;
+    
+    a {
+      color: #374151;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s;
+
+      &:hover, &.active { color: #3b82f6; }
+    }
+  }
+
+  .nav-actions {
+    display: flex;
+    gap: 12px;
+  }
+}
+
+// ============================================================
+// HERO ABOUT
+// ============================================================
+.hero-about {
+  padding: 160px 24px 100px;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+
+  .hero-content {
+    .hero-tag {
+      display: inline-block;
+      padding: 6px 16px;
+      background: linear-gradient(135deg, #dbeafe, #ede9fe);
+      color: #3b82f6;
+      border-radius: 100px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+
+    .hero-title {
+      font-size: clamp(2rem, 4.5vw, 3.5rem);
+      font-weight: 900;
+      line-height: 1.1;
+      color: #0f172a;
+      margin-bottom: 24px;
+      letter-spacing: -0.02em;
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: 18px;
+      color: #475569;
+      line-height: 1.7;
+      margin-bottom: 16px;
+
+      strong { color: #0f172a; }
+    }
+  }
+
+  .hero-illustration {
+    position: relative;
+    height: 400px;
+
+    .floating-card {
+      position: absolute;
+      background: white;
+      padding: 20px 24px;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 600;
+      animation: float 6s ease-in-out infinite;
+
+      mat-icon { font-size: 28px; width: 28px; height: 28px; }
+
+      &.card-1 {
+        top: 0; right: 30px;
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        color: white;
+        animation-delay: 0s;
+      }
+
+      &.card-2 {
+        top: 40%; left: 0;
+        background: white;
+        color: #0f172a;
+        animation-delay: 2s;
+
+        mat-icon { color: #3b82f6; }
+      }
+
+      &.card-3 {
+        bottom: 30px; right: 60px;
+        background: linear-gradient(135deg, #f59e0b, #ef4444);
+        color: white;
+        animation-delay: 4s;
+      }
+    }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-15px); }
+  }
+}
+
+// ============================================================
+// MISSIONS
+// ============================================================
+.missions-section {
+  background: #f8fafc;
+  padding: 100px 24px;
+}
+
+.section-header {
+  text-align: center;
+  max-width: 700px;
+  margin: 0 auto 60px;
+
+  .section-tag {
+    display: inline-block;
+    padding: 6px 16px;
+    background: linear-gradient(135deg, #dbeafe, #ede9fe);
+    color: #3b82f6;
+    border-radius: 100px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+    font-weight: 900;
+    color: #0f172a;
+    margin-bottom: 16px;
+    letter-spacing: -0.02em;
+  }
+
+  .section-subtitle {
+    font-size: 18px;
+    color: #64748b;
+  }
+}
+
+.missions-grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 32px;
+}
+
+.mission-card {
+  background: white;
+  border-radius: 24px;
+  padding: 40px 32px;
+  position: relative;
+  transition: transform 0.3s, box-shadow 0.3s;
+  cursor: default;
+
+  &:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+  }
+
+  .mission-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+
+    mat-icon {
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+      color: white;
+    }
+  }
+
+  .mission-number {
+    position: absolute;
+    top: 32px;
+    right: 32px;
+    font-size: 48px;
+    font-weight: 900;
+    color: rgba(0, 0, 0, 0.05);
+  }
+
+  &.mission-blue .mission-icon { background: linear-gradient(135deg, #3b82f6, #06b6d4); }
+  &.mission-purple .mission-icon { background: linear-gradient(135deg, #8b5cf6, #ec4899); }
+  &.mission-orange .mission-icon { background: linear-gradient(135deg, #f97316, #ef4444); }
+
+  h3 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 16px;
+  }
+
+  p {
+    color: #475569;
+    line-height: 1.7;
+    font-size: 15px;
+  }
+}
+
+// ============================================================
+// AUDIENCES
+// ============================================================
+.audiences-section {
+  padding: 100px 24px;
+
+  .audiences-grid {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+  }
+
+  .audience-card {
+    background: white;
+    border: 2px solid #f1f5f9;
+    border-radius: 20px;
+    padding: 32px;
+    transition: all 0.3s;
+    cursor: default;
+
+    &:hover {
+      border-color: #3b82f6;
+      transform: translateY(-4px);
+      box-shadow: 0 10px 30px rgba(59, 130, 246, 0.15);
+    }
+
+    .audience-emoji {
+      font-size: 48px;
+      display: block;
+      margin-bottom: 16px;
+    }
+
+    h3 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 12px;
+    }
+
+    p {
+      color: #64748b;
+      line-height: 1.6;
+    }
+  }
+}
+
+// ============================================================
+// COMPARAISON
+// ============================================================
+.comparison-section {
+  background: #f8fafc;
+  padding: 100px 24px;
+
+  .comparison-table-wrapper {
+    max-width: 1100px;
+    margin: 0 auto;
+    overflow-x: auto;
+  }
+
+  .comparison-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+
+    thead {
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: white;
+
+      th {
+        padding: 20px;
+        font-weight: 600;
+        font-size: 14px;
+        text-align: center;
+
+        &.feature-col {
+          text-align: left;
+          padding-left: 32px;
+        }
+
+        &.jobradar-col {
+          background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+
+          strong {
+            display: block;
+            font-size: 16px;
+          }
+
+          .highlight {
+            font-size: 12px;
+            opacity: 0.9;
+            font-weight: 400;
+          }
+        }
+      }
+    }
+
+    tbody {
+      tr {
+        border-bottom: 1px solid #f1f5f9;
+
+        &:last-child { border-bottom: none; }
+
+        &:hover { background: #f8fafc; }
+
+        td {
+          padding: 18px 20px;
+          text-align: center;
+
+          &.feature-name {
+            text-align: left;
+            padding-left: 32px;
+            font-weight: 500;
+            color: #0f172a;
+          }
+
+          &.jobradar-col {
+            background: rgba(59, 130, 246, 0.05);
+          }
+        }
+      }
+    }
+  }
+
+  .check-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 600;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+
+    &.success {
+      background: rgba(34, 197, 94, 0.1);
+      color: #16a34a;
+    }
+
+    &.error {
+      background: rgba(239, 68, 68, 0.1);
+      color: #dc2626;
+    }
+
+    &.partial {
+      background: rgba(245, 158, 11, 0.1);
+      color: #d97706;
+    }
+  }
+}
+
+// ============================================================
+// STATS
+// ============================================================
+.stats-about {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  padding: 80px 24px;
+
+  .stats-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 32px;
+  }
+
+  .stat-card {
+    text-align: center;
+    color: white;
+
+    .stat-value {
+      font-size: 56px;
+      font-weight: 900;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .stat-label {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+  }
+}
+
+// ============================================================
+// TECH STACK
+// ============================================================
+.tech-section {
+  padding: 100px 24px;
+
+  .tech-grid {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 32px;
+  }
+
+  .tech-category {
+    background: white;
+    border: 2px solid #f1f5f9;
+    border-radius: 20px;
+    padding: 28px;
+
+    h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #f1f5f9;
+    }
+
+    .tech-items {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .tech-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px;
+      background: #f8fafc;
+      border-radius: 12px;
+      transition: background 0.2s;
+
+      &:hover { background: #e0f2fe; }
+
+      .tech-icon {
+        font-size: 24px;
+      }
+
+      .tech-name {
+        font-weight: 500;
+        color: #334155;
+      }
+    }
+  }
+}
+
+// ============================================================
+// ROADMAP
+// ============================================================
+.roadmap-section {
+  background: #f8fafc;
+  padding: 100px 24px;
+
+  .roadmap-timeline {
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+    padding-left: 30px;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 8px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, #3b82f6, #8b5cf6);
+    }
+  }
+
+  .roadmap-item {
+    position: relative;
+    padding-bottom: 24px;
+
+    .roadmap-dot {
+      position: absolute;
+      left: -30px;
+      top: 6px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: white;
+      border: 3px solid;
+    }
+
+    &.status-done .roadmap-dot { border-color: #16a34a; background: #16a34a; }
+    &.status-in-progress .roadmap-dot { border-color: #f59e0b; background: #fef3c7; }
+    &.status-planned .roadmap-dot { border-color: #94a3b8; background: white; }
+
+    .roadmap-content {
+      background: white;
+      padding: 16px 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+
+      .roadmap-title {
+        font-weight: 600;
+        color: #0f172a;
+        margin-bottom: 4px;
+      }
+
+      .roadmap-date {
+        font-size: 13px;
+        color: #94a3b8;
+      }
+    }
+  }
+}
+
+// ============================================================
+// ÉQUIPE
+// ============================================================
+.team-section {
+  padding: 100px 24px;
+
+  .team-card {
+    max-width: 800px;
+    margin: 0 auto;
+    background: white;
+    border: 2px solid #f1f5f9;
+    border-radius: 24px;
+    padding: 48px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 40px;
+    align-items: center;
+
+    @media (max-width: 700px) {
+      grid-template-columns: 1fr;
+      text-align: center;
+    }
+  }
+
+  .team-avatar {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+
+    mat-icon {
+      font-size: 80px;
+      width: 80px;
+      height: 80px;
+      color: white;
+    }
+  }
+
+  .team-info {
+    h3 {
+      font-size: 28px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+
+    .team-role {
+      color: #3b82f6;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .team-bio {
+      color: #475569;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+
+    .team-links {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+  }
+}
+
+// ============================================================
+// CTA FINAL
+// ============================================================
+.cta-final {
+  background: linear-gradient(135deg, #0f172a, #312e81);
+  padding: 100px 24px;
+  text-align: center;
+  color: white;
+
+  .cta-content {
+    max-width: 700px;
+    margin: 0 auto;
+
+    h2 {
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 900;
+      margin-bottom: 16px;
+    }
+
+    p {
+      font-size: 18px;
+      opacity: 0.9;
+      margin-bottom: 32px;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+
+      .cta-primary {
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        color: white !important;
+        padding: 16px 32px !important;
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      .cta-secondary {
+        color: white !important;
+        border-color: rgba(255, 255, 255, 0.3) !important;
+        padding: 16px 32px !important;
+      }
+
+      mat-icon { margin-right: 8px; }
+    }
+  }
+}
+
+// ============================================================
+// FOOTER
+// ============================================================
+.footer {
+  background: #0f172a;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 40px 24px;
+  text-align: center;
+
+  .footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .logo-icon { color: #60a5fa; }
+    .logo-text {
+      font-size: 22px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  }
+}
+
+// ============================================================
+// RESPONSIVE
+// ============================================================
+@media (max-width: 768px) {
+  .navbar .nav-links { display: none; }
+  .hero-about { grid-template-columns: 1fr; }
+  .hero-illustration { display: none; }
+}

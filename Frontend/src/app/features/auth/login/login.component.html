@@ -1,61 +1,280 @@
-<div class="login-container">
-  <mat-card class="login-card">
-    <mat-card-header>
-      <mat-card-title>
-        <mat-icon class="logo-icon">work</mat-icon>
-        JobRadar
-      </mat-card-title>
-      <mat-card-subtitle>Connectez-vous à votre compte</mat-card-subtitle>
-    </mat-card-header>
+<div class="login-page min-h-screen flex relative overflow-hidden">
 
-    <mat-card-content>
-      <form (ngSubmit)="onSubmit()">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Email</mat-label>
-          <input matInput
-                 type="email"
-                 [(ngModel)]="email"
-                 name="email"
-                 required
-                 placeholder="nour@example.com">
-          <mat-icon matSuffix>email</mat-icon>
-        </mat-form-field>
+  <!-- Fond décoratif global -->
+  <div class="absolute inset-0 -z-10 bg-gradient-to-br from-indigo-50 via-white to-coral-50"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
 
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Mot de passe</mat-label>
-          <input matInput
-                 type="password"
-                 [(ngModel)]="password"
-                 name="password"
-                 required
-                 placeholder="Votre mot de passe">
-          <mat-icon matSuffix>lock</mat-icon>
-        </mat-form-field>
+  <!-- Côté gauche : branding immersif -->
+  <aside class="hidden lg:flex w-1/2 p-12 flex-col justify-between relative overflow-hidden text-white"
+         style="background: linear-gradient(135deg, #4F46E5 0%, #6366F1 50%, #818CF8 100%);">
 
-        @if (errorMessage()) {
-          <div class="error-message">
-            <mat-icon>error</mat-icon>
-            {{ errorMessage() }}
+    <!-- Pattern animé -->
+    <div class="absolute inset-0 opacity-30">
+      <div class="floating-dot dot-1"></div>
+      <div class="floating-dot dot-2"></div>
+      <div class="floating-dot dot-3"></div>
+    </div>
+
+    <!-- Logo -->
+    <a routerLink="/" class="flex items-center gap-3 relative z-10 group w-fit">
+      <div class="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-xl border border-white/20 flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+        <i class="ti ti-radar-2 text-2xl"></i>
+      </div>
+      <span class="text-xl font-semibold tracking-tight">JobRadar</span>
+    </a>
+
+    <!-- Contenu central : carte preview -->
+    <div class="relative z-10 max-w-md">
+      <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-3 py-1 text-xs font-medium mb-6">
+        <span class="w-2 h-2 bg-emerald-300 rounded-full animate-pulse"></span>
+        Plateforme en activité
+      </div>
+
+      <h2 class="text-4xl font-medium tracking-tight leading-[1.1] mb-4">
+        Le bon job, <br/>
+        <span class="bg-gradient-to-r from-white via-coral-100 to-amber-100 bg-clip-text text-transparent">
+          au bon moment.
+        </span>
+      </h2>
+
+      <p class="text-white/80 text-base leading-relaxed mb-8">
+        Vos candidatures, vos offres scorées par IA et vos lettres prêtes à envoyer
+        — tout vous attend.
+      </p>
+
+      <!-- Mini stats -->
+      <div class="grid grid-cols-3 gap-3 mb-8">
+        <div class="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-4">
+          <div class="text-2xl font-semibold">1.2M</div>
+          <div class="text-[11px] text-white/70 uppercase tracking-wider mt-1">Offres</div>
+        </div>
+        <div class="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-4">
+          <div class="text-2xl font-semibold">14</div>
+          <div class="text-[11px] text-white/70 uppercase tracking-wider mt-1">Secteurs</div>
+        </div>
+        <div class="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-4">
+          <div class="text-2xl font-semibold">-70%</div>
+          <div class="text-[11px] text-white/70 uppercase tracking-wider mt-1">de temps</div>
+        </div>
+      </div>
+
+      <!-- Carte preview flottante -->
+      <div class="preview-card bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-4 max-w-sm">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-400/30 backdrop-blur flex items-center justify-center">
+            <i class="ti ti-stethoscope text-lg text-emerald-100"></i>
           </div>
-        }
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium truncate">Infirmier(ère) DE</div>
+            <div class="text-xs text-white/60 truncate">CH Orléans · CDI</div>
+          </div>
+          <div class="flex flex-col items-center">
+            <div class="relative w-10 h-10">
+              <svg width="40" height="40" viewBox="0 0 40 40">
+                <circle cx="20" cy="20" r="16" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="3"/>
+                <circle cx="20" cy="20" r="16" fill="none" stroke="#34D399" stroke-width="3"
+                        stroke-dasharray="100" stroke-dashoffset="15"
+                        transform="rotate(-90 20 20)" stroke-linecap="round"/>
+              </svg>
+              <div class="absolute inset-0 flex items-center justify-center text-xs font-semibold">85</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-        <button mat-raised-button
-                color="primary"
-                type="submit"
-                class="full-width submit-btn"
-                [disabled]="loading()">
+    <!-- Footer -->
+    <div class="relative z-10 flex items-center gap-4 text-xs text-white/60">
+      <span class="flex items-center gap-1.5">
+        <i class="ti ti-shield-check"></i>RGPD
+      </span>
+      <span class="flex items-center gap-1.5">
+        <i class="ti ti-flag-filled"></i>Made in France
+      </span>
+      <span class="flex items-center gap-1.5">
+        <i class="ti ti-lock"></i>AES-256
+      </span>
+    </div>
+  </aside>
+
+  <!-- Côté droit : formulaire premium -->
+  <section class="flex-1 flex items-center justify-center px-6 py-12 relative z-10">
+    <div class="w-full max-w-md">
+
+      <!-- Logo mobile -->
+      <div class="lg:hidden flex items-center gap-3 mb-10">
+        <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-600/30">
+          <i class="ti ti-radar-2 text-white text-xl"></i>
+        </div>
+        <span class="text-lg font-semibold text-ink">JobRadar</span>
+      </div>
+
+      <!-- En-tête -->
+      <div class="mb-8">
+        <div class="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 rounded-full px-3 py-1 text-xs font-medium mb-4">
+          <i class="ti ti-sparkles"></i>
+          Bienvenue de retour
+        </div>
+        <h1 class="text-3xl font-medium tracking-tight text-ink mb-2 leading-tight">
+          Connexion à votre <br/>
+          <span class="text-indigo-600">espace candidat</span>
+        </h1>
+        <p class="text-sm text-muted">
+          Pas encore inscrit ?
+          <a routerLink="/auth/register" class="text-indigo-600 font-medium hover:underline ml-0.5">
+            Créer un compte gratuit
+          </a>
+        </p>
+      </div>
+
+      <!-- Message d'erreur -->
+      @if (errorMessage()) {
+        <div class="mb-5 px-4 py-3 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3 animate-shake">
+          <div class="w-7 h-7 rounded-lg bg-red-100 flex items-center justify-center shrink-0">
+            <i class="ti ti-alert-triangle text-sm text-red-600"></i>
+          </div>
+          <div class="flex-1">
+            <div class="text-sm font-medium text-red-900">Connexion impossible</div>
+            <div class="text-xs text-red-700 mt-0.5">{{ errorMessage() }}</div>
+          </div>
+        </div>
+      }
+
+      <!-- Formulaire -->
+      <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-5">
+
+        <!-- Email -->
+        <div class="form-group">
+          <label for="email" class="block text-sm font-medium text-ink mb-2">
+            Email
+          </label>
+          <div class="input-wrapper">
+            <i class="ti ti-mail input-icon"></i>
+            <input
+              id="email"
+              type="email"
+              formControlName="email"
+              placeholder="vous@exemple.com"
+              autocomplete="email"
+              class="premium-input"
+              [class.input-error]="form.controls.email.invalid && form.controls.email.touched"
+            />
+            @if (form.controls.email.valid && form.controls.email.touched) {
+              <i class="ti ti-check input-success"></i>
+            }
+          </div>
+          @if (form.controls.email.touched && form.controls.email.errors) {
+            <p class="error-text">
+              <i class="ti ti-info-circle text-xs"></i>
+              @if (form.controls.email.errors['required']) { L'email est obligatoire }
+              @else if (form.controls.email.errors['email']) { Format d'email invalide }
+            </p>
+          }
+        </div>
+
+        <!-- Mot de passe -->
+        <div class="form-group">
+          <div class="flex items-center justify-between mb-2">
+            <label for="password" class="block text-sm font-medium text-ink">
+              Mot de passe
+            </label>
+            <a routerLink="/auth/forgot-password"
+               class="text-xs text-indigo-600 hover:text-indigo-700 hover:underline font-medium">
+              Mot de passe oublié ?
+            </a>
+          </div>
+          <div class="input-wrapper">
+            <i class="ti ti-lock input-icon"></i>
+            <input
+              id="password"
+              [type]="showPassword() ? 'text' : 'password'"
+              formControlName="password"
+              placeholder="••••••••••"
+              autocomplete="current-password"
+              class="premium-input pr-12"
+              [class.input-error]="form.controls.password.invalid && form.controls.password.touched"
+            />
+            <button
+              type="button"
+              (click)="togglePassword()"
+              class="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-muted hover:text-ink transition"
+              [attr.aria-label]="showPassword() ? 'Masquer' : 'Afficher'">
+              <i class="ti" [class]="showPassword() ? 'ti-eye-off' : 'ti-eye'"></i>
+            </button>
+          </div>
+          @if (form.controls.password.touched && form.controls.password.errors) {
+            <p class="error-text">
+              <i class="ti ti-info-circle text-xs"></i>
+              @if (form.controls.password.errors['required']) { Le mot de passe est obligatoire }
+              @else if (form.controls.password.errors['minlength']) { Au moins 8 caractères requis }
+            </p>
+          }
+        </div>
+
+        <!-- Se souvenir + bouton -->
+        <label class="flex items-center gap-2.5 cursor-pointer group select-none">
+          <input type="checkbox"
+                 class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 focus:ring-offset-0 cursor-pointer"/>
+          <span class="text-sm text-muted group-hover:text-ink transition">
+            Rester connecté sur cet appareil
+          </span>
+        </label>
+
+        <!-- Bouton de soumission premium -->
+        <button
+          type="submit"
+          [disabled]="loading()"
+          class="premium-button">
           @if (loading()) {
-            <span>Connexion...</span>
+            <span class="flex items-center justify-center gap-2">
+              <i class="ti ti-loader-2 animate-spin text-lg"></i>
+              <span>Connexion en cours…</span>
+            </span>
           } @else {
-            <span>Se connecter</span>
+            <span class="flex items-center justify-center gap-2">
+              <span>Se connecter</span>
+              <i class="ti ti-arrow-right transition-transform group-hover:translate-x-1"></i>
+            </span>
           }
         </button>
-      </form>
-    </mat-card-content>
 
-    <mat-card-actions class="register-link">
-      <span>Pas encore de compte ?</span>
-      <a mat-button color="accent" routerLink="/register">S'inscrire</a>
-    </mat-card-actions>
-  </mat-card>
+        <!-- Séparateur -->
+        <div class="relative flex items-center my-2">
+          <div class="flex-1 h-px bg-gray-200"></div>
+          <span class="px-3 text-xs text-muted uppercase tracking-wider">ou</span>
+          <div class="flex-1 h-px bg-gray-200"></div>
+        </div>
+
+        <!-- Boutons sociaux -->
+     <div class="grid grid-cols-2 gap-3">
+  <button type="button" (click)="loginWithGoogle()" class="social-btn">
+    <svg class="w-4 h-4" viewBox="0 0 24 24">
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09 0-.72.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+    </svg>
+    <span>Google</span>
+  </button>
+
+  <button type="button" (click)="loginWithLinkedIn()" class="social-btn">
+    <svg class="w-4 h-4" fill="#0A66C2" viewBox="0 0 24 24">
+      <path d="M19 0H5a5 5 0 0 0-5 5v14a5 5 0 0 0 5 5h14a5 5 0 0 0 5-5V5a5 5 0 0 0-5-5zM8 19H5V8h3v11zM6.5 6.7c-.97 0-1.75-.78-1.75-1.7s.78-1.7 1.75-1.7 1.75.78 1.75 1.7-.78 1.7-1.75 1.7zM20 19h-3v-5.6c0-3.37-4-3.12-4 0V19h-3V8h3v1.77c1.4-2.6 7-2.79 7 2.49V19z"/>
+    </svg>
+    <span>LinkedIn</span>
+  </button>
+</div>
+
+      </form>
+
+      <!-- Footer -->
+      <p class="text-xs text-muted text-center mt-8 leading-relaxed">
+        En vous connectant, vous acceptez nos
+        <a class="text-indigo-600 hover:underline">CGU</a> et notre
+        <a class="text-indigo-600 hover:underline">politique de confidentialité</a>.
+      </p>
+    </div>
+  </section>
 </div>

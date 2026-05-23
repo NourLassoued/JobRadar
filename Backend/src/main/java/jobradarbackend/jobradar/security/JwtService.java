@@ -27,6 +27,8 @@ public class JwtService {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", user.getId());
         claims.put("email", user.getEmail());
+        claims.put("provider", user.getProvider().name());
+
         claims.put("role", user.getRole().name());
 
         Date now = new Date();
