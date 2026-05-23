@@ -103,10 +103,6 @@ Le score (0–100) **change selon le métier** — c'est là tout l'intérêt :
 
 
 
-## 💼 Vous recrutez ?
-
-**🎯 Recherche active** : CDI Full Stack / DevOps · Alternance DevOps
-*Orléans · Paris · Télétravail · Disponible immédiatement*
 
 ### Ce que ce projet démontre
 
