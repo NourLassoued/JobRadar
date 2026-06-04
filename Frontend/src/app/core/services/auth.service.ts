@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { finalize, Observable, tap } from 'rxjs';
 import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { AuthResponse, LoginRequest, RegisterRequest } from '../models/auth.model';
@@ -28,7 +28,6 @@ export class AuthService {
     );
   }
 
-  // OAuth2 : redirection vers le backend qui gère le flow
   loginWithGoogle(): void {
     window.location.href = `${this.BACKEND_BASE}/oauth2/authorization/google`;
   }
@@ -37,16 +36,20 @@ export class AuthService {
     window.location.href = `${this.BACKEND_BASE}/oauth2/authorization/linkedin`;
   }
 
-  // Appelé sur la page de callback après redirection OAuth
   handleOAuthCallback(token: string): void {
     this.storeToken(token);
     this.router.navigate(['/app/dashboard']);
   }
 
   logout(): void {
-    localStorage.removeItem(this.TOKEN_KEY);
-    this.isAuthenticated.set(false);
-    this.router.navigate(['/auth/login']);
+    this.http.post(`${this.API}/logout`, {}).pipe(
+      finalize(() => {
+        localStorage.removeItem(this.TOKEN_KEY);
+         localStorage.clear(); 
+        this.isAuthenticated.set(false);
+        this.router.navigate(['/auth/login']);
+      })
+    ).subscribe();
   }
 
   getToken(): string | null {

@@ -6,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { AuthService } from '../../../core/services/auth.service';
 
@@ -20,6 +21,7 @@ import { AuthService } from '../../../core/services/auth.service';
     MatInputModule,
     MatButtonModule,
     MatIconModule,
+    MatProgressSpinnerModule,
   ],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
@@ -30,6 +32,8 @@ export class LoginComponent {
   private router = inject(Router);
 
   loading = signal(false);
+  loadingGoogle = signal(false);
+  loadingLinkedIn = signal(false);
   showPassword = signal(false);
   errorMessage = signal<string | null>(null);
 
@@ -41,14 +45,16 @@ export class LoginComponent {
   togglePassword(): void {
     this.showPassword.update(v => !v);
   }
-  loginWithGoogle(): void {
-  this.auth.loginWithGoogle();
+
+ loginWithGoogle(): void {
+  this.loadingGoogle.set(true);
+  setTimeout(() => this.auth.loginWithGoogle(), 300);
 }
 
 loginWithLinkedIn(): void {
-  this.auth.loginWithLinkedIn();
+  this.loadingLinkedIn.set(true);
+  setTimeout(() => this.auth.loginWithLinkedIn(), 300);
 }
-
   submit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();

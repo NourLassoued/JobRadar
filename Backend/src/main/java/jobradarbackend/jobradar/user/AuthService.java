@@ -1,5 +1,6 @@
 package jobradarbackend.jobradar.user;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jobradarbackend.jobradar.security.JwtService;
 import jobradarbackend.jobradar.user.dto.AuthResponse;
 import jobradarbackend.jobradar.user.dto.LoginRequest;
@@ -14,13 +15,13 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional
+
 public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-
+    @Transactional
     public AuthResponse register(RegisterRequest request) {
         log.info("Inscription : {}", request.getEmail());
 
@@ -42,7 +43,7 @@ public class AuthService {
         String token = jwtService.generateToken(saved);
         return buildAuthResponse(saved, token);
     }
-
+    @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
         log.info("Connexion : {}", request.getEmail());
 
@@ -69,5 +70,20 @@ public class AuthService {
                 .lastName(user.getLastName())
                 .role(user.getRole().name())
                 .build();
+    }
+    public void logout(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            log.warn("Logout : aucun token fourni");
+            return;
+        }
+
+        String token = authHeader.substring(7);
+        String userEmail = jwtService.extractEmail(token);
+
+        log.info("Logout réussi : {}", userEmail);
+
+
     }
 }

@@ -39,4 +39,5 @@ export class OauthCallbackComponent implements OnInit {
       this.router.navigate(['/auth/login']);
     }
   }
+  
 }

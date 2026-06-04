@@ -1,5 +1,6 @@
 package jobradarbackend.jobradar.user;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jobradarbackend.jobradar.user.dto.AuthResponse;
 import jobradarbackend.jobradar.user.dto.LoginRequest;
@@ -26,4 +27,10 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(HttpServletRequest request) {
+        authService.logout(request);
+        return ResponseEntity.noContent().build(); // 204
+    }
+
 }
