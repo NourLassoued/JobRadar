@@ -2,256 +2,434 @@
 
 # 🎯 JobRadar
 
-## L'agrégateur d'offres d'emploi avec IA — Tous les secteurs
+## Intelligent Job Aggregator & Career Assistant
 
-*Trouvez l'offre qui VOUS correspond vraiment*
+**Centralisez les offres d'emploi, personnalisez votre recherche et suivez vos candidatures dans une seule plateforme.**
+
+**Full Stack Java / Angular · AI · PostgreSQL · Supabase · Docker**
 
 </div>
 
 ---
 
-## ⚡ En 30 secondes
+## ⚡ Présentation
 
-- **Problème**: 6 millions de Français cherchent un emploi/an. Perdent 11h/semaine sur 5 sites différents.
-- **Solution**: JobRadar agrège 1M+ offres + les **score en fonction de votre profil** (IA Claude)
-- **Résultat**: −70% de temps de recherche · Lettre de motivation générée en 10s · Suivi structuré
+**JobRadar** est une plateforme Full Stack permettant aux candidats de :
 
----
+* 🔎 rechercher et centraliser des offres d'emploi
+* 🎯 obtenir un score personnalisé selon leur profil
+* 🤖 utiliser l'IA pour générer des lettres de motivation et des conseils
+* 📄 gérer leur profil, CV et lien LinkedIn
+* 📊 suivre leurs candidatures avec un tableau Kanban
 
-## 🔥 Ce qui différencie JobRadar
-
-| | Feature |
-|---|---|
-| 🌍 | **14 secteurs ROME** — Pas juste IT, mais Tech/Santé/BTP/Commerce/etc |
-| 🧠 | **Scoring adaptatif** — Les critères changent selon le métier (infirmier ≠ dev) |
-| 🤖 | **IA contextuelle** — Claude génère des lettres + conseils adaptés à VOTRE secteur |
-| 🔐 | **Sécurité certifiée** — OAuth2 Google/LinkedIn, JWT, RLS policies Supabase |
-| 📊 | **Données officielles** — API France Travail (légal, à jour, 1M+ offres) |
+Les offres sont intégrées depuis l'**API France Travail** et peuvent être analysées selon le secteur et le profil du candidat.
 
 ---
 
-## 🛠️ Stack (Production-Ready)
+## 🔥 Fonctionnalités principales
 
-| Couche | Tech |
-|---|---|
-| **Frontend** | Angular 18 · Signals · Reactive Forms · Tailwind · PWA |
-| **Backend** | Spring Boot 3.4 · Java 21 · Spring Security 6 |
-| **Database** | PostgreSQL 16 · JPA/Hibernate |
-| **Cloud Storage** | **Supabase Storage** (Images 5MB, CVs 10MB + RLS) |
-| **IA** | Claude API (Sonnet + Haiku) |
-| **APIs** | France Travail · Google OAuth2 · LinkedIn OAuth2 |
-| **DevOps** | Docker · GitHub Actions · Kubernetes-ready |
-
----
-
-## 📁 Fichiers livrés
-
-```
-✅ Backend complet    (Spring Boot 3.4, Java 21)
-✅ Frontend complet   (Angular 18, Signals)
-✅ ProfileComponent   (ULTRA PROFESSIONAL — avec validation CV/LinkedIn)
-✅ Base de données    (PostgreSQL 16 + migrations)
-✅ Supabase config    (RLS policies incluses)
-✅ Documentation      (Guides d'intégration)
-```
+| Fonctionnalité      | Description                                     |
+| ------------------- | ----------------------------------------------- |
+| 🔐 Authentification | Email/password + OAuth2 Google/LinkedIn         |
+| 👤 Profil candidat  | Informations personnelles, secteur, expérience  |
+| 📄 Gestion du CV    | Upload, remplacement et suppression du CV       |
+| 🔗 LinkedIn         | Validation et gestion du profil LinkedIn        |
+| 🖼️ Photo de profil | Upload et gestion sécurisée                     |
+| 🔎 Job Aggregation  | Import d'offres via France Travail API          |
+| 🧠 Job Matching     | Score personnalisé selon le profil              |
+| 🤖 AI Assistant     | Lettres de motivation et conseils personnalisés |
+| 📊 Dashboard        | Vue centralisée des offres pertinentes          |
+| 📋 Kanban           | Suivi des candidatures                          |
+| ☁️ Cloud Storage    | Supabase Storage avec politiques RLS            |
 
 ---
 
-## 🚀 Comment ça marche
+## 🧠 Scoring personnalisé
 
-### 1️⃣ Candidat crée un profil
-```
-Prénom + Nom + Email + Secteur (14 options) + Années d'expérience
-+ Upload photo + Upload CV + LinkedIn URL
-→ Données sécurisées dans PostgreSQL + Supabase
-```
+JobRadar ne se limite pas à rechercher des mots-clés.
 
-### 2️⃣ JobRadar score les offres
-```
-L'IA (Claude) analyse:
-- Votre CV + profil
-- Les offres disponibles (France Travail)
-- Votre secteur (pondération différente pour chaque)
-→ Score personnalisé 0-100 par offre
-```
+Le système peut adapter la pondération des critères selon le **secteur professionnel**.
 
-### 3️⃣ Candidat trouve les meilleures offres
-```
-Dashboard: Offres triées par score
-- Top matches en premier
-- Filtre par secteur/expérience
-- Lettre de motivation générée en 1 clic
-```
+Exemple :
 
-### 4️⃣ Suivi Kanban des candidatures
-```
-À faire → En cours → Entretien → Décision
-Toutes les candidatures en un seul endroit
-```
+| Critère     | Tech | Santé | Commerce | BTP |
+| ----------- | :--: | :---: | :------: | :-: |
+| Compétences |  40% |  15%  |    20%   | 30% |
+| Diplômes    |  10% |  40%  |    15%   | 25% |
+| Expérience  |  20% |  25%  |    25%   | 25% |
+| Soft skills |  5%  |   5%  |    30%   |  5% |
+
+### Architecture
+
+Le scoring est conçu autour du **Strategy Pattern**, permettant d'ajouter ou de modifier les règles de scoring par secteur sans modifier le cœur de l'application.
 
 ---
 
-## 🔐 Sécurité (Enterprise-Grade)
+## 🤖 Intelligence artificielle
 
-- ✅ JWT + BCrypt (passwords hashs)
-- ✅ OAuth2 Google + LinkedIn (OIDC compliant)
-- ✅ Spring Security 6 (latest)
-- ✅ **Supabase RLS policies** (chaque user = ses données)
-- ✅ CORS strict
-- ✅ Validation inputs + sanitization
-- ✅ RGPD-compliant
+L'intégration IA permet notamment de :
 
----
+* analyser les informations du candidat
+* exploiter les informations d'une offre
+* générer une lettre de motivation adaptée
+* proposer des conseils liés à l'offre
+* faciliter la personnalisation des candidatures
 
-## 📊 Algorithme de scoring (Smart)
-
-### Le score change selon le métier
-
-| Critère | Tech | Santé | Commerce | BTP |
-|---|:---:|:---:|:---:|:---:|
-| Skills techniques | **40%** | 15% | 20% | 30% |
-| Diplômes | 10% | **40%** | 15% | 25% |
-| Expérience | 20% | 25% | 25% | 25% |
-| Soft skills | 5% | 5% | **30%** | 5% |
-
-**Implementation**: Strategy Pattern → ajouter un secteur = < 4h
+**Technologie : Claude API**
 
 ---
 
-## 💾 Upload Files (Cloud)
+## ☁️ Supabase Storage
 
-### Images de profil
-- Bucket Supabase: `profiles`
-- Format: JPEG, PNG, GIF, WebP
-- Max: 5MB
-- **RLS**: Candidat accède uniquement à SA photo
+Les fichiers utilisateurs sont stockés avec **Supabase Storage**.
 
-### CVs
-- Bucket Supabase: `cvs`
-- Format: PDF, DOCX, DOC, TXT
-- Max: 10MB
-- **RLS**: Candidat accède uniquement à SON CV
+### Profile images
+
+* Bucket : `profiles`
+* Formats : JPEG, PNG, GIF, WebP
+* Taille maximale : 5 MB
+* Accès protégé par RLS
+
+### CV
+
+* Bucket : `cvs`
+* Formats : PDF, DOC, DOCX, TXT
+* Taille maximale : 10 MB
+* Accès protégé par RLS
 
 ### Upload Flow
+
+```text
+Angular
+   │
+   │ HTTP
+   ▼
+Spring Boot
+   │
+   ├──────────────► Supabase Storage
+   │                      │
+   │                      ▼
+   │                 File stored
+   │
+   ▼
+PostgreSQL
+   │
+   └── File metadata / URL
 ```
-Angular UI → Spring Boot → Supabase API → Fichier stocké
-                         ↓
-                    PostgreSQL (URL sauvegardée)
 
-
-
+Lorsqu'un utilisateur remplace son fichier, l'ancien fichier peut être supprimé afin d'éviter les fichiers obsolètes dans le Storage.
 
 ---
 
-## ⚡ Performance
+## 🛠️ Tech Stack
 
-- **Frontend**: Lazy loading + Code splitting (< 200KB gzipped)
-- **Backend**: Connection pooling + Query optimization
-- **Database**: Indexing sur `candidateId`, `sector`, `createdAt`
-- **Storage**: CDN Supabase (< 100ms worldwide)
-- **Overall**: **60+ FPS** · **< 2s page load** (Lighthouse score 95+)
+| Couche           | Technologies                                                      |
+| ---------------- | ----------------------------------------------------------------- |
+| **Frontend**     | Angular 18 · TypeScript · Signals · Reactive Forms · Tailwind CSS |
+| **Backend**      | Java 21 · Spring Boot 3.4 · Spring Security 6                     |
+| **API**          | REST API · JWT · OAuth2                                           |
+| **Database**     | PostgreSQL 16 · JPA · Hibernate                                   |
+| **Storage**      | Supabase Storage · RLS                                            |
+| **AI**           | Claude API                                                        |
+| **External API** | France Travail API                                                |
+| **DevOps**       | Docker · GitHub Actions                                           |
+| **Testing**      | JUnit · Mockito                                                   |
+| **Code Quality** | SonarQube · JaCoCo                                                |
 
 ---
 
+## 🔐 Security
 
+La sécurité de l'application repose notamment sur :
 
-## 🎨 Features complètes
+* JWT Authentication
+* BCrypt password hashing
+* Spring Security
+* OAuth2 Google
+* OAuth2 LinkedIn
+* CORS configuration
+* Server-side validation
+* Input validation
+* Supabase Row Level Security (RLS)
+* Protected API endpoints
 
-| Feature | Status | Détail |
-|---------|--------|--------|
-| ✅ Authentification | Livré | Email/password + OAuth2 Google/LinkedIn |
-| ✅ Profile candidat | Livré | Vue + Edit, upload photo + CV |
-| ✅ Job aggregation | Livré | France Travail API intégrée |
-| ✅ Scoring IA | Livré | Claude API, scoring adaptatif par secteur |
-| ✅ Supabase Storage | Livré | Images + CVs, RLS policies |
-| ✅ Dashboard | Livré | Offres personnalisées |
-| ✅ Kanban tracker | Livré | Suivi candidatures |
-| 🔄 Cover letter gen | Livré | Claude API (1 clic) |
-| ⏳ Notifications push | Q1 2026 | En cours |
-| ⏳ Multi-CV | Q2 2026 | Roadmap |
+L'objectif est de garantir que les données et fichiers d'un candidat restent accessibles selon les règles d'autorisation définies par l'application.
+
+---
+
+## 🏗️ Architecture
+
+```text
+                         ┌──────────────────────┐
+                         │      Angular 18      │
+                         │  Signals + Tailwind  │
+                         └──────────┬───────────┘
+                                    │
+                              REST + JWT
+                                    │
+                         ┌──────────▼───────────┐
+                         │     Spring Boot      │
+                         │       Java 21        │
+                         │   Spring Security    │
+                         └───────┬───────┬──────┘
+                                 │       │
+                    ┌────────────▼─┐   ┌─▼─────────────┐
+                    │  PostgreSQL  │   │    Supabase   │
+                    │   Database   │   │    Storage    │
+                    └─────────────┘   └───────────────┘
+                                 │
+                         ┌───────▼────────┐
+                         │ External APIs   │
+                         │ France Travail  │
+                         │ Google / LinkedIn│
+                         │ Claude API      │
+                         └─────────────────┘
+```
+
+---
+
+## 👤 ProfileComponent
+
+Le `ProfileComponent` permet au candidat de gérer son profil depuis une interface responsive.
+
+### Fonctionnalités
+
+* Informations personnelles
+* Secteur professionnel
+* Années d'expérience
+* Photo de profil
+* CV
+* LinkedIn URL
+* Validation des champs
+* Messages d'erreur courts
+* Responsive design
+* Reactive Forms
+* Angular Signals
+
+### Custom Validators
+
+Des validateurs personnalisés sont utilisés notamment pour :
+
+* validation du CV
+* validation de l'URL LinkedIn
+* validation des champs utilisateur
+
+---
+
+## 📋 Application Workflow
+
+### 1. Création du profil
+
+```text
+Nom + Prénom
+      ↓
+Email
+      ↓
+Secteur professionnel
+      ↓
+Expérience
+      ↓
+LinkedIn
+      ↓
+Photo + CV
+```
+
+### 2. Recherche d'emploi
+
+```text
+France Travail API
+        ↓
+Import des offres
+        ↓
+Normalisation des données
+        ↓
+Stockage PostgreSQL
+```
+
+### 3. Matching
+
+```text
+Profil candidat
+      +
+Offre d'emploi
+      ↓
+Scoring personnalisé
+      ↓
+Score de compatibilité
+```
+
+### 4. Candidature
+
+```text
+Offre
+ ↓
+Analyse
+ ↓
+Lettre de motivation IA
+ ↓
+Candidature
+ ↓
+Kanban Tracker
+```
+
+---
+
+## 📊 Dashboard
+
+Le dashboard permet de centraliser :
+
+* les offres disponibles
+* les offres correspondant au profil
+* les scores de matching
+* les candidatures
+* l'état d'avancement des candidatures
+
+### Kanban
+
+```text
+┌───────────┐   ┌───────────┐   ┌────────────┐   ┌────────────┐
+│ À faire   │ → │ En cours  │ → │ Entretien  │ → │ Décision   │
+└───────────┘   └───────────┘   └────────────┘   └────────────┘
+```
+
+---
+
+## 📁 Project Structure
+
+```text
+JobRadar/
+│
+├── backend/
+│   ├── controller/
+│   ├── service/
+│   ├── repository/
+│   ├── entity/
+│   ├── dto/
+│   ├── security/
+│   └── config/
+│
+├── frontend/
+│   └── src/
+│       └── app/
+│           ├── core/
+│           ├── features/
+│           ├── shared/
+│           └── services/
+│
+├── database/
+│   └── migrations/
+│
+└── documentation/
+```
+
+---
+
+## 📚 Documentation
+
+Documentation complémentaire disponible dans le projet :
+
+* `README-JobRadar-RECRUITER-FRIENDLY.md` — présentation orientée recruteurs
+* `README-JobRadar-UPDATED.md` — documentation technique
+* `ULTRA-PROFESSIONAL-INTEGRATION-GUIDE.md` — guide d'intégration
+* Documentation API et configuration
+
+---
+
+## 📈 Project Status
+
+| Feature                    | Status        |
+| -------------------------- | ------------- |
+| Authentication             | ✅ Implemented |
+| OAuth2 Google              | ✅ Implemented |
+| OAuth2 LinkedIn            | ✅ Implemented |
+| Candidate Profile          | ✅ Implemented |
+| CV Upload                  | ✅ Implemented |
+| Profile Image Upload       | ✅ Implemented |
+| LinkedIn Validation        | ✅ Implemented |
+| France Travail Integration | ✅ Implemented |
+| Job Matching               | ✅ Implemented |
+| AI Integration             | ✅ Implemented |
+| Supabase Storage           | ✅ Implemented |
+| RLS Policies               | ✅ Implemented |
+| Dashboard                  | ✅ Implemented |
+| Application Tracker        | ✅ Implemented |
+| Notifications              | 🔄 Planned    |
+| Multi-CV                   | 🔄 Planned    |
 
 ---
 
 ## 📱 Responsive Design
 
-- ✅ Mobile first (375px+)
-- ✅ Tablet optimized (768px+)
-- ✅ Desktop premium (1200px+)
-- ✅ PWA (offline mode)
-- ✅ Dark mode
+L'interface est conçue pour différents formats d'écran :
+
+* 📱 Mobile
+* 📱 Tablet
+* 💻 Desktop
+
+Le frontend utilise une approche responsive avec Angular et Tailwind CSS.
 
 ---
 
-## 💼 Pour les recruteurs
+## 🎯 Skills Demonstrated
 
-### Pourquoi JobRadar vous intéresse ?
+Ce projet met en pratique plusieurs compétences Full Stack :
 
-**Si vous cherchez un dev Full Stack:**
-- Autonomie complète (design → API → DB → deploy)
-- Stack moderne (Angular 18 + Spring Boot 3.4 + Java 21)
-- Security-first (JWT + OAuth2 + RLS)
-- Cloud integration (Supabase)
-- IA ready (Claude API)
-
-**Si vous cherchez un DevOps:**
-- Docker containerization
-- GitHub Actions CI/CD
-- Kubernetes ready
-- Monitoring/logging design
-- Cloud infrastructure planning
-
-**Si vous cherchez un architect:**
-- Modular architecture (Strategy Pattern)
-- Clean code + SOLID principles
-- Database design (PostgreSQL)
-- API REST design
-- Security architecture
+| Domaine             | Compétences                                       |
+| ------------------- | ------------------------------------------------- |
+| **Backend**         | Java 21 · Spring Boot · REST API                  |
+| **Security**        | JWT · OAuth2 · Spring Security                    |
+| **Frontend**        | Angular · TypeScript · Signals                    |
+| **Database**        | PostgreSQL · JPA · Hibernate                      |
+| **Cloud**           | Supabase Storage · RLS                            |
+| **AI**              | Claude API                                        |
+| **Architecture**    | Strategy Pattern · séparation des responsabilités |
+| **DevOps**          | Docker · GitHub Actions                           |
+| **Testing**         | JUnit · Mockito                                   |
+| **API Integration** | France Travail · OAuth2 providers                 |
 
 ---
----
 
-## 📊 Architecture
+## 🚀 Installation
 
-```
-┌─────────────────────────┐
-│   Angular 18 PWA        │
-│   (Signals + Tailwind)  │
-└────────────┬────────────┘
-             │ REST + JWT
-┌────────────▼────────────┐
-│  Spring Boot 3.4        │
-│  (Java 21)              │
-└──────┬────────────┬─────┘
-       │            │
-    ┌──▼──┐      ┌──▼──────────┐
-    │ PG  │      │ Supabase    │
-    │ SQL │      │ Storage     │
-    └─────┘      └─────────────┘
+### Backend
+
+```bash
+cd backend
+./mvnw spring-boot:run
 ```
 
----
+### Frontend
 
+```bash
+cd frontend
+npm install
+ng serve
+```
 
-## 🎁 Ce que ce projet démontre
+L'application sera ensuite accessible localement depuis le navigateur.
 
-| Compétence | Preuve |
-|---|---|
-| 🏗️ **Architecture** | Modules découplés + Design patterns (Strategy) |
-| 🔐 **Sécurité** | JWT + OAuth2 + Spring Security 6 + RLS |
-| 🎨 **UI/UX** | Angular 18 Signals + Tailwind + Responsive |
-| ☁️ **Cloud** | Supabase Storage + RLS policies + JWT |
-| 🤖 **IA** | Claude API integration (Sonnet + Haiku) |
-| 📊 **Données** | France Travail API (390+ offres importées) |
-| 🚀 **Autonomie** | A→Z: conception, dev, deploy, docs |
+> Les variables d'environnement et les credentials nécessaires aux services externes doivent être configurés avant le démarrage.
 
 ---
 
+## 👩‍💻 Auteur
 
+### Nour Lassoued
+
+**Full Stack Java / Angular Developer**
+
+Java · Spring Boot · Angular · PostgreSQL · Docker · Cloud · AI
+
+🌐 Portfolio : [nourstack.netlify.app](https://nourstack.netlify.app)
+
+💻 GitHub : [NourLassoued](https://github.com/NourLassoued)
+
+---
 
 <div align="center">
 
-### 👉 **Ready to hire?**
+### 🚀 JobRadar
 
-**[📧 Contactez Nour](#auteur)** ou visitez **[Portfolio](https://nourstack.netlify.app)**
+**Build. Match. Apply.**
 
 </div>
