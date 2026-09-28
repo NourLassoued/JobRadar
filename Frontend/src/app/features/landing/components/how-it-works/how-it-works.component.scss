@@ -1,22 +1,321 @@
-.step-card {
-  background: white;
-  border-radius: 0.75rem;
-  padding: 1rem;
-  border: 1px solid #e5e7eb;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+// ═══════════════════════════════════════════════════════════
+//  JobRadar — Comment ça marche (mêmes tokens que l'application)
+// ═══════════════════════════════════════════════════════════
 
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+:host {
+  --paper: #f3f5f4;
+  --surface: #ffffff;
+  --surface-sunk: #f7f8f8;
+  --ink: #17202a;
+  --ink-soft: #3a4652;
+  --muted: #66727e;
+  --line: #dde2e5;
+  --line-strong: #c5ccd2;
+  --accent: #155e63;
+  --accent-soft: #e2efee;
+  --font: 'Schibsted Grotesk', 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+
+  display: block;
+  font-family: var(--font);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) {
+  :host {
+    --paper: #0f1519;
+    --surface: #161e23;
+    --surface-sunk: #12191d;
+    --ink: #e6ebee;
+    --ink-soft: #c3ccd2;
+    --muted: #8d9aa4;
+    --line: #253038;
+    --line-strong: #34424c;
+    --accent: #5fb3b3;
+    --accent-soft: #19302f;
   }
 }
 
-.step-icon {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 0.5rem;
+*, *::before, *::after { box-sizing: border-box; }
+p, h2, h3, ol { margin: 0; }
+svg { fill: none; stroke: currentColor; stroke-linecap: round; }
+
+// ── Section ────────────────────────────────────────────────
+.how {
+  padding: 80px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.how__inner { max-width: 1120px; margin: 0 auto; }
+
+.how__head { max-width: 560px; margin-bottom: 48px; }
+
+.eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.how__title {
+  margin-top: 8px;
+  font-size: clamp(26px, 3.2vw, 36px);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.how__sub { margin-top: 10px; font-size: 16px; color: var(--ink-soft); }
+
+// ── Étapes ─────────────────────────────────────────────────
+.steps {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.step { display: flex; flex-direction: column; gap: 16px; }
+
+// Repère + ligne qui relie les étapes
+.step__rail {
+  position: relative;
+  height: 36px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin-bottom: 0.75rem;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 44px;
+    right: -20px; // traverse l'espacement jusqu'à l'étape suivante
+    top: 50%;
+    border-top: 1.5px dashed var(--line-strong);
+  }
+}
+
+.step--last .step__rail::after { display: none; }
+
+.step__node {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 5px var(--accent-soft);
+}
+
+.step__card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover { border-color: var(--line-strong); box-shadow: 0 10px 28px -16px rgba(13, 58, 62, 0.35); }
+}
+
+.step__body { padding: 18px 20px 22px; }
+
+.step__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+
+  .ti { font-size: 16px; }
+}
+
+.step__title {
+  margin-top: 8px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.step__desc {
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+// ── Illustrations ──────────────────────────────────────────
+.visual {
+  display: grid;
+  place-items: center;
+  height: 132px;
+  padding: 16px;
+  background-color: var(--accent-soft);
+  background-image: radial-gradient(color-mix(in srgb, var(--accent) 16%, transparent) 1px, transparent 1px);
+  background-size: 18px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+// 1. CV → compétences
+.cv { display: flex; align-items: center; gap: 12px; }
+
+.cv__file {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--accent);
+
+  .ti { font-size: 24px; }
+}
+
+.cv__lines {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  span { display: block; width: 28px; height: 3px; border-radius: 2px; background: var(--line-strong); }
+  span + span { width: 20px; }
+}
+
+.cv__arrow { font-size: 18px; color: var(--muted); }
+
+.cv__skills { display: flex; flex-direction: column; gap: 5px; }
+
+.chip {
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+// 2. Score
+.score-demo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.score-demo__ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+
+  svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  span { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
+}
+
+.score-demo__track { stroke: var(--line); stroke-width: 3.5; }
+.score-demo__value { stroke: var(--accent); stroke-width: 3.5; }
+
+.score-demo__bars {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: 96px;
+
+  span {
+    display: block;
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--accent) var(--w), var(--line) var(--w));
+  }
+}
+
+// 3. Kanban
+.kanban { display: grid; grid-template-columns: repeat(3, 64px); gap: 6px; }
+
+.kanban__col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  min-height: 92px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.kanban__label {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kanban__card {
+  height: 14px;
+  border-radius: 4px;
+  background: var(--surface-sunk);
+  border: 1px solid var(--line);
+}
+
+.kanban__col:last-child .kanban__card { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+
+// ── Responsive ─────────────────────────────────────────────
+@media (max-width: 900px) {
+  .how { padding: 56px 20px; }
+  .how__head { margin-bottom: 32px; }
+
+  .steps { grid-template-columns: 1fr; gap: 0; }
+
+  // En colonne : la ligne devient verticale à gauche
+  .step {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 16px;
+    padding-bottom: 20px;
+  }
+
+  .step__rail {
+    height: auto;
+    align-items: flex-start;
+
+    &::after {
+      left: 50%;
+      right: auto;
+      top: 44px;
+      bottom: -20px;
+      border-top: 0;
+      border-left: 1.5px dashed var(--line-strong);
+    }
+  }
+
+  .step--last { padding-bottom: 0; }
+}
+
+@media (prefers-color-scheme: dark) {
+  .step__node { color: #0f1519; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step__card { transition: none; }
 }

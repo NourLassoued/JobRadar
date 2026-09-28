@@ -1,12 +1,15 @@
 package jobradarbackend.jobradar.user;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jobradarbackend.jobradar.candidate.Candidate;
+import jobradarbackend.jobradar.candidate.CandidateRepository;
 import jobradarbackend.jobradar.security.JwtService;
 import jobradarbackend.jobradar.user.dto.AuthResponse;
 import jobradarbackend.jobradar.user.dto.LoginRequest;
 import jobradarbackend.jobradar.user.dto.RegisterRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +24,22 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private  final CandidateRepository candidateRepository;
+
+
+
+    public User getUserByEmail(String email) {
+        System.out.println("Looking for user with email: " + email);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> {
+                    System.out.println("User not found with email: " + email);
+                    return new UsernameNotFoundException("User not found with email: " + email);
+                });
+
+        System.out.println("User found: " + user.getId() + " - " + user.getFirstName());
+        return user;
+    }
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         log.info("Inscription : {}", request.getEmail());
@@ -30,15 +49,27 @@ public class AuthService {
         }
 
         User user = User.builder()
+
                 .email(request.getEmail().toLowerCase().trim())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .role(Role.USER)
                 .build();
-
         User saved = userRepository.save(user);
-        log.info("\u2705 Utilisateur cr\u00e9\u00e9 : {}", saved.getId());
+        log.info("✅ Utilisateur créé : {}", saved.getId());
+
+        // 2️⃣ ✅ CRÉE AUTOMATIQUEMENT LE CANDIDATE
+        Candidate candidate = Candidate.builder()
+                .user(saved)  // ← Lien vers User
+                .firstName(saved.getFirstName())
+                .lastName(saved.getLastName())
+                .email(saved.getEmail())
+                .isActive(true)
+                .build();
+
+        candidateRepository.save(candidate);
+        log.info("✅ Candidate créé : {}", candidate.getId());
 
         String token = jwtService.generateToken(saved);
         return buildAuthResponse(saved, token);
@@ -64,7 +95,7 @@ public class AuthService {
         return AuthResponse.builder()
                 .token(token)
                 .type("Bearer")
-                .userId(user.getId())
+                .id(user.getId())
                 .email(user.getEmail())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
@@ -86,4 +117,18 @@ public class AuthService {
 
 
     }
+
+    public User getUserById(Long id) {
+        System.out.println(" Looking for user with ID: " + id);
+
+        if (id == null || id <= 0) {
+            throw new IllegalArgumentException("User ID must be positive");
+        }
+
+        return userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    }
+
+
+
 }

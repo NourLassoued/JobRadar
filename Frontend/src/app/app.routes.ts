@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { OauthCallbackComponent } from './features/auth/oauth-callback/oauth-callback.component';
 
 export const routes: Routes = [
   // Page publique d'accueil
@@ -8,6 +9,10 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/landing/landing.component').then(m => m.LandingComponent),
     title: 'JobRadar — Trouvez l\'offre qui vous correspond vraiment',
+  },
+{
+    path: 'auth/callback',
+    component: OauthCallbackComponent,
   },
 
   // Authentification (lazy)
@@ -69,9 +74,13 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/profile/profile.component').then(m => m.ProfileComponent),
         title: 'JobRadar — Mon profil',
+        data: { myProfile: true }  // ← Flag pour savoir que c'est mon profil
       },
+      
+      
     ],
   },
+ 
 
   // Page 404
   {

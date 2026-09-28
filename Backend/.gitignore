@@ -27,6 +27,7 @@ HELP.md
 # ============================================================
 
 src/main/resources/application.yml
+src/main/resources/application.properties
 
 francetravail-credentials.txt
 

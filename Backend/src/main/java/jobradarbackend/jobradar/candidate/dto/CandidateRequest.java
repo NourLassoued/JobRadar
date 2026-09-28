@@ -6,7 +6,6 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 
-
 @Data
 public class CandidateRequest {
 
@@ -44,6 +43,10 @@ public class CandidateRequest {
     private BigDecimal expectedSalary;
 
     private Boolean remotePreference;
+
+    // ✅ RAJOUTE CES 2 LIGNES:
+    @Size(max = 500)
+    private String profileImageUrl;
 
     @Size(max = 500)
     private String cvUrl;

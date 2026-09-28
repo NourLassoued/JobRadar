@@ -1,6 +1,7 @@
 package jobradarbackend.jobradar.candidate;
 
 import jakarta.persistence.*;
+import jobradarbackend.jobradar.user.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -30,6 +31,10 @@ public class Candidate {
     @Column(nullable = false, length = 100)
     private String lastName;
 
+    @OneToOne(optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
     @Column(nullable = false, unique = true, length = 320)
     private String email;
 
@@ -54,9 +59,13 @@ public class Candidate {
 
     @Column(name = "expected_salary", precision = 10, scale = 2)
     private BigDecimal expectedSalary;
+
     @Column(name = "remote_preference")
     @Builder.Default
     private Boolean remotePreference = false;
+
+    @Column(name = "profile_image_url", length = 500)
+    private String profileImageUrl;
 
     @Column(name = "cv_url", length = 500)
     private String cvUrl;

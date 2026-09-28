@@ -6,11 +6,14 @@ import lombok.Data;
 @Data
 @Builder
 public class AuthResponse {
+
     private String token;
     private String type;
-    private Long userId;
+    private Long id;
     private String email;
     private String firstName;
     private String lastName;
     private String role;
+
+
 }

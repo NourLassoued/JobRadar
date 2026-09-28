@@ -6,8 +6,7 @@ interface Step {
   title: string;
   description: string;
   icon: string;
-  accentBg: string;
-  accentText: string;
+  visual: 'cv' | 'score' | 'kanban';
 }
 
 @Component({
@@ -17,33 +16,40 @@ interface Step {
   styleUrl: './how-it-works.component.scss',
 })
 export class HowItWorksComponent {
-  steps: Step[] = [
+  readonly steps: Step[] = [
     {
       index: '01',
       label: 'Profil',
       title: 'Importez votre CV',
-      description: "L'IA extrait vos compétences et choisit le bon modèle sectoriel.",
+      description: "L'IA repère vos compétences et identifie votre secteur pour appliquer les bons critères.",
       icon: 'ti-upload',
-      accentBg: 'bg-indigo-50',
-      accentText: 'text-indigo-600',
+      visual: 'cv',
     },
     {
       index: '02',
-      label: 'Scoring',
-      title: 'Recevez les meilleures offres',
-      description: 'Chaque offre est notée 0-100 selon les critères de votre métier.',
-      icon: 'ti-target',
-      accentBg: 'bg-orange-50',
-      accentText: 'text-orange-600',
+      label: 'Score',
+      title: 'Recevez les offres qui vous correspondent',
+      description: 'Chaque offre reçoit une note de 0 à 100 selon les critères propres à votre métier.',
+      icon: 'ti-target-arrow',
+      visual: 'score',
     },
     {
       index: '03',
       label: 'Candidature',
-      title: 'Postulez en 1 clic',
-      description: 'Lettre générée par IA, suivi Kanban, rappels automatiques.',
-      icon: 'ti-sparkles',
-      accentBg: 'bg-emerald-50',
-      accentText: 'text-emerald-700',
+      title: 'Postulez et suivez tout au même endroit',
+      description: 'Lettre de motivation générée, suivi de vos candidatures en colonnes et rappels.',
+      icon: 'ti-layout-kanban',
+      visual: 'kanban',
     },
+  ];
+
+  /** Compétences affichées dans l'illustration de l'étape 1 */
+  readonly cvSkills = ['Java', 'Angular', 'Docker'];
+
+  /** Colonnes de l'illustration de l'étape 3 */
+  readonly kanban = [
+    { label: 'À envoyer', cards: [1, 2] },
+    { label: 'Envoyée', cards: [1, 2, 3] },
+    { label: 'Entretien', cards: [1] },
   ];
 }

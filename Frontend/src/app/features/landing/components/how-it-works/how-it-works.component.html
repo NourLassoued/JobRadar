@@ -1,33 +1,80 @@
-<section class="px-7 py-10 bg-mist border-t border-gray-200">
-  <div class="max-w-6xl mx-auto">
+<section class="how" aria-labelledby="how-title">
+  <div class="how__inner">
 
-    <div class="text-center mb-6">
-      <h2 class="text-2xl font-medium tracking-tight mb-1 text-ink">
-        Comment ça marche
-      </h2>
-      <p class="text-sm text-muted">
-        Trois étapes, dix minutes de configuration.
-      </p>
-    </div>
+    <header class="how__head">
+      <p class="eyebrow">Comment ça marche</p>
+      <h2 class="how__title" id="how-title">Trois étapes, dix minutes de configuration.</h2>
+      <p class="how__sub">Vous créez votre profil une fois, JobRadar s'occupe du tri.</p>
+    </header>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-      @for (step of steps; track step.index) {
-        <article class="step-card">
-          <div class="step-icon" [class]="step.accentBg">
-            <i class="ti text-lg" [class]="step.icon + ' ' + step.accentText"></i>
+    <ol class="steps">
+      @for (step of steps; track step.index; let last = $last) {
+        <li class="step" [class.step--last]="last">
+
+          <!-- Repère numéroté + ligne de liaison -->
+          <div class="step__rail" aria-hidden="true">
+            <span class="step__node">{{ step.index }}</span>
           </div>
-          <div class="text-[11px] font-medium mb-1" [class]="step.accentText">
-            {{ step.index }} — {{ step.label }}
-          </div>
-          <div class="text-sm font-medium mb-1 text-ink">
-            {{ step.title }}
-          </div>
-          <p class="text-xs text-muted leading-relaxed">
-            {{ step.description }}
-          </p>
-        </article>
+
+          <article class="step__card">
+            <!-- Mini illustration -->
+            <div class="visual" aria-hidden="true">
+              @switch (step.visual) {
+                @case ('cv') {
+                  <div class="cv">
+                    <span class="cv__file">
+                      <i class="ti ti-file-text"></i>
+                      <span class="cv__lines"><span></span><span></span></span>
+                    </span>
+                    <i class="ti ti-arrow-right cv__arrow"></i>
+                    <span class="cv__skills">
+                      @for (s of cvSkills; track s) { <span class="chip">{{ s }}</span> }
+                    </span>
+                  </div>
+                }
+                @case ('score') {
+                  <div class="score-demo">
+                    <span class="score-demo__ring">
+                      <svg viewBox="0 0 40 40">
+                        <circle cx="20" cy="20" r="16" class="score-demo__track" />
+                        <circle cx="20" cy="20" r="16" class="score-demo__value" pathLength="100"
+                                stroke-dasharray="93 100" transform="rotate(-90 20 20)" />
+                      </svg>
+                      <span>93</span>
+                    </span>
+                    <span class="score-demo__bars">
+                      <span style="--w: 92%"></span>
+                      <span style="--w: 74%"></span>
+                      <span style="--w: 58%"></span>
+                    </span>
+                  </div>
+                }
+                @case ('kanban') {
+                  <div class="kanban">
+                    @for (col of kanban; track col.label) {
+                      <span class="kanban__col">
+                        <span class="kanban__label">{{ col.label }}</span>
+                        @for (c of col.cards; track c) {
+                          <span class="kanban__card"></span>
+                        }
+                      </span>
+                    }
+                  </div>
+                }
+              }
+            </div>
+
+            <div class="step__body">
+              <p class="step__label">
+                <i [class]="'ti ' + step.icon" aria-hidden="true"></i>
+                {{ step.label }}
+              </p>
+              <h3 class="step__title">{{ step.title }}</h3>
+              <p class="step__desc">{{ step.description }}</p>
+            </div>
+          </article>
+        </li>
       }
-    </div>
-
+    </ol>
   </div>
 </section>

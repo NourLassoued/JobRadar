@@ -29,6 +29,8 @@ public class CandidateResponse {
     private Boolean remotePreference;
     private String cvUrl;
     private String linkedinUrl;
+    private String profileImageUrl;
+
     private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -49,6 +51,7 @@ public class CandidateResponse {
                 .remotePreference(c.getRemotePreference())
                 .cvUrl(c.getCvUrl())
                 .linkedinUrl(c.getLinkedinUrl())
+                .profileImageUrl(c.getProfileImageUrl())
                 .isActive(c.getIsActive())
                 .createdAt(c.getCreatedAt())
                 .updatedAt(c.getUpdatedAt())

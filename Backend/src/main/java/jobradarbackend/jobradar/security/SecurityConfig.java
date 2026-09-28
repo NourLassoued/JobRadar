@@ -2,6 +2,7 @@ package jobradarbackend.jobradar.security;
 
 import jobradarbackend.jobradar.security.oauth2.CustomOAuth2UserService;
 import jobradarbackend.jobradar.security.oauth2.OAuth2SuccessHandler;
+import jobradarbackend.jobradar.security.oauth2.OAuth2FailureHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -39,6 +40,7 @@ public class SecurityConfig {
 
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final OAuth2FailureHandler oAuth2FailureHandler;  // ← NOUVEAU
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final ClientRegistrationRepository clientRegistrationRepository;
 
@@ -56,11 +58,18 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
-                                "/api/auth/**",
+                                "/api/auth/login",
+                                "/api/auth/register",
+                                "/api/auth/callback",
                                 "/oauth2/**",
                                 "/login/oauth2/**",
-                                "/error"
+                                "/error",
+                                "/api/jobs/**",
+                                "/api/sectors/**",
+                                "/api/candidates/**"
+
                         ).permitAll()
+                        .requestMatchers("/api/auth/me").authenticated()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth -> oauth
@@ -70,7 +79,7 @@ public class SecurityConfig {
                         )
                         .userInfoEndpoint(u -> u.userService(customOAuth2UserService))
                         .successHandler(oAuth2SuccessHandler)
-                        .failureUrl("http://localhost:4200/auth/login?error=oauth_failed")
+                        .failureHandler(oAuth2FailureHandler)  // ← UTILISE LE HANDLER
                         .tokenEndpoint(token -> token
                                 .accessTokenResponseClient(accessTokenResponseClient())
                         )
@@ -79,7 +88,6 @@ public class SecurityConfig {
 
         return http.build();
     }
-
     @Bean
     public OAuth2AuthorizationRequestResolver linkedInAuthorizationRequestResolver(
             ClientRegistrationRepository repo) {
@@ -87,9 +95,20 @@ public class SecurityConfig {
                 new DefaultOAuth2AuthorizationRequestResolver(repo, "/oauth2/authorization");
         resolver.setAuthorizationRequestCustomizer(customizer -> {
             var req = customizer.build();
-            if ("linkedin".equals(req.getAttribute(OAuth2ParameterNames.REGISTRATION_ID))) {
-                customizer.additionalParameters(p -> p.remove("nonce"));
+            String registrationId = (String) req.getAttribute(OAuth2ParameterNames.REGISTRATION_ID);
+
+            if ("linkedin".equals(registrationId)) {
+                customizer.additionalParameters(p -> {
+                    p.remove("nonce");
+                    p.put("prompt", "login");
+                });
                 customizer.attributes(a -> a.remove(OidcParameterNames.NONCE));
+            }
+
+            if ("google".equals(registrationId)) {
+                customizer.additionalParameters(p -> {
+                    p.put("prompt", "login");  // ← ET AUSSI POUR GOOGLE
+                });
             }
         });
         return resolver;

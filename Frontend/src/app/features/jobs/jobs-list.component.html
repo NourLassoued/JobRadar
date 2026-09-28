@@ -1,1 +1,185 @@
-<p>jobs-list works!</p>
+<div class="page">
+
+  <!-- ── En-tête ───────────────────────────────────────── -->
+  <header class="page__head">
+    <div>
+      <h1 class="page__title">Offres d'emploi</h1>
+      @if (!loading() && totalCount()) {
+        <p class="page__meta">
+          {{ totalCount() }} offres disponibles, dont {{ remoteJobsCount() }} en télétravail
+        </p>
+      }
+    </div>
+  </header>
+
+  <!-- ── Recherche et filtres ──────────────────────────── -->
+  <section class="toolbar" aria-label="Recherche et filtres">
+    <div class="toolbar__row">
+      <div class="search">
+        <i class="ti ti-search search__icon" aria-hidden="true"></i>
+        <input #searchInput type="search" class="search__input"
+               placeholder="Poste, entreprise, ville ou compétence"
+               aria-label="Rechercher une offre"
+               [value]="searchQuery()" (input)="onSearch($event)" />
+        @if (searchQuery()) {
+          <button type="button" class="search__clear" (click)="clearSearch(searchInput)" aria-label="Effacer la recherche">
+            <i class="ti ti-x" aria-hidden="true"></i>
+          </button>
+        }
+      </div>
+
+      <div class="select-wrap">
+        <label class="sr-only" for="sector-filter">Secteur</label>
+        <select id="sector-filter" class="select" [value]="sectorFilter()" (change)="onSectorChange($event)">
+          <option value="">Tous les secteurs</option>
+          @for (opt of sectorOptions(); track opt.value) {
+            <option [value]="opt.value" [selected]="opt.value === sectorFilter()">{{ opt.label }} ({{ opt.count }})</option>
+          }
+        </select>
+      </div>
+
+      <div class="select-wrap">
+        <label class="sr-only" for="sort">Trier par</label>
+        <select id="sort" class="select" (change)="onSortChange($event)">
+          <option value="recent" [selected]="sortBy() === 'recent'">Plus récentes</option>
+          <option value="salary" [selected]="sortBy() === 'salary'">Salaire le plus élevé</option>
+          <option value="title" [selected]="sortBy() === 'title'">Titre (A à Z)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="toolbar__row toolbar__row--split">
+      <div class="segmented" role="group" aria-label="Type d'offres">
+        <button type="button" class="segmented__btn" [class.is-active]="filterType() === 'all'"
+                [attr.aria-pressed]="filterType() === 'all'" (click)="onFilterChange('all')">
+          Toutes <span class="segmented__count">{{ totalCount() }}</span>
+        </button>
+        <button type="button" class="segmented__btn" [class.is-active]="filterType() === 'active'"
+                [attr.aria-pressed]="filterType() === 'active'" (click)="onFilterChange('active')">
+          Actives <span class="segmented__count">{{ activeJobsCount() }}</span>
+        </button>
+        <button type="button" class="segmented__btn" [class.is-active]="filterType() === 'remote'"
+                [attr.aria-pressed]="filterType() === 'remote'" (click)="onFilterChange('remote')">
+          Télétravail <span class="segmented__count">{{ remoteJobsCount() }}</span>
+        </button>
+      </div>
+
+      @if (hasActiveFilters()) {
+        <button type="button" class="link" (click)="clearFilters()">Réinitialiser les filtres</button>
+      }
+    </div>
+  </section>
+
+  <!-- ── Erreur ────────────────────────────────────────── -->
+  @if (errorMessage()) {
+    <div class="alert" role="alert">
+      <span class="alert__dot" aria-hidden="true"></span>
+      <p>{{ errorMessage() }}</p>
+      <button type="button" class="btn btn--secondary btn--sm" (click)="loadAllJobs()">Réessayer</button>
+    </div>
+  }
+
+  <!-- ── Chargement ────────────────────────────────────── -->
+  @if (loading()) {
+    <div class="grid" aria-busy="true" aria-label="Chargement des offres">
+      @for (i of skeletons; track i) {
+        <div class="card card--skeleton">
+          <div class="skeleton skeleton--logo"></div>
+          <div class="skeleton skeleton--line w-40"></div>
+          <div class="skeleton skeleton--line w-90"></div>
+          <div class="skeleton skeleton--line w-70"></div>
+          <div class="skeleton skeleton--line w-50"></div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── Résultats ─────────────────────────────────────── -->
+  @if (!loading() && !errorMessage() && totalCount()) {
+    <p class="results" aria-live="polite">
+      @if (searchQuery().trim()) {
+        {{ resultCount() }} résultat{{ resultCount() > 1 ? 's' : '' }} pour « {{ searchQuery().trim() }} »
+      } @else {
+        {{ resultCount() }} offre{{ resultCount() > 1 ? 's' : '' }}
+      }
+    </p>
+  }
+
+  @if (!loading() && filteredJobs().length) {
+    <ul class="grid">
+      @for (job of filteredJobs(); track job.id) {
+        <li class="card">
+          <div class="card__top">
+            <span class="card__sector" [attr.title]="sectorLabel(job.sector)" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path [attr.d]="sectorIcon(job.sector)" /></svg>
+            </span>
+            <div class="card__company">
+              <p class="card__company-name">{{ job.company || 'Entreprise non précisée' }}</p>
+              @if (job.sector) {
+                <p class="card__company-sector">{{ sectorLabel(job.sector) }}</p>
+              }
+            </div>
+            @if (isNew(job.createdAt)) {
+              <span class="badge badge--new">Nouveau</span>
+            }
+          </div>
+
+          <h2 class="card__title">
+            <a [href]="job.url" target="_blank" rel="noopener noreferrer">{{ job.title }}</a>
+          </h2>
+
+          <ul class="card__facts">
+            @if (job.location) {
+              <li><i class="ti ti-map-pin" aria-hidden="true"></i>{{ job.location }}</li>
+            }
+            @if (job.contractType) {
+              <li><span [class]="'badge ' + contractClass(job.contractType)">{{ job.contractType }}</span></li>
+            }
+            @if (job.remote) {
+              <li><span class="badge badge--remote">Télétravail</span></li>
+            }
+            @if (!job.isActive) {
+              <li><span class="badge badge--closed">Clôturée</span></li>
+            }
+          </ul>
+
+          @if (job.description) {
+            <p class="card__desc">{{ job.description }}</p>
+          }
+
+          <div class="card__foot">
+            <div>
+              @if (formatSalary(job.salaryMin, job.salaryMax)) {
+                <p class="card__salary">{{ formatSalary(job.salaryMin, job.salaryMax) }}</p>
+              } @else {
+                <p class="card__salary card__salary--empty">Salaire non communiqué</p>
+              }
+              <p class="card__date"><time [attr.datetime]="job.createdAt">{{ relativeDate(job.createdAt) }}</time></p>
+            </div>
+            <a class="btn btn--secondary btn--sm" [href]="job.url" target="_blank" rel="noopener noreferrer"
+               [attr.aria-label]="'Voir l\'offre ' + job.title + ' (nouvel onglet)'">
+              Voir l'offre
+              <i class="ti ti-external-link" aria-hidden="true"></i>
+            </a>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+
+  <!-- ── Aucun résultat ────────────────────────────────── -->
+  @if (!loading() && !errorMessage() && !filteredJobs().length) {
+    <div class="empty">
+      <span class="empty__icon" aria-hidden="true"><i class="ti ti-briefcase-off"></i></span>
+      @if (totalCount()) {
+        <h2>Aucune offre ne correspond</h2>
+        <p>Essayez un autre mot-clé, un autre secteur ou retirez un filtre.</p>
+        <button type="button" class="btn btn--primary" (click)="clearFilters()">Réinitialiser les filtres</button>
+      } @else {
+        <h2>Aucune offre pour le moment</h2>
+        <p>Les nouvelles offres apparaîtront ici dès leur import.</p>
+        <button type="button" class="btn btn--secondary" (click)="loadAllJobs()">Actualiser</button>
+      }
+    </div>
+  }
+</div>

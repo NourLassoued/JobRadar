@@ -1,3 +1,5 @@
+import { CandidateResponse } from "./candidate";
+
 export interface LoginRequest {
   email: string;
   password: string;
@@ -11,7 +13,13 @@ export interface RegisterRequest {
 }
 
 export interface AuthResponse {
+  user: any;
   token: string;
-  email: string;
-  role: string;
+
+  id: number;      
+  email: string;       
+  firstName: string;   
+  lastName: string;    
+  role: string;   
+
 }

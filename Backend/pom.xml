@@ -18,10 +18,8 @@
     <description>JobRadar Backend</description>
 
     <properties>
-        <java.version>17</java.version>
-
+        <java.version>21</java.version>
         <spring-framework.version>6.1.14</spring-framework.version>
-
     </properties>
 
     <dependencies>
@@ -74,20 +72,25 @@
             <version>0.12.5</version>
             <scope>runtime</scope>
         </dependency>
+
+        <!-- PostgreSQL -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
 
+        <!-- OAuth2 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-oauth2-client</artifactId>
         </dependency>
+
         <!-- Lombok : pour éviter le code répétitif -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+            <version>1.18.36</version>
             <optional>true</optional>
         </dependency>
 
@@ -101,6 +104,19 @@
 
     <build>
         <plugins>
+            <!-- Maven Compiler Plugin pour Java 21 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <source>21</source>
+                    <target>21</target>
+                    <release>21</release>
+                </configuration>
+            </plugin>
+
+            <!-- Spring Boot Plugin -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
