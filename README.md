@@ -137,32 +137,9 @@ Toutes les candidatures en un seul endroit
 Angular UI → Spring Boot → Supabase API → Fichier stocké
                          ↓
                     PostgreSQL (URL sauvegardée)
-```
 
----
 
-## 🎯 API REST (Endpoints clés)
 
-```
-Auth
-  POST   /api/auth/register                    (email/password)
-  POST   /api/auth/login                       (JWT token)
-  POST   /api/auth/oauth-callback              (Google/LinkedIn)
-
-Profile
-  GET    /api/candidates/profile               (profil connecté)
-  PUT    /api/candidates/profile               (update)
-  POST   /api/candidates/{id}/profile-image    (upload photo)
-  POST   /api/candidates/{id}/cv               (upload CV)
-
-Jobs
-  GET    /api/jobs?sector=TECH&limit=20        (offres triées)
-  POST   /api/candidates/{id}/apply            (candidature + lettre IA)
-  GET    /api/candidates/{id}/applications     (historique)
-
-Analytics
-  GET    /api/candidates/{id}/analytics        (dashboard)
-```
 
 ---
 
@@ -288,18 +265,6 @@ http://localhost:4200
 
 ---
 
-## 👤 Auteur
-
-**Nour El Houda Lassoued**  
-Full Stack Developer & DevOps Engineer
-
-- 🌐 [Portfolio](https://nourstack.netlify.app)
-- 💼 [LinkedIn](https://linkedin.com/in/lassouednourelhouda)
-- 🐙 [GitHub](https://github.com/NourLassoued)
-- 📧 lassoued.nourhouda@gmail.com
-- 📱 +216 26446609
-
----
 
 ## 🎁 Ce que ce projet démontre
 
@@ -315,11 +280,7 @@ Full Stack Developer & DevOps Engineer
 
 ---
 
-## 📄 License
 
-MIT License — Libre d'utilisation
-
----
 
 <div align="center">
 
