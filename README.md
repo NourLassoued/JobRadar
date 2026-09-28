@@ -153,20 +153,7 @@ Angular UI → Spring Boot → Supabase API → Fichier stocké
 
 ---
 
-## 🧪 Tests
 
-```bash
-# Backend
-mvn test                    (45 tests, 98% coverage)
-
-# Frontend
-ng test                     (32 tests, e2e + unit)
-
-# E2E
-ng e2e                      (complete user flows)
-```
-
----
 
 ## 🎨 Features complètes
 
@@ -221,27 +208,6 @@ ng e2e                      (complete user flows)
 - Security architecture
 
 ---
-
-## 🚀 Démarrer rapidement
-
-```bash
-# 1. Clone
-git clone https://github.com/NourLassoued/JobRadar.git
-
-# 2. Backend (Java 21)
-cd Backend
-mvn clean install
-mvn spring-boot:run
-
-# 3. Frontend (Node 18+)
-cd ../Frontend
-npm install
-ng serve
-
-# 4. Accès
-http://localhost:4200
-```
-
 ---
 
 ## 📊 Architecture
