@@ -1,6 +1,5 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
-import { OauthCallbackComponent } from './features/auth/oauth-callback/oauth-callback.component';
 
 export const routes: Routes = [
   // Page publique d'accueil
@@ -10,23 +9,20 @@ export const routes: Routes = [
       import('./features/landing/landing.component').then(m => m.LandingComponent),
     title: 'JobRadar — Trouvez l\'offre qui vous correspond vraiment',
   },
-{
-    path: 'auth/callback',
-    component: OauthCallbackComponent,
-  },
 
-  // Authentification (lazy)
+  // Authentification (lazy) — auth/callback géré dedans
   {
     path: 'auth',
     loadChildren: () =>
       import('./features/auth/auth.routes').then(m => m.AUTH_ROUTES),
   },
+
   // Zone applicative protégée
   {
     path: 'app',
     loadComponent: () =>
       import('./layouts/main-layout/main-layout.component').then(m => m.MainLayoutComponent),
-    canActivate: [authGuard],    
+    canActivate: [authGuard],
     children: [
       {
         path: '',
@@ -36,19 +32,19 @@ export const routes: Routes = [
       {
         path: 'dashboard',
         loadComponent: () =>
-          import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent),
+          import('./features/CandiateEspace/dashboard/dashboard.component').then(m => m.DashboardComponent),
         title: 'JobRadar — Tableau de bord',
       },
       {
         path: 'offres',
         loadComponent: () =>
-          import('./features/jobs/jobs-list.component').then(m => m.JobsListComponent),
+          import('./features/CandiateEspace/jobs/jobs-list.component').then(m => m.JobsListComponent),
         title: 'JobRadar — Offres',
       },
       {
         path: 'offres/:id',
         loadComponent: () =>
-          import('./features/jobs/job-detail.component').then(m => m.JobDetailComponent),
+          import('./features/CandiateEspace/jobs/job-detail.component').then(m => m.JobDetailComponent),
         title: 'JobRadar — Détail de l\'offre',
       },
       {
@@ -60,7 +56,7 @@ export const routes: Routes = [
       {
         path: 'lettres',
         loadComponent: () =>
-          import('./features/letters/letters.component').then(m => m.LettersComponent),
+          import('./features/CandiateEspace/letters/letters.component').then(m => m.LettersComponent),
         title: 'JobRadar — Lettres de motivation',
       },
       {
@@ -72,15 +68,12 @@ export const routes: Routes = [
       {
         path: 'profil',
         loadComponent: () =>
-          import('./features/profile/profile.component').then(m => m.ProfileComponent),
+          import('./features/CandiateEspace/profile/profile.component').then(m => m.ProfileComponent),
         title: 'JobRadar — Mon profil',
-        data: { myProfile: true }  // ← Flag pour savoir que c'est mon profil
+        data: { myProfile: true },
       },
-      
-      
     ],
   },
- 
 
   // Page 404
   {
@@ -90,7 +83,7 @@ export const routes: Routes = [
     title: 'JobRadar — Page introuvable',
   },
 
-  // Wildcard : tout le reste redirige vers 404
+  // Wildcard
   {
     path: '**',
     redirectTo: '404',

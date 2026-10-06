@@ -3,7 +3,6 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, forkJoin } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { CandidateRequest, CandidateResponse, SectorType } from '../models/candidate';
-// ✅ N'oublie pas les imports!
 import { switchMap } from 'rxjs/operators';
 import { of } from 'rxjs';
 
@@ -30,6 +29,7 @@ export class CandidateService {
   getActiveCandidates(): Observable<CandidateResponse[]> {
     return this.http.get<CandidateResponse[]>(`${this.apiUrl}/active`);
   }
+  
 
   getCandidatesBySector(sector: SectorType): Observable<CandidateResponse[]> {
     return this.http.get<CandidateResponse[]>(this.apiUrl, {
@@ -106,23 +106,14 @@ export class CandidateService {
     );
   }
 
-  /**
-   * ✅ SIMPLIFIÉ — Upload + Update en 2 requêtes séparées
-   * 
-   * Workflow:
-   * 1. PUT /api/candidates/{id} — Update les données
-   * 2. POST /api/candidates/{id}/media — Upload les files
-   * 
-   * Cela évite les problèmes de sérialisation JSON+multipart
-   */
+
   uploadAndUpdateProfile(
     id: number,
     request: CandidateRequest,
     profileImage?: File,
     cv?: File
   ): Observable<CandidateResponse> {
-    // ✅ OPTION 1: Approche simple — Update puis Upload
-    // Plus robuste, mais 2 requêtes
+    
     return this.updateCandidate(id, request).pipe(
       // Puis upload les fichiers (si y en a)
       switchMap((updatedCandidate) => {
@@ -222,5 +213,6 @@ export class CandidateService {
   getFileNameWithoutExtension(file: File): string {
     return file.name.split('.')[0];
   }
+  
 }
 

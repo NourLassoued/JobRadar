@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="x-apple-disable-message-reformatting">
+    <meta name="color-scheme" content="light only">
+    <title>Bienvenue sur JobRadar</title>
+    <style>
+        /* ── Animations (Apple Mail, iOS, Outlook Mac, Thunderbird…) ──
+           Gmail et Outlook Windows les ignorent : l'email s'affiche alors
+           normalement, sans animation. Rien n'est caché par défaut. */
+        @keyframes jr-ping {
+            0%   { box-shadow: 0 0 0 0 rgba(127,209,204,0.55); }
+            70%  { box-shadow: 0 0 0 16px rgba(127,209,204,0); }
+            100% { box-shadow: 0 0 0 0 rgba(127,209,204,0); }
+        }
+        @keyframes jr-ring {
+            0%, 100% { border-color: rgba(127,209,204,0.18); }
+            50%      { border-color: rgba(127,209,204,0.55); }
+        }
+        @keyframes jr-wave {
+            0%, 60%, 100% { transform: rotate(0deg); }
+            10%, 30%      { transform: rotate(14deg); }
+            20%, 40%      { transform: rotate(-8deg); }
+        }
+        @keyframes jr-rise {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes jr-glow {
+            0%, 100% { box-shadow: 0 12px 24px -10px rgba(13,58,62,0.7); }
+            50%      { box-shadow: 0 12px 30px -6px rgba(21,94,99,0.85), 0 0 0 4px rgba(127,209,204,0.35); }
+        }
+
+        .jr-ring-outer { animation: jr-ring 3s ease-in-out infinite; }
+        .jr-ring-mid   { animation: jr-ring 3s ease-in-out 0.5s infinite; }
+        .jr-core       { animation: jr-ping 2.4s ease-out infinite; }
+        .jr-hand       { display: inline-block; transform-origin: 70% 80%; animation: jr-wave 2.6s ease-in-out 0.6s infinite; }
+        .jr-hero-text  { animation: jr-rise 0.7s ease-out 0.1s both; }
+        .jr-cta        { animation: jr-rise 0.6s ease-out 0.35s both, jr-glow 2.8s ease-in-out 1.2s infinite; }
+        .jr-pill       { animation: jr-rise 0.6s ease-out 0.5s both; }
+        .jr-todo-1     { animation: jr-rise 0.5s ease-out 0.7s both; }
+        .jr-todo-2     { animation: jr-rise 0.5s ease-out 0.85s both; }
+        .jr-todo-3     { animation: jr-rise 0.5s ease-out 1s both; }
+        .jr-feat-1     { animation: jr-rise 0.5s ease-out 1.15s both; }
+        .jr-feat-2     { animation: jr-rise 0.5s ease-out 1.3s both; }
+        .jr-feat-3     { animation: jr-rise 0.5s ease-out 1.45s both; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .jr-ring-outer, .jr-ring-mid, .jr-core, .jr-hand, .jr-hero-text, .jr-cta, .jr-pill,
+            .jr-todo-1, .jr-todo-2, .jr-todo-3, .jr-feat-1, .jr-feat-2, .jr-feat-3 { animation: none !important; }
+        }
+
+        @media only screen and (max-width: 620px) {
+            .wrapper { padding: 12px 6px !important; }
+            .pad { padding-left: 22px !important; padding-right: 22px !important; }
+            .hero-title { font-size: 24px !important; }
+            .feat { display: block !important; width: 100% !important; padding: 0 0 12px !important; }
+            .btn-link { display: block !important; padding: 16px 20px !important; }
+        }
+    </style>
+</head>
+<body style="margin:0; padding:0; background-color:#e9eeed; -webkit-text-size-adjust:100%;">
+
+<!-- Texte d'aperçu dans la boîte de réception -->
+<div style="display:none; max-height:0; overflow:hidden; opacity:0; mso-hide:all;">
+    Votre compte est prêt. Complétez votre profil en 2 minutes pour recevoir des offres classées pour vous.
+</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#e9eeed;">
+    <tr>
+        <td class="wrapper" align="center" style="padding:36px 16px;">
+
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                   style="max-width:580px; background-color:#ffffff; border-radius:18px; overflow:hidden; box-shadow:0 20px 44px -24px rgba(13,58,62,0.45);">
+
+                <!-- ═══ EN-TÊTE PÉTROLE ═══ -->
+                <tr>
+                    <td align="center" bgcolor="#0d3a3e"
+                        style="background-color:#0d3a3e; background-image:radial-gradient(circle at 50% 70%, #155e63 0%, #0d3a3e 55%, #082628 100%); padding:32px 32px 44px;">
+
+                        <!-- Logo -->
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 32px;">
+                            <tr>
+                                <td width="28" height="28" align="center" valign="middle"
+                                    style="width:28px; height:28px; background-color:#7fd1cc; border-radius:8px; color:#082628; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:14px; font-weight:800;">J</td>
+                                <td style="padding-left:9px; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:16px; font-weight:700; color:#ffffff; letter-spacing:-0.2px;">JobRadar</td>
+                            </tr>
+                        </table>
+
+                        <!-- Badge « radar » : 3 cercles + main qui salue -->
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 26px;">
+                            <tr>
+                                <td class="jr-ring-outer" align="center" valign="middle"
+                                    style="width:132px; height:132px; border:1px solid rgba(127,209,204,0.22); border-radius:50%;">
+                                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+                                        <tr>
+                                            <td class="jr-ring-mid" align="center" valign="middle"
+                                                style="width:94px; height:94px; border:1px solid rgba(127,209,204,0.35); border-radius:50%; background-color:rgba(127,209,204,0.06);">
+                                                <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+                                                    <tr>
+                                                        <td class="jr-core" align="center" valign="middle"
+                                                            style="width:58px; height:58px; background-color:#7fd1cc; border-radius:50%; font-size:28px; line-height:58px; box-shadow:0 0 0 6px rgba(127,209,204,0.18);">
+                                                            <span class="jr-hand">&#128075;</span>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <h1 class="hero-title jr-hero-text"
+                            style="margin:0 0 10px; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:28px; line-height:1.2; font-weight:700; color:#ffffff; letter-spacing:-0.5px;">
+                            Bienvenue sur JobRadar,<br><span th:text="${candidateName}"></span>&nbsp;!
+                        </h1>
+                        <p class="jr-hero-text" style="margin:0; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:15px; line-height:1.6; color:rgba(234,245,244,0.75);">
+                            Votre compte est prêt. Plus besoin de parcourir cinq sites&nbsp;:<br>les offres qui vous correspondent viennent à vous.
+                        </p>
+                    </td>
+                </tr>
+
+                <!-- ═══ BOUTON (chevauche l'en-tête) ═══ -->
+                <tr>
+                    <td align="center" style="padding:0 32px;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:-26px auto 0;">
+                            <tr>
+                                <td class="jr-cta" align="center" bgcolor="#155e63"
+                                    style="border-radius:10px; background-color:#155e63; box-shadow:0 12px 24px -10px rgba(13,58,62,0.7); border:3px solid #ffffff;">
+                                    <a class="btn-link" href="http://localhost:4200/auth/login?returnUrl=/app/profil" target="_blank"
+                                       style="display:inline-block; padding:16px 34px; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:16px; font-weight:700; color:#ffffff; text-decoration:none; border-radius:8px;">
+                                        Compléter mon profil &nbsp;→
+                                    </a>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:16px auto 0;">
+                            <tr>
+                                <td class="jr-pill" style="padding:5px 12px; background-color:#e2efee; border-radius:999px; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:12px; font-weight:600; color:#155e63;">
+                                    &#9201; 2 minutes suffisent
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- ═══ PREMIERS PAS ═══ -->
+                <tr>
+                    <td class="pad" style="padding:36px 40px 8px;">
+                        <p style="margin:0 0 16px; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:12px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:#155e63;">
+                            Vos premiers pas
+                        </p>
+
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                            <tr class="jr-todo-1">
+                                <td width="42" valign="top" style="padding:0 0 16px;">
+                                    <div style="width:30px; height:30px; line-height:30px; border-radius:50%; background-color:#155e63; color:#ffffff; text-align:center; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; font-weight:700;">1</div>
+                                </td>
+                                <td valign="top" style="padding:3px 0 16px; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                                    <p style="margin:0; font-size:15px; font-weight:700; color:#17202a;">Choisissez votre secteur</p>
+                                    <p style="margin:2px 0 0; font-size:14px; line-height:1.5; color:#66727e;">Tech, santé, BTP… Les critères de score s'adaptent à votre métier.</p>
+                                </td>
+                            </tr>
+                            <tr class="jr-todo-2">
+                                <td width="42" valign="top" style="padding:0 0 16px;">
+                                    <div style="width:30px; height:30px; line-height:30px; border-radius:50%; background-color:#e2efee; color:#155e63; text-align:center; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; font-weight:700;">2</div>
+                                </td>
+                                <td valign="top" style="padding:3px 0 16px; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                                    <p style="margin:0; font-size:15px; font-weight:700; color:#17202a;">Ajoutez votre CV et vos compétences</p>
+                                    <p style="margin:2px 0 0; font-size:14px; line-height:1.5; color:#66727e;">Plus votre profil est complet, plus les scores sont justes.</p>
+                                </td>
+                            </tr>
+                            <tr class="jr-todo-3">
+                                <td width="42" valign="top" style="padding:0 0 8px;">
+                                    <div style="width:30px; height:30px; line-height:30px; border-radius:50%; background-color:#e2efee; color:#155e63; text-align:center; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:13px; font-weight:700;">3</div>
+                                </td>
+                                <td valign="top" style="padding:3px 0 8px; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                                    <p style="margin:0; font-size:15px; font-weight:700; color:#17202a;">Découvrez vos offres classées</p>
+                                    <p style="margin:2px 0 0; font-size:14px; line-height:1.5; color:#66727e;">Les plus pertinentes d'abord, avec une note de 0 à 100.</p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- ═══ CE QUI VOUS ATTEND ═══ -->
+                <tr>
+                    <td class="pad" style="padding:24px 40px 40px;">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                            <tr>
+                                <td class="feat jr-feat-1" width="33%" valign="top" style="padding:0 5px 0 0;">
+                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                                           style="background-color:#f7f8f8; border:1px solid #e3e8ea; border-radius:12px;">
+                                        <tr><td style="padding:16px; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                                            <div style="font-size:22px; line-height:1; margin-bottom:10px;">&#127919;</div>
+                                            <p style="margin:0; font-size:14px; font-weight:700; color:#17202a;">Score de correspondance</p>
+                                            <p style="margin:4px 0 0; font-size:13px; line-height:1.5; color:#66727e;">Chaque offre notée selon votre profil.</p>
+                                        </td></tr>
+                                    </table>
+                                </td>
+                                <td class="feat jr-feat-2" width="33%" valign="top" style="padding:0 5px;">
+                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                                           style="background-color:#f7f8f8; border:1px solid #e3e8ea; border-radius:12px;">
+                                        <tr><td style="padding:16px; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                                            <div style="font-size:22px; line-height:1; margin-bottom:10px;">&#9993;&#65039;</div>
+                                            <p style="margin:0; font-size:14px; font-weight:700; color:#17202a;">Lettres de motivation</p>
+                                            <p style="margin:4px 0 0; font-size:13px; line-height:1.5; color:#66727e;">Une première version générée en quelques secondes.</p>
+                                        </td></tr>
+                                    </table>
+                                </td>
+                                <td class="feat jr-feat-3" width="33%" valign="top" style="padding:0 0 0 5px;">
+                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                                           style="background-color:#f7f8f8; border:1px solid #e3e8ea; border-radius:12px;">
+                                        <tr><td style="padding:16px; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                                            <div style="font-size:22px; line-height:1; margin-bottom:10px;">&#128203;</div>
+                                            <p style="margin:0; font-size:14px; font-weight:700; color:#17202a;">Suivi des candidatures</p>
+                                            <p style="margin:4px 0 0; font-size:13px; line-height:1.5; color:#66727e;">Toutes vos démarches au même endroit.</p>
+                                        </td></tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+
+            <p style="margin:18px 0 0; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif; font-size:11px; line-height:1.5; color:#8d9aa4; text-align:center;">
+                Vous recevez cet email car vous venez de créer un compte JobRadar.<br>
+                &copy; <span th:text="${#dates.year(#dates.createNow())}">2026</span> JobRadar
+            </p>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

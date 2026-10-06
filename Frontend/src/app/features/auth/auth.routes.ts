@@ -1,4 +1,7 @@
+// src/app/features/auth/auth.routes.ts
+
 import { Routes } from '@angular/router';
+import { ResetPasswordComponent } from './reset-password/reset-password.component';
 
 export const AUTH_ROUTES: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -21,9 +24,15 @@ export const AUTH_ROUTES: Routes = [
     title: 'JobRadar — Mot de passe oublié',
   },
   {
-    path: 'oauth-callback',
+    path: 'reset-password',
+    component: ResetPasswordComponent,
+    title: 'JobRadar — Réinitialiser le mot de passe',
+  },
+  {
+    path: 'callback',  // ← CHANGE DE "oauth-callback" À "callback"
     loadComponent: () =>
       import('./oauth-callback/oauth-callback.component').then(m => m.OauthCallbackComponent),
     title: 'JobRadar — Authentification',
   },
+  { path: '**', redirectTo: 'login', pathMatch: 'full' }
 ];

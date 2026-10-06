@@ -61,15 +61,24 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/api/auth/register",
                                 "/api/auth/callback",
+                                "/api/auth/forgot-password",
+                                "/api/auth/reset-password/**",
+                                "/api/auth/validate-reset-token/**",
                                 "/oauth2/**",
                                 "/login/oauth2/**",
                                 "/error",
+                        "/api/sectors",
+                                "/api/sectors/IT/skills",
+                                "/api/sectors/skills").permitAll()
+                        .requestMatchers("/api/auth/me",
                                 "/api/jobs/**",
                                 "/api/sectors/**",
-                                "/api/candidates/**"
-
-                        ).permitAll()
-                        .requestMatchers("/api/auth/me").authenticated()
+                                "/api/candidates/**",
+                                "/api/auth/delete/**",
+                                "/api/auth/delete-test/**",
+                                "/api/job-offers/recommended",
+                                "/api/job-offers/user-sector",
+                                "/api/job-offers/by-sector").authenticated()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth -> oauth

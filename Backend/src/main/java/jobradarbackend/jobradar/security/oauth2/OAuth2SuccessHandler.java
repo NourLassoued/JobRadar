@@ -17,7 +17,7 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
-
+import jobradarbackend.jobradar.user.EmailService;
 import java.io.IOException;
 
 @Component
@@ -28,7 +28,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private final JwtService jwtService;
     private final UserRepository userRepository;
     private final CandidateRepository candidateRepository;
-
+    private final EmailService emailService;
     @Value("${jobradar.frontend.url}")
     private String frontendUrl;
 
@@ -107,9 +107,15 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 .email(email)
                 .isActive(true)
                 .build();
-
         candidateRepository.save(candidate);
         log.info("✅ Candidate créé automatiquement pour: {}", email);
+
+        try {
+            emailService.sendWelcomeEmail(email, firstName, provider.toString());
+            log.info("✅ Welcome email sent to: {}", email);
+        } catch (Exception e) {
+            log.warn("⚠️ Failed to send welcome email: {}", e.getMessage());
+        }
 
         return savedUser;
     }

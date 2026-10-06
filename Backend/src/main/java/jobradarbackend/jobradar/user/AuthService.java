@@ -129,6 +129,76 @@ public class AuthService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
 
+// ==================== NEW: PASSWORD RESET METHODS ====================
 
+    /**
+     * Générer un token pour reset password (valide 24h)
+     */
+    public String generatePasswordResetToken(Long userId) {
+        try {
+            log.info("Generating password reset token for user: {}", userId);
+            String resetToken = jwtService.generatePasswordResetToken(userId);
+            log.info("✅ Password reset token generated");
+            return resetToken;
+        } catch (Exception e) {
+            log.error("❌ Error generating password reset token: {}", e.getMessage());
+            throw new RuntimeException("Failed to generate reset token", e);
+        }
+    }
+
+    /**
+     * Valider un token de reset password
+     */
+    public boolean isValidPasswordResetToken(String token) {
+        try {
+            return jwtService.isValidPasswordResetToken(token);
+        } catch (Exception e) {
+            log.error("❌ Error validating reset token: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Récupérer l'ID du user depuis un token de reset
+     */
+    public Long getUserIdFromPasswordResetToken(String token) {
+        try {
+            return jwtService.getUserIdFromPasswordResetToken(token);
+        } catch (Exception e) {
+            log.error("❌ Error extracting user ID from token: {}", e.getMessage());
+            throw new RuntimeException("Invalid token", e);
+        }
+    }
+
+    /**
+     * Update le mot de passe d'un user
+     */
+    public void updatePassword(Long userId, String newPassword) {
+        try {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            user.setPassword(passwordEncoder.encode(newPassword));
+            userRepository.save(user);
+
+            log.info("✅ Password updated for user: {}", userId);
+
+        } catch (Exception e) {
+            log.error("❌ Error updating password: {}", e.getMessage());
+            throw new RuntimeException("Failed to update password", e);
+        }
+    }
+
+    /**
+     * Check if email exists
+     */
+    public boolean emailExists(String email) {
+        try {
+            return userRepository.findByEmail(email).isPresent();
+        } catch (Exception e) {
+            log.error("❌ Error checking email existence: {}", e.getMessage());
+            return false;
+        }
+    }
 
 }

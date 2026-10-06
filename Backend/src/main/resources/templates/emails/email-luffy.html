@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light only">
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <title>I love my Luffy</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap');
+        /* Le cœur du haut est un GIF animé : il bouge partout, Gmail compris.
+           Ces animations CSS s'ajoutent dans Apple Mail, iPhone, Outlook Mac… */
+        @keyframes beat    { 0%,100%{transform:scale(1)} 15%{transform:scale(1.18)} 30%{transform:scale(1)} 45%{transform:scale(1.1)} }
+        @keyframes glow    { 0%,100%{text-shadow:0 0 4px #ffc2d4} 50%{text-shadow:0 0 16px #ff9fbc,0 0 30px #ffc2d4} }
+        @keyframes fadein  { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
+        @keyframes pop     { 0%{opacity:0;transform:scale(.5)} 70%{opacity:1;transform:scale(1.12)} 100%{opacity:1;transform:scale(1)} }
+        @keyframes twinkle { 0%,100%{opacity:.35;transform:scale(.8) rotate(0)} 50%{opacity:1;transform:scale(1.2) rotate(45deg)} }
+        @keyframes floaty  { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+        @keyframes sway    { 0%,100%{transform:rotate(-6deg)} 50%{transform:rotate(6deg)} }
+
+        .beat  { display:inline-block; animation:beat 1.4s ease-in-out infinite; }
+        .tag   { animation:pop .7s cubic-bezier(.2,.9,.3,1.3) both; }
+        .glow  { animation:glow 2.5s ease-in-out infinite, fadein .9s ease .2s both; }
+        .l1{animation:fadein 1s ease .5s both} .l2{animation:fadein 1s ease .9s both}
+        .l3{animation:fadein 1s ease 1.3s both} .l4{animation:fadein 1s ease 1.7s both}
+        .star  { display:inline-block; animation:twinkle 1.8s ease-in-out infinite; }
+        .star2 { display:inline-block; animation:twinkle 1.8s ease-in-out .9s infinite; }
+        .fl1   { display:inline-block; animation:floaty 2.4s ease-in-out infinite; }
+        .fl2   { display:inline-block; animation:floaty 2.4s ease-in-out 1.2s infinite; }
+        .note  { animation:fadein 1s ease 2.1s both; }
+        .sign  { animation:fadein 1s ease 2.6s both; }
+        .ring  { display:inline-block; animation:sway 2.6s ease-in-out infinite; }
+
+        @media (prefers-reduced-motion: reduce) { * { animation:none !important; } }
+        @media only screen and (max-width:520px) {
+            .title { font-size:44px !important; }
+            .line  { font-size:27px !important; }
+            .pad   { padding-left:20px !important; padding-right:20px !important; }
+        }
+    </style>
+</head>
+<body style="margin:0;padding:0;background-color:#fff0f5;">
+
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;">
+    Un petit mot d'amour rien que pour toi 💕
+</div>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#fff0f5" style="background-color:#fff0f5;">
+    <tr>
+        <td align="center" style="padding:40px 16px;">
+
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                   style="max-width:560px;background-color:#ffe4ec;border-radius:28px;border:2px solid #ffc2d4;box-shadow:0 24px 50px -28px rgba(214,51,108,.55);">
+
+                <!-- Étiquette -->
+                <tr>
+                    <td align="center" style="padding:32px 24px 0;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" class="tag">
+                            <tr>
+                                <td style="padding:7px 18px;background-color:#d6336c;border-radius:999px;font-family:'Dancing Script','Segoe Script','Snell Roundhand','Brush Script MT',cursive;font-size:18px;font-weight:bold;color:#ffffff;">
+                                    💌 Pour mon mari
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- Cœur animé (remplacé par le GIF dans le service) -->
+                <tr>
+                    <td align="center" style="padding:20px 24px 0;font-size:96px;line-height:1;"><span class="beat">❤️</span></td>
+                </tr>
+
+                <!-- Titre -->
+                <tr>
+                    <td align="center" class="title glow" style="padding:8px 24px 6px;font-family:'Dancing Script','Segoe Script','Snell Roundhand','Brush Script MT',cursive;font-size:54px;font-weight:bold;line-height:1.1;color:#d6336c;">
+                        I love my Luffy
+                    </td>
+                </tr>
+
+                <!-- Séparateur -->
+                <tr>
+                    <td align="center" style="padding:4px 24px 14px;font-family:Lora,Georgia,'Times New Roman',serif;font-size:18px;color:#c97a00;letter-spacing:4px;">
+                        <span class="fl1" style="color:#ff8fb1;">♥</span>
+                        <span style="color:#ffc2d4;">───</span>
+                        <span class="star">✦</span>
+                        <span style="color:#ffc2d4;">───</span>
+                        <span class="fl2" style="color:#ff8fb1;">♥</span>
+                    </td>
+                </tr>
+
+                <!-- Phrases -->
+                <tr>
+                    <td align="center" class="line l1" style="padding:6px 24px;font-family:'Dancing Script','Segoe Script','Snell Roundhand','Brush Script MT',cursive;font-size:32px;font-weight:bold;color:#c97a00;">
+                        My husband <span class="ring">💍</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="center" class="line l2" style="padding:6px 24px;font-family:'Dancing Script','Segoe Script','Snell Roundhand','Brush Script MT',cursive;font-size:32px;color:#7a1c42;">
+                        I love my special one
+                    </td>
+                </tr>
+                <tr>
+                    <td align="center" class="line l3" style="padding:6px 24px;font-family:'Dancing Script','Segoe Script','Snell Roundhand','Brush Script MT',cursive;font-size:32px;font-weight:bold;color:#c97a00;">
+                        My first true love <span class="star2">✨</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td align="center" class="line l4" style="padding:6px 24px;font-family:'Dancing Script','Segoe Script','Snell Roundhand','Brush Script MT',cursive;font-size:32px;color:#7a1c42;">
+                        My team, my everything 💞
+                    </td>
+                </tr>
+
+                <!-- Petit mot -->
+                <tr>
+                    <td class="pad" align="center" style="padding:30px 36px 8px;">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="note"
+                               style="background-color:#fff7fa;border:2px dashed #ff9fbc;border-radius:20px;">
+                            <tr>
+                                <td align="center" style="padding:14px 24px 0;font-family:Lora,Georgia,'Times New Roman',serif;font-size:44px;line-height:.8;color:#ff8fb1;">&ldquo;</td>
+                            </tr>
+                            <tr>
+                                <td align="center" style="padding:4px 26px 24px;font-family:Lora,Georgia,'Times New Roman',serif;font-size:17px;line-height:1.85;font-style:italic;color:#4a0f2a;">
+                                    Avec toi, chaque jour est une nouvelle aventure.
+                                    Tu es mon premier vrai amour, mon équipe, ma force.
+                                    Peu importe la tempête, on avance ensemble —
+                                    <strong style="color:#d6336c;">toi et moi, pour toujours.</strong>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- Signature -->
+                <tr>
+                    <td align="center" class="sign" style="padding:26px 24px 8px;font-family:'Dancing Script','Segoe Script','Snell Roundhand','Brush Script MT',cursive;font-size:20px;color:#7a1c42;">
+                        Avec tout mon amour,
+                    </td>
+                </tr>
+                <tr>
+                    <td align="center" class="sign" style="padding:0 24px 36px;font-family:'Dancing Script','Segoe Script','Snell Roundhand','Brush Script MT',cursive;font-size:36px;font-weight:bold;color:#d6336c;">
+                        Ta Nour <span class="fl1">💕</span>
+                    </td>
+                </tr>
+
+            </table>
+
+            <!-- Pied -->
+            <p style="margin:18px 0 0;font-family:Lora,Georgia,'Times New Roman',serif;font-size:13px;color:#c26b8d;">
+                <span class="star">✦</span> Fait avec amour <span class="star2">✦</span>
+            </p>
+
+        </td>
+    </tr>
+</table>
+</body>
+</html>

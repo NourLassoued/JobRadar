@@ -1,10 +1,13 @@
 package jobradarbackend.jobradar.candidate.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import jobradarbackend.jobradar.candidate.SectorType;
+import jobradarbackend.jobradar.candidate.language.LanguageDto;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 public class CandidateRequest {
@@ -33,8 +36,8 @@ public class CandidateRequest {
     @Max(value = 60, message = "L'expérience ne peut pas dépasser 60 ans")
     private Integer yearsOfExperience;
 
-    @Size(max = 2000)
-    private String skills;
+    private List<String> skills;
+
 
     @Size(max = 1000)
     private String bio;
@@ -44,7 +47,6 @@ public class CandidateRequest {
 
     private Boolean remotePreference;
 
-    // ✅ RAJOUTE CES 2 LIGNES:
     @Size(max = 500)
     private String profileImageUrl;
 
@@ -53,4 +55,7 @@ public class CandidateRequest {
 
     @Size(max = 500)
     private String linkedinUrl;
+    @Valid
+    @Size(max = 10, message = "10 langues maximum")
+    private List<LanguageDto> languages;
 }

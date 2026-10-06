@@ -31,6 +31,7 @@ export class AuthService {
   private currentUser = signal<CandidateResponse | null>(this.loadUserFromStorage());
   isAuthenticated = signal<boolean>(!!this.getToken());
 
+ 
   register(payload: RegisterRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.API}/register`, payload).pipe(
       tap(res => {
@@ -56,7 +57,6 @@ export class AuthService {
   login(payload: LoginRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.API}/login`, payload).pipe(
       tap(res => {
-        console.log('🔐 Login Response:', res);
         this.storeToken(res.token);
         
         if (res.id) {
@@ -76,50 +76,21 @@ export class AuthService {
       }),
     );
   }
-loginWithGoogle(): void {
-  window.location.href = `${this.BACKEND_BASE}/oauth2/authorization/google?prompt=login`;
-}
 
-loginWithLinkedIn(): void {
-  window.location.href = `${this.BACKEND_BASE}/oauth2/authorization/linkedin?prompt=login`;
-}
-
-  /**
-   * ✅ NOUVEAU: Récupère l'utilisateur connecté depuis GET /api/auth/me
-   * Utilisé après login pour charger les infos complètes
-   */
-  public getCurrentUserInfo(): Observable<UserResponse> {
-    console.log('📥 Fetching current user info from /auth/me');
-    
-    return this.http.get<UserResponse>(`${this.API}/me`).pipe(
-      tap(user => {
-        console.log('✅ Current user fetched:', user);
-        
-        // Convertir UserResponse → CandidateResponse
-        const candidate: CandidateResponse = {
-          id: user.id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          isActive: true,
-          createdAt: user.createdAt || new Date().toISOString(),
-          updatedAt: user.createdAt || new Date().toISOString()
-        };
-        
-        this.currentUser.set(candidate);
-        this.storeUser(candidate);
-        console.log('✅ User stored in signal:', this.getCurrentUserId());
-      })
-    );
+  loginWithGoogle(): void {
+    window.location.href = `${this.BACKEND_BASE}/oauth2/authorization/google?prompt=login`;
   }
+
+  loginWithLinkedIn(): void {
+    window.location.href = `${this.BACKEND_BASE}/oauth2/authorization/linkedin?prompt=login`;
+  }
+
 
   
   public getUserById(id: number): Observable<UserResponse> {
-    console.log('📥 Fetching user with ID:', id);
     
     return this.http.get<UserResponse>(`${this.API}/user/${id}`).pipe(
       tap(user => {
-        console.log('✅ User fetched:', user);
       })
     );
   }
@@ -127,7 +98,6 @@ loginWithLinkedIn(): void {
   logout(): void {
     this.http.post(`${this.API}/logout`, {}).pipe(
       finalize(() => {
-        console.log('🔓 Logout - Cleaning localStorage');
         localStorage.removeItem(this.TOKEN_KEY);
         localStorage.removeItem(this.USER_KEY);
         this.currentUser.set(null);
@@ -143,8 +113,7 @@ loginWithLinkedIn(): void {
 
   public getCurrentUserId(): number {
     const user = this.currentUser();
-    console.log('📊 getCurrentUserId() - currentUser:', user);
-    console.log('📊 getCurrentUserId() - returning:', user?.id || 0);
+   
     return user?.id || 0;
   }
 
@@ -153,54 +122,141 @@ loginWithLinkedIn(): void {
   }
 
   private storeUser(user: CandidateResponse): void {
-    console.log('💾 Storing user to localStorage:', user);
     localStorage.setItem(this.USER_KEY, JSON.stringify(user));
   }
 
   private loadUserFromStorage(): CandidateResponse | null {
     const userJson = localStorage.getItem(this.USER_KEY);
-    console.log('📂 Loading user from localStorage:', userJson);
     
     if (!userJson) {
-      console.log('❌ No user in localStorage');
+      console.log(' No user in localStorage');
       return null;
     }
     
     try {
       const user = JSON.parse(userJson) as CandidateResponse;
-      console.log('✅ User loaded from storage:', user);
       return user;
     } catch (e) {
-      console.error('❌ Error parsing user from localStorage:', e);
+      console.error('Error parsing user from localStorage:', e);
       return null;
     }
   }
 
   private storeToken(token: string): void {
-    console.log('💾 Storing token to localStorage');
     localStorage.setItem(this.TOKEN_KEY, token);
     this.isAuthenticated.set(true);
   }
 
   handleOAuthCallback(token: string): void {
-    console.log('🔐 OAuth Callback - Step 1: Storing token');
     this.storeToken(token);
     
-    console.log('🔐 OAuth Callback - Step 2: Fetching user from /api/auth/me');
     
     setTimeout(() => {
       this.getCurrentUserInfo().subscribe({
         next: () => {
-          console.log('✅ Step 3-5: User stored!');
-          console.log('🚀 Step 6: Navigating to dashboard');
           this.router.navigate(['/app/dashboard']);
         },
         error: (err) => {
-          console.error('❌ Error from /api/auth/me:', err.status, err.message);
-          console.log('🚀 Navigating to dashboard anyway');
+          console.error(' Error from /api/auth/me:', err.status, err.message);
           this.router.navigate(['/app/dashboard']);
         }
       });
     }, 500);
   }
+
+  forgotPassword(email: string): Observable<any> {
+    
+    return this.http.post<any>(
+      `${this.API}/forgot-password`,
+      { email },
+      { headers: this.getHeaders() }
+    ).pipe(
+      tap(response => {
+      })
+    );
+  }
+
+  /**
+   * Reset password with token
+   */
+  resetPassword(token: string, newPassword: string): Observable<any> {
+    
+    return this.http.post<any>(
+      `${this.API}/reset-password`,
+      { token, newPassword },
+      { headers: this.getHeaders() }
+    ).pipe(
+      tap(response => {
+      })
+    );
+  }
+
+  /**
+   * Validate reset token
+   */
+  validateResetToken(token: string): Observable<any> {
+    
+    return this.http.get<any>(
+      `${this.API}/validate-reset-token?token=${token}`,
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
+   * Change password (for logged in users)
+   */
+  changePassword(currentPassword: string, newPassword: string): Observable<any> {
+    
+    return this.http.post<any>(
+      `${this.API}/change-password`,
+      { currentPassword, newPassword },
+      { headers: this.getHeaders() }
+    ).pipe(
+      tap(response => {
+        console.log(' Password changed successfully');
+      })
+    );
+  }
+
+  /**
+   * Helper: Get headers with token
+   */
+  private getHeaders(): any {
+    const token = this.getToken();
+    if (token) {
+      return {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+    }
+    return {
+      'Content-Type': 'application/json'
+    };
+  }
+
+public getCurrentUserInfo(): Observable<UserResponse> {
+  
+  //  FIX: Add headers with Bearer token!
+  return this.http.get<UserResponse>(`${this.API}/me`, {
+    headers: this.getHeaders()  // ← C'ÉTAIT MANQUANT!
+  }).pipe(
+    tap(user => {
+      
+      // Convertir UserResponse → CandidateResponse
+      const candidate: CandidateResponse = {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        isActive: true,
+        createdAt: user.createdAt || new Date().toISOString(),
+        updatedAt: user.createdAt || new Date().toISOString()
+      };
+      
+      this.currentUser.set(candidate);
+      this.storeUser(candidate);
+    })
+  );
+}
+ 
 }

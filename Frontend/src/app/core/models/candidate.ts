@@ -1,3 +1,5 @@
+import { CandidateLanguage } from "./Language";
+
 export enum SectorType {
   TECH = 'TECH',
   HEALTH = 'HEALTH',
@@ -13,10 +15,13 @@ export enum SectorType {
   ARTS = 'ARTS',
   PERSONAL_SERVICES = 'PERSONAL_SERVICES',
   MAINTENANCE = 'MAINTENANCE',
-  OTHER = 'OTHER'
+  OTHER = 'OTHER',
 }
 
-// ✅ AVEC EMOJIS
+/**
+ * Libellés avec emojis. Pour l'affichage sans emoji (profil, liste des offres…),
+ * utiliser sectorLabel() ou cleanLabel() de sector.utils.ts.
+ */
 export const SECTOR_LABELS: Record<SectorType, string> = {
   [SectorType.TECH]: '💻 Informatique / Tech',
   [SectorType.HEALTH]: '🏥 Santé / Médical',
@@ -32,29 +37,30 @@ export const SECTOR_LABELS: Record<SectorType, string> = {
   [SectorType.ARTS]: '🎭 Arts / Spectacle',
   [SectorType.PERSONAL_SERVICES]: '👤 Services à la personne',
   [SectorType.MAINTENANCE]: '🔧 Maintenance',
-  [SectorType.OTHER]: '🎯 Autre'
+  [SectorType.OTHER]: '🎯 Autre',
 };
 
-// ✅ NOUVEAU — C'EST CE QUE LE SELECT VA AFFICHER!
+/** Retire l'emoji de tête : « 💻 Informatique / Tech » → « Informatique / Tech » (pour le tri) */
+const withoutEmoji = (label: string): string =>
+  label.replace(/^[\p{Extended_Pictographic}\p{Emoji_Presentation}\uFE0F\u200D\s]+/u, '').trim();
+
+/** Options triées par ordre alphabétique (sans tenir compte des emojis), « Autre » en dernier */
 export const SECTOR_OPTIONS_SORTED: Array<{ value: SectorType; label: string }> = (() => {
   const options = Object.entries(SECTOR_LABELS).map(([key, label]) => ({
     value: key as SectorType,
-    label: label,
+    label,
   }));
 
   const otherOption = options.find(opt => opt.value === SectorType.OTHER);
-  const nonOtherOptions = options.filter(opt => opt.value !== SectorType.OTHER);
-
-  nonOtherOptions.sort((a, b) => a.label.localeCompare(b.label, 'fr-FR'));
+  const nonOtherOptions = options
+    .filter(opt => opt.value !== SectorType.OTHER)
+    .sort((a, b) => withoutEmoji(a.label).localeCompare(withoutEmoji(b.label), 'fr-FR'));
 
   return otherOption ? [...nonOtherOptions, otherOption] : nonOtherOptions;
 })();
 
-// ✅ FONCTION UTILITAIRE
 export function getSectorLabel(sector?: SectorType | string | null): string {
-  if (!sector || sector === '') {
-    return 'Non défini';
-  }
+  if (!sector) return 'Non défini';
   return SECTOR_LABELS[sector as SectorType] || 'Non défini';
 }
 
@@ -67,7 +73,9 @@ export interface Candidate {
   city?: string;
   sector?: SectorType;
   yearsOfExperience?: number;
-  skills?: string;
+  skills?: string[];
+  /** Langues parlées : [{ code: 'fr', level: 'NATIVE' }, { code: 'en', level: 'B2' }] */
+  languages?: CandidateLanguage[];
   bio?: string;
   expectedSalary?: number;
   remotePreference?: boolean;
@@ -87,7 +95,9 @@ export interface CandidateRequest {
   city?: string;
   sector?: SectorType;
   yearsOfExperience?: number;
-  skills?: string;
+  skills?: string[];
+  /** Envoyé même vide, pour pouvoir retirer toutes les langues */
+  languages?: CandidateLanguage[];
   bio?: string;
   expectedSalary?: number;
   remotePreference?: boolean;

@@ -2,11 +2,13 @@ package jobradarbackend.jobradar.candidate.dto;
 
 import jobradarbackend.jobradar.candidate.Candidate;
 import jobradarbackend.jobradar.candidate.SectorType;
+import jobradarbackend.jobradar.candidate.language.LanguageDto;
 import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * DTO de sortie : données renvoyées au client.
@@ -23,19 +25,25 @@ public class CandidateResponse {
     private String city;
     private SectorType sector;
     private Integer yearsOfExperience;
-    private String skills;
+    private List<String> skills;
     private String bio;
     private BigDecimal expectedSalary;
     private Boolean remotePreference;
     private String cvUrl;
     private String linkedinUrl;
     private String profileImageUrl;
-
+    private List<LanguageDto> languages;
     private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+
     public static CandidateResponse fromEntity(Candidate c) {
+        // Entité CandidateLanguage → DTO LanguageDto (liste vide si aucune langue)
+        List<LanguageDto> languages = c.getLanguages() == null
+                ? List.of()
+                : c.getLanguages().stream().map(LanguageDto::from).toList();
+
         return CandidateResponse.builder()
                 .id(c.getId())
                 .firstName(c.getFirstName())
@@ -52,6 +60,7 @@ public class CandidateResponse {
                 .cvUrl(c.getCvUrl())
                 .linkedinUrl(c.getLinkedinUrl())
                 .profileImageUrl(c.getProfileImageUrl())
+                .languages(languages)
                 .isActive(c.getIsActive())
                 .createdAt(c.getCreatedAt())
                 .updatedAt(c.getUpdatedAt())

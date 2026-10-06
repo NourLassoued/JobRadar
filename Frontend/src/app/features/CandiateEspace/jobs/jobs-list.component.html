@@ -1,0 +1,289 @@
+<div class="page">
+  <span #topSentinel class="top-sentinel" aria-hidden="true"></span>
+
+  <!-- ── En-tête ───────────────────────────────────────── -->
+  <header class="page__head">
+    <h1 class="page__title">Offres d'emploi</h1>
+    @if (!loading() && totalCount()) {
+      <p class="page__meta">
+        {{ format(totalCount()) }} offres disponibles, dont {{ format(remoteJobsCount()) }} en télétravail
+      </p>
+    }
+  </header>
+
+  <!-- ── Recherche et filtres ──────────────────────────── -->
+  <section class="toolbar" aria-label="Recherche et filtres">
+    <div class="toolbar__row">
+      <div class="search">
+        <i class="ti ti-search search__icon" aria-hidden="true"></i>
+        <input #searchInput type="search" class="search__input"
+               placeholder="Poste, entreprise, ville ou compétence"
+               aria-label="Rechercher une offre" aria-keyshortcuts="/"
+               [value]="searchQuery()" (input)="onSearch($event)" />
+        @if (searchQuery()) {
+          <button type="button" class="search__clear" (click)="clearSearch(searchInput)" aria-label="Effacer la recherche">
+            <i class="ti ti-x" aria-hidden="true"></i>
+          </button>
+        } @else {
+          <kbd class="search__kbd" aria-hidden="true">/</kbd>
+        }
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="sector-filter">Secteur</label>
+        <div class="select-icon" [class.is-loading]="sectorLoading()" [class.has-value]="sectorFilter()">
+          <span class="select-icon__glyph" aria-hidden="true">
+            @if (sectorLoading()) {
+              <span class="select-icon__spinner"></span>
+            } @else if (selectedSectorIcon()) {
+              <svg viewBox="0 0 24 24"><path [attr.d]="selectedSectorIcon()" /></svg>
+            } @else {
+              <i class="ti ti-category"></i>
+            }
+          </span>
+          <select id="sector-filter" class="select select--with-icon" (change)="onSectorChange($event)"
+                  [attr.aria-busy]="sectorLoading()" aria-describedby="sector-hint">
+            <option value="" [selected]="!sectorFilter()">Mes offres recommandées</option>
+            <optgroup label="Explorer un secteur">
+              @for (opt of sectorOptions; track opt.value) {
+                <option [value]="opt.value" [selected]="opt.value === sectorFilter()">{{ opt.label }}</option>
+              }
+            </optgroup>
+          </select>
+        </div>
+        <span class="sr-only" id="sector-hint">Choisir un secteur charge toutes ses offres.</span>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="date-filter">Publiée</label>
+        <select id="date-filter" class="select" (change)="onDateChange($event)">
+          @for (opt of dateOptions; track opt.value) {
+            <option [value]="opt.value" [selected]="opt.value === dateFilter()"
+                    [disabled]="opt.value !== 'all' && !dateCounts()[opt.value]">
+              {{ opt.label }} ({{ dateCounts()[opt.value] }})
+            </option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <div class="toolbar__row toolbar__row--split">
+      <div class="segmented" role="group" aria-label="Type d'offres">
+        <button type="button" class="segmented__btn" [class.is-active]="filterType() === 'all'"
+                [attr.aria-pressed]="filterType() === 'all'" (click)="onFilterChange('all')">
+          Toutes <span class="segmented__count">{{ totalCount() }}</span>
+        </button>
+        <button type="button" class="segmented__btn" [class.is-active]="filterType() === 'active'"
+                [attr.aria-pressed]="filterType() === 'active'" (click)="onFilterChange('active')">
+          Actives <span class="segmented__count">{{ activeJobsCount() }}</span>
+        </button>
+        <button type="button" class="segmented__btn" [class.is-active]="filterType() === 'remote'"
+                [attr.aria-pressed]="filterType() === 'remote'" (click)="onFilterChange('remote')">
+          Télétravail <span class="segmented__count">{{ remoteJobsCount() }}</span>
+        </button>
+      </div>
+
+      @if (chips().length) {
+        <ul class="chips" aria-label="Filtres actifs">
+          @for (chip of chips(); track chip.key) {
+            <li>
+              <button type="button" class="chip" (click)="removeChip(chip.key)"
+                      [attr.aria-label]="'Retirer le filtre ' + chip.label">
+                {{ chip.label }} <i class="ti ti-x" aria-hidden="true"></i>
+              </button>
+            </li>
+          }
+          @if (chips().length > 1) {
+            <li><button type="button" class="link" (click)="clearFilters()">Tout effacer</button></li>
+          }
+        </ul>
+      }
+    </div>
+  </section>
+
+  <!-- ── Erreur ────────────────────────────────────────── -->
+  @if (errorMessage()) {
+    <div class="alert" role="alert">
+      <span class="alert__dot" aria-hidden="true"></span>
+      <p>{{ errorMessage() }}</p>
+      <button type="button" class="btn btn--secondary btn--sm" (click)="loadJobsOnInit()">Réessayer</button>
+    </div>
+  }
+
+  <!-- ── Chargement ────────────────────────────────────── -->
+  @if (loading()) {
+    <div class="grid" aria-busy="true" aria-label="Chargement des offres">
+      @for (i of skeletons; track i) {
+        <div class="card card--skeleton">
+          <div class="skeleton skeleton--logo"></div>
+          <div class="skeleton skeleton--line w-40"></div>
+          <div class="skeleton skeleton--line w-90"></div>
+          <div class="skeleton skeleton--line w-70"></div>
+          <div class="skeleton skeleton--line w-50"></div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── Bandeau : exploration d'un autre secteur ─────── -->
+  @if (sectorFilter() && !loading()) {
+    <div class="explore" role="status">
+      <span class="explore__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path [attr.d]="sectorIcon(sectorFilter())" /></svg>
+      </span>
+      <p class="explore__text">
+        Vous explorez le secteur <strong>{{ sectorLabel(sectorFilter()) }}</strong>
+      </p>
+      <button type="button" class="link explore__back" (click)="removeChip('sector')">
+        <i class="ti ti-arrow-back-up" aria-hidden="true"></i> Revenir à mes offres recommandées
+      </button>
+    </div>
+  }
+
+  <!-- ── Barre des résultats ───────────────────────────── -->
+  @if (!loading() && !errorMessage() && totalCount()) {
+    <div class="results">
+      <p class="results__count" aria-live="polite">
+        <strong>{{ format(resultCount()) }}</strong> offre{{ resultCount() > 1 ? 's' : '' }}
+        @if (searchQuery().trim()) { pour « {{ searchQuery().trim() }} » }
+      </p>
+      <div class="results__tools">
+        <div class="results__sort">
+          <label for="sort">Trier par</label>
+          <select id="sort" class="select select--inline" (change)="onSortChange($event)">
+            <option value="recent" [selected]="sortBy() === 'recent'">Plus récentes</option>
+            <option value="salary" [selected]="sortBy() === 'salary'">Salaire le plus élevé</option>
+            <option value="title" [selected]="sortBy() === 'title'">Titre (A à Z)</option>
+          </select>
+        </div>
+        <div class="view-toggle" role="group" aria-label="Affichage">
+          <button type="button" class="view-toggle__btn" [class.is-active]="viewMode() === 'grid'"
+                  [attr.aria-pressed]="viewMode() === 'grid'" (click)="setView('grid')" title="Grille">
+            <i class="ti ti-layout-grid" aria-hidden="true"></i><span class="sr-only">Grille</span>
+          </button>
+          <button type="button" class="view-toggle__btn" [class.is-active]="viewMode() === 'list'"
+                  [attr.aria-pressed]="viewMode() === 'list'" (click)="setView('list')" title="Liste">
+            <i class="ti ti-list" aria-hidden="true"></i><span class="sr-only">Liste</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ── Offres ────────────────────────────────────────── -->
+  @if (!loading() && visibleJobs().length) {
+    @for (group of groupedJobs(); track group.label) {
+      @if (group.label) {
+        <h2 class="group-title">
+          <span>{{ group.label }}</span>
+          <span class="group-title__count">{{ group.jobs.length }}</span>
+        </h2>
+      }
+      <ul class="grid" [class.grid--list]="viewMode() === 'list'"
+          [class.is-refreshing]="sectorLoading()" [attr.aria-busy]="sectorLoading()">
+        @for (job of group.jobs; track job.id; let i = $index) {
+          <li class="card" [style.animation-delay.ms]="(i % 24) * 25">
+            <div class="card__top">
+              <span class="card__sector" [attr.title]="sectorLabel(job.sector)" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path [attr.d]="sectorIcon(job.sector)" /></svg>
+              </span>
+              <div class="card__company">
+                <p class="card__company-name">
+                  @for (seg of highlight(job.company || 'Entreprise non précisée'); track $index) {<span [class.hl]="seg.match">{{ seg.text }}</span>}
+                </p>
+                @if (job.sector) {
+                  <p class="card__company-sector">{{ sectorLabel(job.sector) }}</p>
+                }
+              </div>
+              @if (isNew(job.createdAt)) {
+                <span class="badge badge--new">Nouveau</span>
+              }
+            </div>
+
+            <div class="card__main">
+              <h3 class="card__title">
+                <a [href]="job.url" target="_blank" rel="noopener noreferrer" class="card__link">
+                  @for (seg of highlight(job.title); track $index) {<span [class.hl]="seg.match">{{ seg.text }}</span>}
+                </a>
+              </h3>
+
+              <ul class="card__facts">
+                @if (job.location) {
+                  <li>
+                    <i class="ti ti-map-pin" aria-hidden="true"></i>
+                    @for (seg of highlight(job.location); track $index) {<span [class.hl]="seg.match">{{ seg.text }}</span>}
+                  </li>
+                }
+                @if (job.contractType) {
+                  <li><span [class]="'badge ' + contractClass(job.contractType)">{{ job.contractType }}</span></li>
+                }
+                @if (job.remote) {
+                  <li><span class="badge badge--remote"><i class="ti ti-home" aria-hidden="true"></i>Télétravail</span></li>
+                }
+                @if (!job.isActive) {
+                  <li><span class="badge badge--closed">Clôturée</span></li>
+                }
+              </ul>
+            </div>
+
+            @if (job.description) {
+              <p class="card__desc">{{ job.description }}</p>
+            }
+
+            <div class="card__foot">
+              <div class="card__meta">
+                @if (formatSalary(job.salaryMin, job.salaryMax)) {
+                  <p class="card__salary">{{ formatSalary(job.salaryMin, job.salaryMax) }}</p>
+                } @else {
+                  <p class="card__salary card__salary--empty">Salaire non communiqué</p>
+                }
+                <p class="card__date"><time [attr.datetime]="job.createdAt">{{ relativeDate(job.createdAt) }}</time></p>
+              </div>
+              <span class="card__cta" aria-hidden="true">
+                Voir l'offre <i class="ti ti-arrow-up-right"></i>
+              </span>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+
+    <!-- Afficher plus -->
+    <div class="more">
+      <p class="more__text">{{ format(visibleJobs().length) }} sur {{ format(resultCount()) }} offres affichées</p>
+      <span class="more__bar" aria-hidden="true"><span [style.width.%]="progress()"></span></span>
+      @if (remaining()) {
+        <button type="button" class="btn btn--secondary" (click)="showMore()">
+          Afficher {{ remaining() < 24 ? remaining() : 24 }} offres de plus
+        </button>
+      }
+    </div>
+  }
+
+  <!-- ── Aucun résultat ────────────────────────────────── -->
+  @if (!loading() && !errorMessage() && !filteredJobs().length) {
+    <div class="empty">
+      <span class="empty__icon" aria-hidden="true"><i class="ti ti-briefcase-off"></i></span>
+      @if (totalCount()) {
+        <h2>Aucune offre ne correspond</h2>
+        <p>Vos filtres sont peut-être trop précis. Essayez :</p>
+        <div class="empty__actions">
+          @for (s of suggestions(); track s.label) {
+            <button type="button" class="btn btn--secondary btn--sm" (click)="s.action()">{{ s.label }}</button>
+          }
+          <button type="button" class="btn btn--primary btn--sm" (click)="clearFilters()">Tout réinitialiser</button>
+        </div>
+      } @else {
+        <h2>Aucune offre pour le moment</h2>
+        <p>Les nouvelles offres apparaîtront ici dès leur import.</p>
+        <button type="button" class="btn btn--secondary" (click)="loadJobsOnInit()">Actualiser</button>
+      }
+    </div>
+  }
+
+  @if (showBackToTop()) {
+    <button type="button" class="to-top" (click)="backToTop()" aria-label="Revenir en haut de la liste">
+      <i class="ti ti-arrow-up" aria-hidden="true"></i>
+    </button>
+  }
+</div>

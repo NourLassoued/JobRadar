@@ -3,10 +3,14 @@ package jobradarbackend.jobradar.candidate;
 import jakarta.validation.Valid;
 import jobradarbackend.jobradar.candidate.dto.CandidateRequest;
 import jobradarbackend.jobradar.candidate.dto.CandidateResponse;
+import jobradarbackend.jobradar.user.AuthService;
+import jobradarbackend.jobradar.user.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -19,7 +23,7 @@ import java.util.List;
 public class CandidateController {
 
     private final CandidateService service;
-
+private  final AuthService authService;
 
     @PostMapping
     public ResponseEntity<CandidateResponse> create(@Valid @RequestBody CandidateRequest request) {
@@ -211,5 +215,64 @@ public class CandidateController {
         log.info("DELETE /api/candidates/{}/cv", id);
         // Logique à implémenter si nécessaire
         return ResponseEntity.noContent().build();
+    }
+// ==================== DELETE USER ====================
+
+    @DeleteMapping("/delete/{userId}")
+    public ResponseEntity<String> deleteUser(
+            @PathVariable Long userId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        log.info("Delete user request from: {} for user: {}", userDetails.getUsername(), userId);
+
+        try {
+            // Vérifier que l'utilisateur supprime son propre compte
+            User currentUser = authService.getUserByEmail(userDetails.getUsername());
+            if (!currentUser.getId().equals(userId)) {
+                log.warn("⚠️ User {} tried to delete account of user {}", userDetails.getUsername(), userId);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body("You can only delete your own account");
+            }
+
+            service.deleteUser(userId);
+            log.info("✅ User deleted: {}", userDetails.getUsername());
+
+            return ResponseEntity.ok("User account deleted successfully");
+
+        } catch (Exception e) {
+            log.error("❌ Error deleting user: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Error deleting user: " + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/delete-current")
+    public ResponseEntity<String> deleteCurrentUser(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        log.info("Delete current user request from: {}", userDetails.getUsername());
+
+        try {
+            service.deleteCurrentUser(userDetails.getUsername());
+            log.info("✅ Current user deleted: {}", userDetails.getUsername());
+
+            return ResponseEntity.ok("Your account has been deleted successfully");
+
+        } catch (Exception e) {
+            log.error("❌ Error deleting current user: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Error deleting account: " + e.getMessage());
+        }
+    }
+    @DeleteMapping("/delete-test/{userId}")
+    public ResponseEntity<String> deleteUserTest(@PathVariable Long userId) {
+        log.info("🧪 DELETE TEST - Suppression utilisateur ID: {}", userId);
+        try {
+            service.deleteUser(userId);
+            return ResponseEntity.ok().body("✅ User deleted successfully");
+        } catch (Exception e) {
+            log.error("❌ Delete failed: {}", e.getMessage());
+            return ResponseEntity.status(500).body("❌ Delete failed: " + e.getMessage());
+        }
     }
 }

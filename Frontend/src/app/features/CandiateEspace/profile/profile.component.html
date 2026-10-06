@@ -1,0 +1,574 @@
+<!-- Inputs fichiers : toujours présents, pour fonctionner en lecture comme en édition -->
+<input #profileImageInput type="file" accept="image/jpeg,image/png,image/webp,image/gif"
+       (change)="onProfileImageSelected($event)" hidden aria-hidden="true" tabindex="-1" />
+<input #cvInput type="file" accept=".pdf,.doc,.docx,.txt"
+       (change)="onCVSelected($event)" hidden aria-hidden="true" tabindex="-1" />
+
+<div class="page" [attr.aria-busy]="isLoading()">
+
+  <!-- ── Message ───────────────────────────────────────── -->
+  @if (notice(); as n) {
+    <div class="notice" [class.notice--error]="n.type === 'error'" [class.notice--success]="n.type === 'success'"
+         [attr.role]="n.type === 'error' ? 'alert' : 'status'">
+      <span class="notice__dot" aria-hidden="true"></span>
+      <p>{{ n.text }}</p>
+      <button type="button" class="notice__close" (click)="dismissNotice()" aria-label="Fermer le message">
+        <i class="ti ti-x" aria-hidden="true"></i>
+      </button>
+    </div>
+  }
+
+  <!-- ── Chargement ────────────────────────────────────── -->
+  @if (isLoading()) {
+    <div class="layout" aria-label="Chargement du profil">
+      <div class="identity skeleton-block">
+        <div class="skeleton skeleton--avatar"></div>
+        <div class="skeleton skeleton--line w-70"></div>
+        <div class="skeleton skeleton--line w-50"></div>
+        <div class="skeleton skeleton--line w-90"></div>
+      </div>
+      <div class="content">
+        @for (i of [1, 2, 3]; track i) {
+          <div class="panel skeleton-block">
+            <div class="skeleton skeleton--line w-30"></div>
+            <div class="skeleton skeleton--line w-90"></div>
+            <div class="skeleton skeleton--line w-70"></div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  @if (!isLoading() && !candidate()) {
+    <div class="empty-state">
+      <h1>Profil indisponible</h1>
+      <p>Vérifiez le lien ou revenez à la liste des candidats.</p>
+    </div>
+  }
+
+  <!-- ── Contenu ───────────────────────────────────────── -->
+  @if (!isLoading() && candidate(); as c) {
+    <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" novalidate>
+
+      <header class="page__head">
+        <div>
+          <h1 class="page__title">{{ isOwner() ? 'Mon profil' : 'Profil candidat' }}</h1>
+          @if (c.updatedAt) {
+            <p class="page__meta">Mis à jour le {{ formatDate(c.updatedAt) }}</p>
+          }
+        </div>
+        @if (isOwner() && !isEditing()) {
+          <button type="button" class="btn btn--primary" (click)="startEdit()">
+            <i class="ti ti-pencil" aria-hidden="true"></i> Modifier le profil
+          </button>
+        }
+      </header>
+
+      <div class="layout">
+
+        <!-- ═══ Fiche d'identité ═══ -->
+        <aside class="identity">
+          <button type="button" class="avatar" (click)="pickProfileImage()"
+                  [disabled]="!isOwner() || isUploadingProfileImage()"
+                  [attr.aria-label]="avatarSrc() ? 'Changer la photo de profil' : 'Ajouter une photo de profil'">
+            @if (avatarSrc()) {
+              <img [src]="avatarSrc()" alt="" />
+            } @else {
+              <span class="avatar__initials">{{ userInitial() }}</span>
+            }
+            @if (isOwner()) {
+              <span class="avatar__overlay" aria-hidden="true"><i class="ti ti-camera"></i></span>
+            }
+            @if (isUploadingProfileImage()) {
+              <span class="avatar__busy"><span class="spinner"></span></span>
+            }
+          </button>
+
+          @if (isEditing() && selectedProfileImage()) {
+            <p class="identity__staged">
+              Nouvelle photo enregistrée à la validation.
+              <button type="button" class="link" (click)="clearProfileImage()">Annuler</button>
+            </p>
+          }
+
+          <h2 class="identity__name">{{ fullName() }}</h2>
+          @if (headline()) {
+            <p class="identity__headline">{{ headline() }}</p>
+          }
+
+          <div class="identity__tags">
+            @if (c.city) {
+              <span class="tag"><i class="ti ti-map-pin" aria-hidden="true"></i>{{ c.city }}</span>
+            }
+            <span class="tag" [class.tag--accent]="c.remotePreference">
+              {{ c.remotePreference ? 'Ouvert au télétravail' : 'Sur site' }}
+            </span>
+          </div>
+
+          <dl class="contact">
+            <div class="contact__row">
+              <dt>E-mail</dt>
+              <dd><a [href]="'mailto:' + c.email">{{ c.email }}</a></dd>
+            </div>
+            @if (c.phoneNumber) {
+              <div class="contact__row">
+                <dt>Téléphone</dt>
+                <dd><a [href]="'tel:' + c.phoneNumber">{{ c.phoneNumber }}</a></dd>
+              </div>
+            }
+            @if (c.linkedinUrl) {
+              <div class="contact__row">
+                <dt>LinkedIn</dt>
+                <dd><a [href]="c.linkedinUrl" target="_blank" rel="noopener noreferrer">{{ linkedinHandle(c.linkedinUrl) }}</a></dd>
+              </div>
+            }
+          </dl>
+
+          @if (isOwner()) {
+            <div class="completion">
+              <div class="completion__head">
+                <span>Profil complété</span>
+                <strong>{{ completion() }} %</strong>
+              </div>
+              <div class="completion__track" role="progressbar" aria-label="Taux de complétion du profil"
+                   [attr.aria-valuenow]="completion()" aria-valuemin="0" aria-valuemax="100">
+                @for (f of completionState(); track f.label) {
+                  <span class="completion__seg" [class.is-done]="f.done" [attr.title]="f.label"></span>
+                }
+              </div>
+              @if (missingFields().length) {
+                <p class="completion__hint">Ajoutez : {{ missingFields().join(', ') }}.</p>
+              } @else {
+                <p class="completion__hint">Votre profil est complet.</p>
+              }
+            </div>
+          }
+        </aside>
+
+        <!-- ═══ Contenu ═══ -->
+        <div class="content">
+
+          <!-- À propos -->
+          <section class="panel" aria-labelledby="h-about">
+            <h3 class="panel__title" id="h-about">À propos</h3>
+            @if (isEditing()) {
+              <div class="field">
+                <label class="field__label" for="bio">Présentation</label>
+                <textarea id="bio" class="input" formControlName="bio" rows="5" maxlength="1000"
+                          placeholder="Votre parcours, ce que vous cherchez, ce qui vous distingue."
+                          [class.is-invalid]="hasError('bio')"></textarea>
+                <div class="field__foot">
+                  @if (hasError('bio')) { <span class="field__error">{{ getErrorMessage('bio') }}</span> }
+                  <span class="field__count">{{ bioLength }} / 1000</span>
+                </div>
+              </div>
+            } @else if (c.bio) {
+              <p class="prose">{{ c.bio }}</p>
+            } @else {
+              <p class="placeholder">
+                Aucune présentation.
+                @if (isOwner()) { <button type="button" class="link" (click)="startEdit()">En ajouter une</button> }
+              </p>
+            }
+          </section>
+
+          <!-- Coordonnées -->
+          <section class="panel" aria-labelledby="h-contact">
+            <h3 class="panel__title" id="h-contact">Coordonnées</h3>
+            <div class="grid">
+              <div class="field">
+                <label class="field__label" for="firstName">Prénom</label>
+                @if (isEditing()) {
+                  <input id="firstName" class="input" formControlName="firstName" autocomplete="given-name"
+                         [class.is-invalid]="hasError('firstName')" [attr.aria-invalid]="hasError('firstName')" />
+                  @if (hasError('firstName')) { <span class="field__error">{{ getErrorMessage('firstName') }}</span> }
+                } @else {
+                  <p class="field__value">{{ c.firstName }}</p>
+                }
+              </div>
+
+              <div class="field">
+                <label class="field__label" for="lastName">Nom</label>
+                @if (isEditing()) {
+                  <input id="lastName" class="input" formControlName="lastName" autocomplete="family-name"
+                         [class.is-invalid]="hasError('lastName')" [attr.aria-invalid]="hasError('lastName')" />
+                  @if (hasError('lastName')) { <span class="field__error">{{ getErrorMessage('lastName') }}</span> }
+                } @else {
+                  <p class="field__value">{{ c.lastName }}</p>
+                }
+              </div>
+
+              <div class="field">
+                <label class="field__label" for="email">E-mail</label>
+                @if (isEditing()) {
+                  <input id="email" type="email" class="input" formControlName="email" aria-describedby="email-hint" />
+                  <span class="field__hint" id="email-hint">Identifiant de connexion, non modifiable ici.</span>
+                } @else {
+                  <p class="field__value">{{ c.email }}</p>
+                }
+              </div>
+
+              <div class="field">
+                <label class="field__label" for="phoneNumber">Téléphone</label>
+                @if (isEditing()) {
+                  <input id="phoneNumber" type="tel" class="input" formControlName="phoneNumber" autocomplete="tel"
+                         placeholder="+33 6 12 34 56 78" [class.is-invalid]="hasError('phoneNumber')" />
+                  @if (hasError('phoneNumber')) { <span class="field__error">{{ getErrorMessage('phoneNumber') }}</span> }
+                } @else {
+                  <p class="field__value" [class.is-empty]="!c.phoneNumber">{{ c.phoneNumber || 'Non renseigné' }}</p>
+                }
+              </div>
+
+              <div class="field">
+                <label class="field__label" for="city">Ville</label>
+                @if (isEditing()) {
+                  <input id="city" class="input" formControlName="city" autocomplete="address-level2"
+                         placeholder="Paris, Lyon, Tunis…" [class.is-invalid]="hasError('city')" />
+                  @if (hasError('city')) { <span class="field__error">{{ getErrorMessage('city') }}</span> }
+                } @else {
+                  <p class="field__value" [class.is-empty]="!c.city">{{ c.city || 'Non renseignée' }}</p>
+                }
+              </div>
+            </div>
+          </section>
+
+          <!-- Poste recherché -->
+          <section class="panel" aria-labelledby="h-search">
+            <h3 class="panel__title" id="h-search">Poste recherché</h3>
+            <div class="grid">
+              <div class="field field--full">
+                <div class="field__row">
+                  <span class="field__label" id="sector-label">Secteur</span>
+                  @if (isEditing() && profileForm.get('sector')?.value) {
+                    <button type="button" class="link link--sm" (click)="clearSector()">Effacer</button>
+                  }
+                </div>
+                @if (isEditing()) {
+                  <div class="sector-picker" role="radiogroup" aria-labelledby="sector-label">
+                    @for (opt of sectorOptions; track opt.value) {
+                      <label class="sector-option">
+                        <input type="radio" name="sector" formControlName="sector" [value]="opt.value"
+                               (change)="onSectorChange(opt.value)" />
+                        <span class="sector-option__icon" aria-hidden="true">
+                          <svg viewBox="0 0 24 24"><path [attr.d]="opt.icon" /></svg>
+                        </span>
+                        <span class="sector-option__label">{{ opt.label }}</span>
+                      </label>
+                    }
+                  </div>
+                } @else if (c.sector) {
+                  <span class="sector-badge">
+                    <span class="sector-badge__icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24"><path [attr.d]="sectorIcon(c.sector)" /></svg>
+                    </span>
+                    {{ getSectorLabel(c.sector) }}
+                  </span>
+                } @else {
+                  <p class="field__value is-empty">Non renseigné</p>
+                }
+              </div>
+
+              <div class="field">
+                <label class="field__label" for="yearsOfExperience">Expérience</label>
+                @if (isEditing()) {
+                  <div class="input-group">
+                    <input id="yearsOfExperience" type="number" class="input" min="0" max="70" inputmode="numeric"
+                           formControlName="yearsOfExperience" [class.is-invalid]="hasError('yearsOfExperience')" />
+                    <span class="input-group__suffix">ans</span>
+                  </div>
+                  @if (hasError('yearsOfExperience')) { <span class="field__error">{{ getErrorMessage('yearsOfExperience') }}</span> }
+                } @else {
+                  <p class="field__value" [class.is-empty]="c.yearsOfExperience == null">
+                    {{ c.yearsOfExperience != null ? c.yearsOfExperience + ' an' + (c.yearsOfExperience > 1 ? 's' : '') : 'Non renseignée' }}
+                  </p>
+                }
+              </div>
+
+              <div class="field">
+                <label class="field__label" for="expectedSalary">Salaire annuel brut souhaité</label>
+                @if (isEditing()) {
+                  <div class="input-group">
+                    <input id="expectedSalary" type="number" class="input" min="0" step="1000" inputmode="numeric"
+                           formControlName="expectedSalary" [class.is-invalid]="hasError('expectedSalary')" />
+                    <span class="input-group__suffix">€</span>
+                  </div>
+                  @if (hasError('expectedSalary')) { <span class="field__error">{{ getErrorMessage('expectedSalary') }}</span> }
+                } @else {
+                  <p class="field__value" [class.is-empty]="c.expectedSalary == null">{{ formatCurrency(c.expectedSalary) || 'Non renseigné' }}</p>
+                }
+              </div>
+
+              <div class="field">
+                <span class="field__label" id="remote-label">Télétravail</span>
+                @if (isEditing()) {
+                  <label class="switch">
+                    <input type="checkbox" formControlName="remotePreference" aria-labelledby="remote-label" />
+                    <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
+                    <span>{{ profileForm.get('remotePreference')?.value ? 'Ouvert au télétravail' : 'Sur site uniquement' }}</span>
+                  </label>
+                } @else {
+                  <p class="field__value">{{ c.remotePreference ? 'Ouvert au télétravail' : 'Sur site uniquement' }}</p>
+                }
+              </div>
+            </div>
+          </section>
+
+          <!-- Compétences -->
+          <section class="panel" aria-labelledby="h-skills">
+            <div class="panel__head">
+              <h3 class="panel__title" id="h-skills">Compétences</h3>
+              @if (selectedSkills().length) {
+                <span class="panel__count">{{ selectedSkills().length }}</span>
+              }
+            </div>
+
+            @if (isEditing()) {
+              @if (!profileForm.get('sector')?.value) {
+                <p class="placeholder">Choisissez d'abord un secteur pour voir les compétences proposées.</p>
+              } @else if (skillsLoading()) {
+                <p class="placeholder"><span class="spinner spinner--sm" aria-hidden="true"></span> Chargement des compétences…</p>
+              } @else if (!sectorSkills().length) {
+                <p class="placeholder">Aucune compétence proposée pour ce secteur. Ajoutez les vôtres ci-dessous.</p>
+              } @else {
+                <p class="field__label">
+                  Compétences proposées pour <strong class="field__strong">{{ selectedSectorLabel() }}</strong>
+                  <span class="field__hint">, sélectionnez-en une ou plusieurs</span>
+                </p>
+                <div class="skill-pick" role="group" [attr.aria-label]="'Compétences du secteur ' + selectedSectorLabel()">
+                  @for (skill of sectorSkills(); track skill) {
+                    <button type="button" class="skill-toggle" [class.is-on]="isSkillSelected(skill)"
+                            [attr.aria-pressed]="isSkillSelected(skill)" (click)="toggleSkill(skill)">
+                      <i [class]="'ti ' + (isSkillSelected(skill) ? 'ti-check' : 'ti-plus')" aria-hidden="true"></i>
+                      {{ skill }}
+                    </button>
+                  }
+                </div>
+              }
+
+              <!-- Compétence personnalisée -->
+              <div class="field custom-skill">
+                <label class="field__label" for="custom-skill">Autre compétence</label>
+                <div class="custom-skill__row">
+                  <div class="custom-skill__box">
+                    <input #customInput id="custom-skill" type="text" class="input" autocomplete="off"
+                           placeholder="ex. Gestion de projet, Anglais courant"
+                           [value]="customSkillInput()"
+                           (input)="customSkillInput.set(customInput.value); showSuggestions.set(true)"
+                           (focus)="onSkillInputFocus()" (blur)="onSkillInputBlur()"
+                           (keydown)="onSkillInputKeydown($event)"
+                           role="combobox" aria-autocomplete="list" aria-controls="skill-suggestions"
+                           [attr.aria-expanded]="showSuggestions() && filteredSuggestions().length > 0" />
+
+                    @if (showSuggestions() && filteredSuggestions().length) {
+                      <ul class="suggestions" id="skill-suggestions" role="listbox" aria-label="Suggestions">
+                        @for (s of filteredSuggestions(); track s) {
+                          <li role="option" class="suggestions__item" [attr.aria-selected]="false"
+                              (mousedown)="$event.preventDefault()" (click)="addSkillFromSuggestion(s)">
+                            <i class="ti ti-plus" aria-hidden="true"></i>{{ s }}
+                          </li>
+                        }
+                      </ul>
+                    }
+                  </div>
+                  <button type="button" class="btn btn--secondary" (click)="addCustomSkill()"
+                          [disabled]="!customSkillInput().trim()">Ajouter</button>
+                </div>
+                <span class="field__hint">Une compétence absente de la liste ? Saisissez-la puis appuyez sur Entrée.</span>
+              </div>
+
+              <!-- Sélection -->
+              @if (selectedSkills().length) {
+                <div class="selected">
+                  <div class="field__row">
+                    <span class="field__label">
+                      Vos compétences ({{ selectedSkills().length }})
+                      @if (otherSkills().length) {
+                        <span class="field__hint">, dont {{ otherSkills().length }} personnalisée{{ otherSkills().length > 1 ? 's' : '' }}</span>
+                      }
+                    </span>
+                    <button type="button" class="link link--sm link--danger" (click)="clearSkills()">Tout retirer</button>
+                  </div>
+                  <ul class="chips">
+                    @for (skill of selectedSkills(); track skill) {
+                      <li class="chip chip--removable" [class.chip--custom]="otherSkills().includes(skill)"
+                          [attr.title]="otherSkills().includes(skill) ? 'Compétence personnalisée' : null">
+                        {{ skill }}
+                        <button type="button" class="chip__remove" (click)="removeSkill(skill)"
+                                [attr.aria-label]="'Retirer ' + skill">
+                          <i class="ti ti-x" aria-hidden="true"></i>
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+            } @else if (selectedSkills().length) {
+              <ul class="chips">
+                @for (skill of selectedSkills(); track skill) {
+                  <li class="chip">{{ skill }}</li>
+                }
+              </ul>
+            } @else {
+              <p class="placeholder">
+                Aucune compétence renseignée.
+                @if (isOwner()) { <button type="button" class="link" (click)="startEdit()">Ajouter des compétences</button> }
+              </p>
+            }
+          </section>
+
+          <!-- Langues -->
+          <section class="panel" aria-labelledby="h-langs">
+            <div class="panel__head">
+              <h3 class="panel__title" id="h-langs">Langues</h3>
+              @if (sortedLanguages().length) {
+                <span class="panel__count">{{ sortedLanguages().length }}</span>
+              }
+            </div>
+
+            @if (isEditing()) {
+              @if (languages().length) {
+                <ul class="lang-edit">
+                  @for (l of languages(); track $index; let i = $index) {
+                    <li class="lang-row">
+                      <div class="lang-row__lang">
+                        <label class="sr-only" [attr.for]="'lang-' + i">Langue</label>
+                        <select [id]="'lang-' + i" class="input input--select"
+                                (change)="setLanguageCode(i, $any($event.target).value)">
+                          <option value="" disabled [selected]="!l.code">Choisir une langue</option>
+                          @for (opt of languageReference().languages; track opt.code) {
+                            <option [value]="opt.code" [selected]="opt.code === l.code"
+                                    [disabled]="isLanguageTaken(opt.code, i)">{{ opt.label }}</option>
+                          }
+                        </select>
+                      </div>
+
+                      <div class="level-pick" role="radiogroup"
+                           [attr.aria-label]="'Niveau en ' + (l.code ? languageLabel(l.code) : 'cette langue')">
+                        @for (lv of levels(); track lv.code) {
+                          <button type="button" role="radio" class="level-pick__btn"
+                                  [class.is-on]="l.level === lv.code"
+                                  [class.level-pick__btn--native]="lv.code === 'NATIVE'"
+                                  [attr.aria-checked]="l.level === lv.code"
+                                  [attr.title]="lv.label + ' : ' + lv.description"
+                                  (click)="setLanguageLevel(i, lv.code)">
+                            {{ lv.shortLabel }}
+                          </button>
+                        }
+                      </div>
+
+                      <button type="button" class="lang-row__remove" (click)="removeLanguage(i)"
+                              [attr.aria-label]="'Retirer ' + (l.code ? languageLabel(l.code) : 'cette langue')">
+                        <i class="ti ti-trash" aria-hidden="true"></i>
+                      </button>
+
+                      <p class="lang-row__hint">{{ levelLabel(l.level) }} : {{ levelDescription(l.level) }}</p>
+                    </li>
+                  }
+                </ul>
+              } @else {
+                <p class="placeholder">Aucune langue ajoutée pour le moment.</p>
+              }
+
+              <button type="button" class="btn btn--secondary btn--sm lang-add" (click)="addLanguage()"
+                      [disabled]="!canAddLanguage()">
+                <i class="ti ti-plus" aria-hidden="true"></i> Ajouter une langue
+              </button>
+              <span class="field__hint">Niveaux du Cadre européen (CECRL), de A1 débutant à C2 maîtrise.</span>
+            } @else if (sortedLanguages().length) {
+              <ul class="langs">
+                @for (l of sortedLanguages(); track l.code) {
+                  <li class="lang">
+                    <span class="lang__name">{{ languageLabel(l.code) }}</span>
+                    @if (l.level === 'NATIVE') {
+                      <span class="lang__native"><i class="ti ti-star" aria-hidden="true"></i>Langue maternelle</span>
+                    } @else {
+                      <span class="lang__meter" aria-hidden="true">
+                        @for (step of levelSteps; track step) {
+                          <span [class.is-on]="levelRank(l.level) >= step"></span>
+                        }
+                      </span>
+                      <span class="lang__level" [attr.title]="levelDescription(l.level)">{{ levelLabel(l.level) }}</span>
+                    }
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="placeholder">
+                Aucune langue renseignée.
+                @if (isOwner()) { <button type="button" class="link" (click)="startEdit()">Ajouter vos langues</button> }
+              </p>
+            }
+          </section>
+
+          <!-- Documents et liens -->
+          <section class="panel" aria-labelledby="h-docs">
+            <h3 class="panel__title" id="h-docs">Documents et liens</h3>
+
+            <div class="doc">
+              <span class="doc__icon" aria-hidden="true"><i class="ti ti-file-cv"></i></span>
+              <div class="doc__body">
+                <p class="doc__name">{{ cvDisplayName() || 'Aucun CV' }}</p>
+                <p class="doc__meta">
+                  @if (isUploadingCV()) { Envoi en cours… }
+                  @else if (isEditing() && selectedCV()) { Sera envoyé à l'enregistrement }
+                  @else if (c.cvUrl) { Curriculum vitae }
+                  @else { PDF, DOC, DOCX ou TXT, 10 Mo max }
+                </p>
+              </div>
+              <div class="doc__actions">
+                @if (c.cvUrl && !selectedCV()) {
+                  <a class="btn btn--ghost btn--sm" [href]="c.cvUrl" target="_blank" rel="noopener noreferrer">Ouvrir</a>
+                }
+                @if (isEditing() && selectedCV()) {
+                  <button type="button" class="btn btn--ghost btn--sm" (click)="clearCV()">Retirer</button>
+                }
+                @if (isOwner()) {
+                  <button type="button" class="btn btn--secondary btn--sm" (click)="pickCV()" [disabled]="isUploadingCV()">
+                    {{ c.cvUrl || selectedCV() ? 'Remplacer' : 'Ajouter un CV' }}
+                  </button>
+                }
+              </div>
+            </div>
+
+            @if (isEditing()) {
+              <div class="grid grid--spaced">
+                <div class="field">
+                  <label class="field__label" for="linkedinUrl">Profil LinkedIn</label>
+                  <input id="linkedinUrl" type="url" class="input" formControlName="linkedinUrl"
+                         placeholder="https://linkedin.com/in/…" [class.is-invalid]="hasError('linkedinUrl')" />
+                  @if (hasError('linkedinUrl')) { <span class="field__error">{{ getErrorMessage('linkedinUrl') }}</span> }
+                </div>
+              </div>
+            } @else if (!c.linkedinUrl && isOwner()) {
+              <p class="placeholder placeholder--spaced">
+                Aucun profil LinkedIn lié.
+                <button type="button" class="link" (click)="startEdit()">Ajouter le lien</button>
+              </p>
+            }
+          </section>
+
+          @if (c.createdAt) {
+            <p class="footnote">Membre depuis le {{ formatDate(c.createdAt) }}</p>
+          }
+        </div>
+      </div>
+
+      <!-- Barre d'enregistrement -->
+      @if (isEditing()) {
+        <div class="savebar" role="region" aria-label="Actions d'édition">
+          <p class="savebar__text">
+            @if (profileForm.dirty || selectedProfileImage() || selectedCV()) { Modifications non enregistrées }
+            @else { Mode édition }
+          </p>
+          <div class="savebar__actions">
+            <button type="button" class="btn btn--ghost" (click)="cancelEdit()" [disabled]="isSaving()">Annuler</button>
+            <button type="submit" class="btn btn--primary" [disabled]="isSaving()">
+              @if (isSaving()) { <span class="spinner spinner--light" aria-hidden="true"></span> Enregistrement… }
+              @else { Enregistrer }
+            </button>
+          </div>
+        </div>
+      }
+    </form>
+  }
+</div>

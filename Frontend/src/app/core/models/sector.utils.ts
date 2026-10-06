@@ -34,6 +34,10 @@ export function sectorIcon(sector?: string | null): string {
   const code = sectorCode(sector);
   return (code && SECTOR_ICONS[code]) || SECTOR_ICONS['OTHER'];
 }
+/** Retire les emojis et espaces en début de libellé ("💻 Informatique / Tech" → "Informatique / Tech") */
+export function cleanLabel(label: string): string {
+  return label.replace(/^[\p{Extended_Pictographic}\p{Emoji_Presentation}\uFE0F\u200D\s]+/u, '').trim();
+}
 
 /** Libellé lisible du secteur ("TECH" → "Informatique / Tech") */
 export function sectorLabel(sector?: string | null): string {

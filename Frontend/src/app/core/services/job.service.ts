@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { catchError, Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export interface JobOffer {
@@ -41,4 +41,16 @@ export class JobService {
   getOfferById(id: number): Observable<JobOffer> {
     return this.http.get<JobOffer>(`${this.apiUrl}/${id}`);
   }
+   getRecommendedOffers(): Observable<JobOffer[]> {
+    return this.http.get<JobOffer[]>(`${this.apiUrl}/recommended`).pipe(
+      catchError((err) => {
+        console.error('Erreur offres recommandées, fallback getAllOffers:', err);
+        return this.getAllOffers();
+      })
+    );
+  }
+   getOffersBySector(sector: string): Observable<JobOffer[]> {
+    return this.http.get<JobOffer[]>(`${this.apiUrl}?sector=${sector}`);
+  }
+  
 }
