@@ -75,19 +75,6 @@
           }
         </select>
       </div>
-
-      <!-- Filtre « Source » : affiché dès que plusieurs sources sont présentes -->
-      @if (sourceOptions().length > 1 || sourceFilter()) {
-        <div class="field">
-          <label class="field__label" for="source-filter">Source</label>
-          <select id="source-filter" class="select select--source" (change)="onSourceChange($event)">
-            <option value="" [selected]="!sourceFilter()">Toutes les sources</option>
-            @for (opt of sourceOptions(); track opt.value) {
-              <option [value]="opt.value" [selected]="opt.value === sourceFilter()">{{ opt.label }} ({{ opt.count }})</option>
-            }
-          </select>
-        </div>
-      }
     </div>
 
     <div class="toolbar__row toolbar__row--split">
@@ -171,15 +158,39 @@
         @if (searchQuery().trim()) { pour « {{ searchQuery().trim() }} » }
       </p>
       <div class="results__tools">
-        <button type="button" class="btn btn--secondary btn--sm adzuna-btn" (click)="searchAdzuna()"
-                [disabled]="adzunaLoading()" [attr.aria-busy]="adzunaLoading()"
-                title="Rechercher des offres supplémentaires sur Adzuna avec vos critères actuels">
-          @if (adzunaLoading()) {
-            <span class="spinner-dot" aria-hidden="true"></span> Recherche Adzuna…
-          } @else {
-            <i class="ti ti-world-search" aria-hidden="true"></i> Chercher aussi sur Adzuna
-          }
-        </button>
+        <div class="external" role="group" aria-label="Chercher sur d'autres sites">
+          <span class="external__label">Chercher aussi sur</span>
+          <button type="button" class="btn btn--secondary btn--sm adzuna-btn" (click)="searchExternal('FRANCE_TRAVAIL')"
+                  [disabled]="externalLoading() !== null" [attr.aria-busy]="externalLoading() === 'FRANCE_TRAVAIL'"
+                  title="Rechercher d'autres offres France Travail avec vos critères actuels">
+            @if (externalLoading() === 'FRANCE_TRAVAIL') {
+              <span class="spinner-dot" aria-hidden="true"></span>
+            } @else {
+              <i class="ti ti-building-community" aria-hidden="true"></i>
+            }
+            France Travail
+          </button>
+          <button type="button" class="btn btn--secondary btn--sm adzuna-btn" (click)="searchExternal('ADZUNA')"
+                  [disabled]="externalLoading() !== null" [attr.aria-busy]="externalLoading() === 'ADZUNA'"
+                  title="Rechercher des offres supplémentaires sur Adzuna avec vos critères actuels">
+            @if (externalLoading() === 'ADZUNA') {
+              <span class="spinner-dot" aria-hidden="true"></span>
+            } @else {
+              <i class="ti ti-world-search" aria-hidden="true"></i>
+            }
+            Adzuna
+          </button>
+          <button type="button" class="btn btn--secondary btn--sm adzuna-btn" (click)="searchExternal('JOOBLE')"
+                  [disabled]="externalLoading() !== null" [attr.aria-busy]="externalLoading() === 'JOOBLE'"
+                  title="Rechercher des offres supplémentaires sur Jooble avec vos critères actuels">
+            @if (externalLoading() === 'JOOBLE') {
+              <span class="spinner-dot" aria-hidden="true"></span>
+            } @else {
+              <i class="ti ti-radar" aria-hidden="true"></i>
+            }
+            Jooble
+          </button>
+        </div>
         <div class="results__sort">
           <label for="sort">Trier par</label>
           <select id="sort" class="select select--inline" (change)="onSortChange($event)">
@@ -202,12 +213,12 @@
     </div>
   }
 
-  <!-- ── Message après une recherche Adzuna ────────────── -->
-  @if (adzunaMessage(); as m) {
+  <!-- ── Message après une recherche externe (Adzuna, Jooble) ─ -->
+  @if (externalMessage(); as m) {
     <div class="adzuna-msg" [class.adzuna-msg--error]="m.type === 'error'" [attr.role]="m.type === 'error' ? 'alert' : 'status'">
-      <span class="source source--adzuna"><i class="ti ti-world-search" aria-hidden="true"></i>Adzuna</span>
+      <span [class]="sourceClass(m.source)"><i [class]="'ti ' + sourceIcon(m.source)" aria-hidden="true"></i>{{ sourceLabel(m.source) }}</span>
       <p>{{ m.text }}</p>
-      <button type="button" class="adzuna-msg__close" (click)="dismissAdzunaMessage()" aria-label="Fermer le message">
+      <button type="button" class="adzuna-msg__close" (click)="dismissExternalMessage()" aria-label="Fermer le message">
         <i class="ti ti-x" aria-hidden="true"></i>
       </button>
     </div>
@@ -324,8 +335,14 @@
           @for (s of suggestions(); track s.label) {
             <button type="button" class="btn btn--secondary btn--sm" (click)="s.action()">{{ s.label }}</button>
           }
-          <button type="button" class="btn btn--secondary btn--sm" (click)="searchAdzuna()" [disabled]="adzunaLoading()">
+          <button type="button" class="btn btn--secondary btn--sm" (click)="searchExternal('FRANCE_TRAVAIL')" [disabled]="externalLoading() !== null">
+            <i class="ti ti-building-community" aria-hidden="true"></i> Chercher sur France Travail
+          </button>
+          <button type="button" class="btn btn--secondary btn--sm" (click)="searchExternal('ADZUNA')" [disabled]="externalLoading() !== null">
             <i class="ti ti-world-search" aria-hidden="true"></i> Chercher sur Adzuna
+          </button>
+          <button type="button" class="btn btn--secondary btn--sm" (click)="searchExternal('JOOBLE')" [disabled]="externalLoading() !== null">
+            <i class="ti ti-radar" aria-hidden="true"></i> Chercher sur Jooble
           </button>
           <button type="button" class="btn btn--primary btn--sm" (click)="clearFilters()">Tout réinitialiser</button>
         </div>
@@ -334,8 +351,14 @@
         <p>Les nouvelles offres apparaîtront ici dès leur import.</p>
         <div class="empty__actions">
           <button type="button" class="btn btn--secondary" (click)="loadJobsOnInit()">Actualiser</button>
-          <button type="button" class="btn btn--primary" (click)="searchAdzuna()" [disabled]="adzunaLoading()">
+          <button type="button" class="btn btn--primary" (click)="searchExternal('FRANCE_TRAVAIL')" [disabled]="externalLoading() !== null">
+            <i class="ti ti-building-community" aria-hidden="true"></i> Chercher sur France Travail
+          </button>
+          <button type="button" class="btn btn--primary" (click)="searchExternal('ADZUNA')" [disabled]="externalLoading() !== null">
             <i class="ti ti-world-search" aria-hidden="true"></i> Chercher sur Adzuna
+          </button>
+          <button type="button" class="btn btn--primary" (click)="searchExternal('JOOBLE')" [disabled]="externalLoading() !== null">
+            <i class="ti ti-radar" aria-hidden="true"></i> Chercher sur Jooble
           </button>
         </div>
       }

@@ -909,12 +909,23 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round
   &--ft { color: #1d4f91; background: #e6eef9; }
   // Adzuna : ambre
   &--adzuna { color: var(--signal); background: var(--signal-soft); }
+  // Jooble : violet
+  &--jooble { color: #6b3fa0; background: #f1eafa; }
   // Toute autre source future
   &--other { color: var(--ink-soft); background: var(--surface-sunk); border-color: var(--line); }
 }
 
 @media (prefers-color-scheme: dark) {
   .source--ft { color: #9cc0f0; background: #16253a; }
+  .source--jooble { color: #c9a8f0; background: #261b35; }
+}
+
+// Boutons « Chercher aussi sur Adzuna / Jooble »
+.external { display: inline-flex; align-items: center; gap: 6px; }
+.external__label { font-size: 13px; color: var(--muted); white-space: nowrap; }
+
+@media (max-width: 600px) {
+  .external { width: 100%; flex-wrap: wrap; }
 }
 
 .card__badges {
@@ -936,8 +947,6 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round
   li { font-size: 12px; padding: 3px 10px 3px 8px; }
   strong { font-variant-numeric: tabular-nums; margin-left: 2px; }
 }
-
-.select--source { min-width: 170px; }
 
 .adzuna-btn { white-space: nowrap; }
 

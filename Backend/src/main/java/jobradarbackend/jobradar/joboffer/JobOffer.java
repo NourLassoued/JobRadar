@@ -37,7 +37,7 @@ public class JobOffer {
     private String sector;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(name = "contract_type", nullable = true)
     private ContractType contractType;
 
     @Column(name = "salary_min", precision = 10, scale = 2)

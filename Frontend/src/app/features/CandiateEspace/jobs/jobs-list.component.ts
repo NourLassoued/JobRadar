@@ -5,12 +5,15 @@ import {
 import { isPlatformBrowser } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { catchError, of } from 'rxjs';
+import { catchError, map, of, switchMap } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
 import { JobOffer, JobService } from '../../../core/services/job.service';
+import { AdzunaError, AdzunaService } from '../../../core/services/adzuna.service';
+import { JoobleError, JoobleService } from '../../../core/services/jooble.service';
+import { FranceTravailService } from '../../../core/services/france-travail.service';
+import { Observable } from 'rxjs';
 import { SECTOR_LABELS } from '../../../core/models/candidate';
 import { sectorCode, sectorIcon, sectorLabel } from '../../../core/models/sector.utils';
-import { AdzunaError, AdzunaService } from '../../../core/services/adzuna.service';
 
 type FilterType = 'all' | 'active' | 'remote';
 type SortType = 'recent' | 'salary' | 'title';
@@ -40,7 +43,11 @@ const TYPE_LABELS: Record<FilterType, string> = { all: 'Toutes', active: 'Active
 const SOURCES: Record<string, { label: string; icon: string; css: string }> = {
   FRANCE_TRAVAIL: { label: 'France Travail', icon: 'ti-building-community', css: 'source--ft' },
   ADZUNA: { label: 'Adzuna', icon: 'ti-world-search', css: 'source--adzuna' },
+  JOOBLE: { label: 'Jooble', icon: 'ti-radar', css: 'source--jooble' },
 };
+
+/** Sources interrogeables à la demande depuis la liste */
+type ExternalSource = 'FRANCE_TRAVAIL' | 'ADZUNA' | 'JOOBLE';
 
 /** Variantes possibles en base → code unique (« France Travail », « FT », « pole_emploi »…) */
 const SOURCE_ALIASES: Record<string, string> = {
@@ -49,6 +56,7 @@ const SOURCE_ALIASES: Record<string, string> = {
   FT: 'FRANCE_TRAVAIL',
   POLE_EMPLOI: 'FRANCE_TRAVAIL',
   ADZUNA: 'ADZUNA',
+  JOOBLE: 'JOOBLE',
 };
 
 /** Les offres importées avant l'ajout du champ « source » viennent de France Travail */
@@ -70,6 +78,8 @@ interface Chip { key: 'q' | 'sector' | 'type' | 'date' | 'source'; label: string
 export class JobsListComponent implements OnInit {
   private jobService = inject(JobService);
   private adzunaService = inject(AdzunaService);
+  private joobleService = inject(JoobleService);
+  private franceTravailService = inject(FranceTravailService);
   private destroyRef = inject(DestroyRef);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -98,9 +108,9 @@ export class JobsListComponent implements OnInit {
   /** Affiche le bouton « Haut de page » quand le haut de la liste n'est plus visible */
   showBackToTop = signal(false);
 
-  /** Recherche Adzuna en cours et message de résultat */
-  adzunaLoading = signal(false);
-  adzunaMessage = signal<{ type: 'success' | 'error'; text: string } | null>(null);
+  /** Source externe en cours d'interrogation (une à la fois) et message de résultat */
+  externalLoading = signal<ExternalSource | null>(null);
+  externalMessage = signal<{ source: ExternalSource; type: 'success' | 'error'; text: string } | null>(null);
 
   readonly skeletons = [1, 2, 3, 4, 5, 6];
   readonly dateOptions = DATE_OPTIONS;
@@ -400,19 +410,47 @@ export class JobsListComponent implements OnInit {
   }
 
   /**
-   * Cherche sur Adzuna (via le backend JobRadar) avec la recherche et le secteur actuels,
+   * Cherche sur Adzuna ou Jooble (via le backend JobRadar) avec la recherche et le secteur actuels,
    * puis ajoute les nouvelles offres à la liste. Tous les filtres restent appliqués.
    */
-  searchAdzuna(): void {
-    if (this.adzunaLoading()) return;
-    this.adzunaLoading.set(true);
-    this.adzunaMessage.set(null);
+  searchExternal(source: ExternalSource): void {
+    if (this.externalLoading()) return;
+    this.externalLoading.set(source);
+    this.externalMessage.set(null);
 
-    this.adzunaService.search({
-      what: this.searchQuery(),
-      sector: this.sectorFilter() || undefined,
-      resultsPerPage: 30,
-    })
+    const query = this.searchQuery();
+    const sector = this.sectorFilter() || undefined;
+
+    // Résultat commun : les offres à fusionner + (pour France Travail) le nombre importé
+    let request$: Observable<{ offers: JobOffer[]; imported?: number }>;
+    switch (source) {
+      case 'FRANCE_TRAVAIL': {
+        // 1. Import côté backend (mot-clé si saisi, sinon secteur choisi, sinon import général)
+        const import$ = query.trim()
+          ? this.franceTravailService.importOffers({ keywords: query, max: 30 })
+          : sector
+            ? this.franceTravailService.importBySector(sector)
+            : this.franceTravailService.importOffers({ max: 30 });
+
+        // 2. Rechargement des offres depuis la base, pour afficher les nouvelles
+        request$ = import$.pipe(
+          switchMap(res => {
+            const reload$ = sector
+              ? this.jobService.getOffersBySector(sector)
+              : this.jobService.getRecommendedOffers();
+            return reload$.pipe(map(offers => ({ offers, imported: res.imported })));
+          }),
+        );
+        break;
+      }
+      case 'ADZUNA':
+        request$ = this.adzunaService.search({ what: query, sector, resultsPerPage: 30 });
+        break;
+      default:
+        request$ = this.joobleService.search({ keywords: query, sector, resultsPerPage: 30 });
+    }
+
+    request$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: result => {
@@ -422,28 +460,54 @@ export class JobsListComponent implements OnInit {
           const updated = new Map(result.offers.map(o => [o.id, o]));
           this.jobs.update(list => [...list.map(j => updated.get(j.id) ?? j), ...fresh]);
 
-          this.adzunaLoading.set(false);
+          this.externalLoading.set(null);
           const n = fresh.length;
-          this.adzunaMessage.set({
-            type: 'success',
-            text: n
-              ? `${n} nouvelle${n > 1 ? 's' : ''} offre${n > 1 ? 's' : ''} Adzuna ajoutée${n > 1 ? 's' : ''} à la liste.`
-              : 'Aucune nouvelle offre Adzuna pour cette recherche.',
-          });
+          const label = this.sourceLabel(source);
+          let text: string;
+          if (result.imported !== undefined) {
+            // France Travail : nombre importé côté backend + nouvelles offres visibles ici
+            text = result.imported
+              ? `${result.imported} offre${result.imported > 1 ? 's' : ''} ${label} importée${result.imported > 1 ? 's' : ''}`
+                + (n ? `, dont ${n} nouvelle${n > 1 ? 's' : ''} dans cette liste.` : '.')
+              : `Aucune nouvelle offre ${label} pour cette recherche.`;
+          } else {
+            text = n
+              ? `${n} nouvelle${n > 1 ? 's' : ''} offre${n > 1 ? 's' : ''} ${label} ajoutée${n > 1 ? 's' : ''} à la liste.`
+              : `Aucune nouvelle offre ${label} pour cette recherche.`;
+          }
+          this.externalMessage.set({ source, type: 'success', text });
         },
         error: (err: HttpErrorResponse) => {
-          this.adzunaLoading.set(false);
-          const body = err.error as AdzunaError | null;
-          this.adzunaMessage.set({
-            type: 'error',
-            text: body?.message || 'Les offres Adzuna sont momentanément indisponibles.',
-          });
+          this.externalLoading.set(null);
+          const body = err.error as (AdzunaError & JoobleError) | null;
+          const label = this.sourceLabel(source);
+
+          // Message lisible selon le code HTTP, avec la cause technique entre parenthèses
+          let text: string;
+          switch (err.status) {
+            case 0:
+              text = 'Le serveur JobRadar ne répond pas. Vérifiez que le backend est lancé.';
+              break;
+            case 401:
+            case 403:
+              text = `Accès refusé à la recherche ${label}. Reconnectez-vous ou vérifiez SecurityConfig.`;
+              break;
+            case 404:
+              text = `La recherche ${label} n'existe pas encore côté serveur (contrôleur introuvable).`;
+              break;
+            default:
+              text = body?.message || `Les offres ${label} sont momentanément indisponibles.`;
+          }
+          const reason = body?.reason ? ` · ${body.reason}` : '';
+          console.error(`Recherche ${label} en échec`, err);
+
+          this.externalMessage.set({ source, type: 'error', text: `${text} (erreur ${err.status}${reason})` });
         },
       });
   }
 
-  dismissAdzunaMessage(): void {
-    this.adzunaMessage.set(null);
+  dismissExternalMessage(): void {
+    this.externalMessage.set(null);
   }
 
   // ── Source d'une offre ─────────────────────────────────────
