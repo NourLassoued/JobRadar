@@ -55,7 +55,8 @@ public class JobOffer {
     @Column(nullable = false)
     @Builder.Default
     private Boolean remote = false;
-
+    @Column(name = "external_id", unique = true, length = 100)
+    private String externalId;
     @Column(length = 500)
     private String url;
 

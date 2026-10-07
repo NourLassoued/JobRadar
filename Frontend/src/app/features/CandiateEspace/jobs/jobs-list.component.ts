@@ -3,12 +3,14 @@ import {
   PLATFORM_ID, signal, untracked, ViewChild,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
-import { catchError, distinctUntilChanged, of, skip, switchMap, tap } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { catchError, of } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
 import { JobOffer, JobService } from '../../../core/services/job.service';
 import { SECTOR_LABELS } from '../../../core/models/candidate';
 import { sectorCode, sectorIcon, sectorLabel } from '../../../core/models/sector.utils';
+import { AdzunaError, AdzunaService } from '../../../core/services/adzuna.service';
 
 type FilterType = 'all' | 'active' | 'remote';
 type SortType = 'recent' | 'salary' | 'title';
@@ -33,11 +35,30 @@ const DATE_OPTIONS: { value: DateFilter; label: string; days: number }[] = [
 
 const TYPE_LABELS: Record<FilterType, string> = { all: 'Toutes', active: 'Actives', remote: 'Télétravail' };
 
+// ── Sources d'offres ─────────────────────────────────────────
+/** Code de source → libellé, icône Tabler et classe CSS */
+const SOURCES: Record<string, { label: string; icon: string; css: string }> = {
+  FRANCE_TRAVAIL: { label: 'France Travail', icon: 'ti-building-community', css: 'source--ft' },
+  ADZUNA: { label: 'Adzuna', icon: 'ti-world-search', css: 'source--adzuna' },
+};
+
+/** Variantes possibles en base → code unique (« France Travail », « FT », « pole_emploi »…) */
+const SOURCE_ALIASES: Record<string, string> = {
+  FRANCE_TRAVAIL: 'FRANCE_TRAVAIL',
+  FRANCETRAVAIL: 'FRANCE_TRAVAIL',
+  FT: 'FRANCE_TRAVAIL',
+  POLE_EMPLOI: 'FRANCE_TRAVAIL',
+  ADZUNA: 'ADZUNA',
+};
+
+/** Les offres importées avant l'ajout du champ « source » viennent de France Travail */
+const DEFAULT_SOURCE = 'FRANCE_TRAVAIL';
+
 /** Supprime accents et majuscules : « Développeur » = « developpeur » */
 const normalize = (s: string | null | undefined): string =>
   (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
-interface Chip { key: 'q' | 'sector' | 'type' | 'date'; label: string }
+interface Chip { key: 'q' | 'sector' | 'type' | 'date' | 'source'; label: string }
 
 @Component({
   selector: 'app-jobs-list',
@@ -48,6 +69,7 @@ interface Chip { key: 'q' | 'sector' | 'type' | 'date'; label: string }
 })
 export class JobsListComponent implements OnInit {
   private jobService = inject(JobService);
+  private adzunaService = inject(AdzunaService);
   private destroyRef = inject(DestroyRef);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -66,6 +88,8 @@ export class JobsListComponent implements OnInit {
   sectorFilter = signal('');
   dateFilter = signal<DateFilter>('all');
   sortBy = signal<SortType>('recent');
+  /** '' = toutes les sources */
+  sourceFilter = signal('');
 
   visibleCount = signal(PAGE_SIZE);
 
@@ -74,6 +98,10 @@ export class JobsListComponent implements OnInit {
   /** Affiche le bouton « Haut de page » quand le haut de la liste n'est plus visible */
   showBackToTop = signal(false);
 
+  /** Recherche Adzuna en cours et message de résultat */
+  adzunaLoading = signal(false);
+  adzunaMessage = signal<{ type: 'success' | 'error'; text: string } | null>(null);
+
   readonly skeletons = [1, 2, 3, 4, 5, 6];
   readonly dateOptions = DATE_OPTIONS;
 
@@ -81,6 +109,18 @@ export class JobsListComponent implements OnInit {
   totalCount = computed(() => this.jobs().length);
   activeJobsCount = computed(() => this.jobs().filter(j => j.isActive).length);
   remoteJobsCount = computed(() => this.jobs().filter(j => j.remote).length);
+
+  /** Sources présentes dans les offres chargées, avec leur nombre (pour le filtre et l'en-tête) */
+  sourceOptions = computed(() => {
+    const counts = new Map<string, number>();
+    for (const job of this.jobs()) {
+      const key = this.sourceKey(job);
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+    return [...counts.entries()]
+      .map(([value, count]) => ({ value, count, label: this.sourceLabel(value), icon: this.sourceIcon(value) }))
+      .sort((a, b) => b.count - a.count);
+  });
 
   /** Les 14 secteurs de l'enum Java SectorType, triés par ordre alphabétique */
   readonly sectorOptions = Object.keys(SECTOR_LABELS)
@@ -99,9 +139,11 @@ export class JobsListComponent implements OnInit {
   private filteredExceptDate = computed(() => {
     const q = normalize(this.searchQuery().trim());
     const type = this.filterType();
+    const source = this.sourceFilter();
 
     // Le secteur est déjà filtré par le backend (getOffersBySector)
     return this.jobs().filter(job => {
+      if (source && this.sourceKey(job) !== source) return false;
       if (type === 'active' && !job.isActive) return false;
       if (type === 'remote' && !job.remote) return false;
       if (!q) return true;
@@ -164,6 +206,7 @@ export class JobsListComponent implements OnInit {
     const q = this.searchQuery().trim();
     if (q) chips.push({ key: 'q', label: `« ${q} »` });
     if (this.sectorFilter()) chips.push({ key: 'sector', label: sectorLabel(this.sectorFilter()) });
+    if (this.sourceFilter()) chips.push({ key: 'source', label: `Source : ${this.sourceLabel(this.sourceFilter())}` });
     if (this.filterType() !== 'all') chips.push({ key: 'type', label: TYPE_LABELS[this.filterType()] });
     if (this.dateFilter() !== 'all') chips.push({ key: 'date', label: DATE_OPTIONS.find(o => o.value === this.dateFilter())!.label });
     return chips;
@@ -178,6 +221,7 @@ export class JobsListComponent implements OnInit {
     if (d === '24h' || d === '3d') s.push({ label: 'Élargir à 7 jours', action: () => this.dateFilter.set('7d') });
     else if (d !== 'all') s.push({ label: 'Toutes les dates', action: () => this.dateFilter.set('all') });
     if (this.sectorFilter()) s.push({ label: 'Retirer le secteur', action: () => this.sectorFilter.set('') });
+    if (this.sourceFilter()) s.push({ label: 'Toutes les sources', action: () => this.sourceFilter.set('') });
     if (this.filterType() !== 'all') s.push({ label: `Retirer « ${TYPE_LABELS[this.filterType()]} »`, action: () => this.filterType.set('all') });
     if (this.searchQuery().trim()) s.push({ label: 'Effacer la recherche', action: () => this.searchQuery.set('') });
     return s;
@@ -204,19 +248,35 @@ export class JobsListComponent implements OnInit {
       untracked(() => this.visibleCount.set(PAGE_SIZE));
     }, { allowSignalWrites: true });
 
-    // Garder les filtres dans l'URL (rechargement, bouton retour, partage)
+    // Changement de secteur (liste, pastille, « Tout effacer »…) → rechargement depuis le backend.
+    // Seul endroit qui recharge : évite les doubles requêtes.
     effect(() => {
       const sector = this.sectorFilter();
       untracked(() => {
-        if (!this.loading()) {
-          this.sectorLoading.set(true);
-          this.fetchOffers(sector)
-            .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe(offers => this.applyOffers(offers));
-        }
+        if (this.loading()) return; // le chargement initial s'en occupe
+        this.sectorLoading.set(true);
+        this.errorMessage.set(null);
+        this.fetchOffers(sector)
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe(offers => this.applyOffers(offers));
       });
     }, { allowSignalWrites: true });
-    
+
+    // Garder les filtres dans l'URL (rechargement, bouton retour, partage)
+    effect(() => {
+      const params = {
+        q: this.searchQuery().trim() || null,
+        secteur: this.sectorFilter() || null,
+        source: this.sourceFilter() || null,
+        type: this.filterType() !== 'all' ? this.filterType() : null,
+        date: this.dateFilter() !== 'all' ? this.dateFilter() : null,
+        tri: this.sortBy() !== 'recent' ? this.sortBy() : null,
+      };
+      if (!this.isBrowser) return;
+      untracked(() => this.router.navigate([], {
+        relativeTo: this.route, queryParams: params, queryParamsHandling: 'merge', replaceUrl: true,
+      }));
+    });
   }
 
   // ── Chargement ─────────────────────────────────────────────
@@ -231,6 +291,9 @@ export class JobsListComponent implements OnInit {
     if (secteur) this.sectorFilter.set(sectorCode(secteur) || secteur);
     if (p.get('q')) this.searchQuery.set(p.get('q')!);
 
+    const source = p.get('source');
+    if (source) this.sourceFilter.set(this.normalizeSource(source));
+
     const type = p.get('type') as FilterType;
     if (type && type in TYPE_LABELS) this.filterType.set(type);
 
@@ -242,7 +305,6 @@ export class JobsListComponent implements OnInit {
     if (tri === 'salary' || tri === 'title') this.sortBy.set(tri);
   }
 
-  /** Offres recommandées si connecté, sinon toutes (géré par le service) */
   /** Chargement initial (et bouton « Réessayer ») */
   loadJobsOnInit(): void {
     this.loading.set(true);
@@ -283,18 +345,15 @@ export class JobsListComponent implements OnInit {
   onFilterChange(type: FilterType): void {
     this.filterType.set(type);
   }
-onSectorChange(event: Event): void {
-  const selectedSector = (event.target as HTMLSelectElement).value;
-  
-  this.sectorFilter.set(selectedSector);
-  this.visibleCount.set(PAGE_SIZE);
-  
-  //  AJOUTER CES 3 LIGNES
-  this.sectorLoading.set(true);
-  this.fetchOffers(selectedSector)
-    .pipe(takeUntilDestroyed(this.destroyRef))
-    .subscribe(offers => this.applyOffers(offers));
-}
+
+  /** Le rechargement est fait par l'effet qui surveille sectorFilter */
+  onSectorChange(event: Event): void {
+    this.sectorFilter.set((event.target as HTMLSelectElement).value);
+  }
+
+  onSourceChange(event: Event): void {
+    this.sourceFilter.set((event.target as HTMLSelectElement).value);
+  }
 
   onDateChange(event: Event): void {
     this.dateFilter.set((event.target as HTMLSelectElement).value as DateFilter);
@@ -307,6 +366,7 @@ onSectorChange(event: Event): void {
   removeChip(key: Chip['key']): void {
     if (key === 'q') this.searchQuery.set('');
     if (key === 'sector') this.sectorFilter.set('');
+    if (key === 'source') this.sourceFilter.set('');
     if (key === 'type') this.filterType.set('all');
     if (key === 'date') this.dateFilter.set('all');
   }
@@ -320,6 +380,7 @@ onSectorChange(event: Event): void {
     this.searchQuery.set('');
     this.filterType.set('all');
     this.sectorFilter.set('');
+    this.sourceFilter.set('');
     this.dateFilter.set('all');
     this.sortBy.set('recent');
   }
@@ -338,6 +399,79 @@ onSectorChange(event: Event): void {
     this.searchInput?.nativeElement.focus({ preventScroll: true });
   }
 
+  /**
+   * Cherche sur Adzuna (via le backend JobRadar) avec la recherche et le secteur actuels,
+   * puis ajoute les nouvelles offres à la liste. Tous les filtres restent appliqués.
+   */
+  searchAdzuna(): void {
+    if (this.adzunaLoading()) return;
+    this.adzunaLoading.set(true);
+    this.adzunaMessage.set(null);
+
+    this.adzunaService.search({
+      what: this.searchQuery(),
+      sector: this.sectorFilter() || undefined,
+      resultsPerPage: 30,
+    })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: result => {
+          const known = new Set(this.jobs().map(j => j.id));
+          const fresh = result.offers.filter(o => !known.has(o.id));
+          // Met à jour les offres déjà présentes, ajoute les nouvelles
+          const updated = new Map(result.offers.map(o => [o.id, o]));
+          this.jobs.update(list => [...list.map(j => updated.get(j.id) ?? j), ...fresh]);
+
+          this.adzunaLoading.set(false);
+          const n = fresh.length;
+          this.adzunaMessage.set({
+            type: 'success',
+            text: n
+              ? `${n} nouvelle${n > 1 ? 's' : ''} offre${n > 1 ? 's' : ''} Adzuna ajoutée${n > 1 ? 's' : ''} à la liste.`
+              : 'Aucune nouvelle offre Adzuna pour cette recherche.',
+          });
+        },
+        error: (err: HttpErrorResponse) => {
+          this.adzunaLoading.set(false);
+          const body = err.error as AdzunaError | null;
+          this.adzunaMessage.set({
+            type: 'error',
+            text: body?.message || 'Les offres Adzuna sont momentanément indisponibles.',
+          });
+        },
+      });
+  }
+
+  dismissAdzunaMessage(): void {
+    this.adzunaMessage.set(null);
+  }
+
+  // ── Source d'une offre ─────────────────────────────────────
+  /** « France Travail », « ft », null… → code unique (FRANCE_TRAVAIL, ADZUNA…) */
+  private normalizeSource(raw: string | null | undefined): string {
+    if (!raw) return DEFAULT_SOURCE;
+    const key = raw.trim().toUpperCase().replace(/[\s-]+/g, '_');
+    return SOURCE_ALIASES[key] ?? key;
+  }
+
+  sourceKey(job: JobOffer): string {
+    return this.normalizeSource(job.source);
+  }
+
+  sourceLabel(source: string): string {
+    return SOURCES[source]?.label ?? source.charAt(0) + source.slice(1).toLowerCase().replace(/_/g, ' ');
+  }
+
+  sourceIcon(source: string): string {
+    return SOURCES[source]?.icon ?? 'ti-world';
+  }
+
+  /** Classe CSS du badge : couleur propre à chaque source */
+  sourceClass(source: string): string {
+    return 'source ' + (SOURCES[source]?.css ?? 'source--other');
+  }
+
+  // ── Surlignage et dates ────────────────────────────────────
   /** Découpe un texte pour surligner les mots recherchés (sans innerHTML) */
   highlight(text: string | null | undefined): Segment[] {
     const value = text || '';

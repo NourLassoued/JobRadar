@@ -17,6 +17,9 @@ export interface JobOffer {
   isActive: boolean;
   createdAt: string;
   url?: string; 
+  source?: string;
+  /** Identifiant d'origine : 'ADZUNA-FR-5910877270' */
+  externalId?: string;
 }
 
 @Injectable({

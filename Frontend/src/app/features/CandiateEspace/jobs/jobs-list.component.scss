@@ -884,3 +884,110 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round
   .grid--list .card__meta { text-align: left; }
   .to-top { right: 16px; bottom: 16px; }
 }
+
+
+// ═══════════════════════════════════════════════════════════
+//  Source des offres (France Travail, Adzuna…)
+// ═══════════════════════════════════════════════════════════
+
+// Badge de source : même forme pour toutes, couleur propre à chacune
+.source {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px 2px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  border-radius: 999px;
+  border: 1px solid transparent;
+
+  .ti { font-size: 13px; }
+
+  // France Travail : bleu institutionnel
+  &--ft { color: #1d4f91; background: #e6eef9; }
+  // Adzuna : ambre
+  &--adzuna { color: var(--signal); background: var(--signal-soft); }
+  // Toute autre source future
+  &--other { color: var(--ink-soft); background: var(--surface-sunk); border-color: var(--line); }
+}
+
+@media (prefers-color-scheme: dark) {
+  .source--ft { color: #9cc0f0; background: #16253a; }
+}
+
+.card__badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+// Répartition par source sous le titre de la page
+.page__sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+
+  li { font-size: 12px; padding: 3px 10px 3px 8px; }
+  strong { font-variant-numeric: tabular-nums; margin-left: 2px; }
+}
+
+.select--source { min-width: 170px; }
+
+.adzuna-btn { white-space: nowrap; }
+
+.adzuna-msg {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-size: 14px;
+  animation: chip-in 0.2s ease-out;
+
+  p { flex: 1; }
+
+  &--error { background: var(--danger-soft); border-color: transparent; }
+}
+
+.adzuna-msg__close {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+
+  &:hover { color: var(--ink); }
+}
+
+.spinner-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--accent);
+  animation: spin 0.8s linear infinite;
+}
+
+// Vue liste : le badge de source reste visible, « Nouveau » est masqué
+.grid--list .card__badges .badge--new { display: none; }
+
+@media (max-width: 600px) {
+  .results__tools { flex-wrap: wrap; }
+  .adzuna-btn { flex: 1; }
+  .card__badges .source { padding: 2px 6px; }
+}

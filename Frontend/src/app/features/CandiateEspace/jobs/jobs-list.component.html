@@ -8,6 +8,16 @@
       <p class="page__meta">
         {{ format(totalCount()) }} offres disponibles, dont {{ format(remoteJobsCount()) }} en télétravail
       </p>
+      @if (sourceOptions().length) {
+        <ul class="page__sources" aria-label="Provenance des offres">
+          @for (src of sourceOptions(); track src.value) {
+            <li [class]="sourceClass(src.value)">
+              <i [class]="'ti ' + src.icon" aria-hidden="true"></i>
+              {{ src.label }} <strong>{{ format(src.count) }}</strong>
+            </li>
+          }
+        </ul>
+      }
     }
   </header>
 
@@ -65,6 +75,19 @@
           }
         </select>
       </div>
+
+      <!-- Filtre « Source » : affiché dès que plusieurs sources sont présentes -->
+      @if (sourceOptions().length > 1 || sourceFilter()) {
+        <div class="field">
+          <label class="field__label" for="source-filter">Source</label>
+          <select id="source-filter" class="select select--source" (change)="onSourceChange($event)">
+            <option value="" [selected]="!sourceFilter()">Toutes les sources</option>
+            @for (opt of sourceOptions(); track opt.value) {
+              <option [value]="opt.value" [selected]="opt.value === sourceFilter()">{{ opt.label }} ({{ opt.count }})</option>
+            }
+          </select>
+        </div>
+      }
     </div>
 
     <div class="toolbar__row toolbar__row--split">
@@ -148,6 +171,15 @@
         @if (searchQuery().trim()) { pour « {{ searchQuery().trim() }} » }
       </p>
       <div class="results__tools">
+        <button type="button" class="btn btn--secondary btn--sm adzuna-btn" (click)="searchAdzuna()"
+                [disabled]="adzunaLoading()" [attr.aria-busy]="adzunaLoading()"
+                title="Rechercher des offres supplémentaires sur Adzuna avec vos critères actuels">
+          @if (adzunaLoading()) {
+            <span class="spinner-dot" aria-hidden="true"></span> Recherche Adzuna…
+          } @else {
+            <i class="ti ti-world-search" aria-hidden="true"></i> Chercher aussi sur Adzuna
+          }
+        </button>
         <div class="results__sort">
           <label for="sort">Trier par</label>
           <select id="sort" class="select select--inline" (change)="onSortChange($event)">
@@ -167,6 +199,17 @@
           </button>
         </div>
       </div>
+    </div>
+  }
+
+  <!-- ── Message après une recherche Adzuna ────────────── -->
+  @if (adzunaMessage(); as m) {
+    <div class="adzuna-msg" [class.adzuna-msg--error]="m.type === 'error'" [attr.role]="m.type === 'error' ? 'alert' : 'status'">
+      <span class="source source--adzuna"><i class="ti ti-world-search" aria-hidden="true"></i>Adzuna</span>
+      <p>{{ m.text }}</p>
+      <button type="button" class="adzuna-msg__close" (click)="dismissAdzunaMessage()" aria-label="Fermer le message">
+        <i class="ti ti-x" aria-hidden="true"></i>
+      </button>
     </div>
   }
 
@@ -195,9 +238,16 @@
                   <p class="card__company-sector">{{ sectorLabel(job.sector) }}</p>
                 }
               </div>
-              @if (isNew(job.createdAt)) {
-                <span class="badge badge--new">Nouveau</span>
-              }
+              <span class="card__badges">
+                <!-- Source de l'offre : France Travail, Adzuna… -->
+                <span [class]="sourceClass(sourceKey(job))" [attr.title]="'Offre publiée via ' + sourceLabel(sourceKey(job))">
+                  <i [class]="'ti ' + sourceIcon(sourceKey(job))" aria-hidden="true"></i>
+                  <span class="sr-only">Source : </span>{{ sourceLabel(sourceKey(job)) }}
+                </span>
+                @if (isNew(job.createdAt)) {
+                  <span class="badge badge--new">Nouveau</span>
+                }
+              </span>
             </div>
 
             <div class="card__main">
@@ -237,10 +287,13 @@
                 } @else {
                   <p class="card__salary card__salary--empty">Salaire non communiqué</p>
                 }
-                <p class="card__date"><time [attr.datetime]="job.createdAt">{{ relativeDate(job.createdAt) }}</time></p>
+                <p class="card__date">
+                  <time [attr.datetime]="job.createdAt">{{ relativeDate(job.createdAt) }}</time>
+                  · via {{ sourceLabel(sourceKey(job)) }}
+                </p>
               </div>
               <span class="card__cta" aria-hidden="true">
-                Voir l'offre <i class="ti ti-arrow-up-right"></i>
+                Voir sur {{ sourceLabel(sourceKey(job)) }} <i class="ti ti-arrow-up-right"></i>
               </span>
             </div>
           </li>
@@ -271,12 +324,20 @@
           @for (s of suggestions(); track s.label) {
             <button type="button" class="btn btn--secondary btn--sm" (click)="s.action()">{{ s.label }}</button>
           }
+          <button type="button" class="btn btn--secondary btn--sm" (click)="searchAdzuna()" [disabled]="adzunaLoading()">
+            <i class="ti ti-world-search" aria-hidden="true"></i> Chercher sur Adzuna
+          </button>
           <button type="button" class="btn btn--primary btn--sm" (click)="clearFilters()">Tout réinitialiser</button>
         </div>
       } @else {
         <h2>Aucune offre pour le moment</h2>
         <p>Les nouvelles offres apparaîtront ici dès leur import.</p>
-        <button type="button" class="btn btn--secondary" (click)="loadJobsOnInit()">Actualiser</button>
+        <div class="empty__actions">
+          <button type="button" class="btn btn--secondary" (click)="loadJobsOnInit()">Actualiser</button>
+          <button type="button" class="btn btn--primary" (click)="searchAdzuna()" [disabled]="adzunaLoading()">
+            <i class="ti ti-world-search" aria-hidden="true"></i> Chercher sur Adzuna
+          </button>
+        </div>
       }
     </div>
   }

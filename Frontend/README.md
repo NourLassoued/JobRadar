@@ -2,329 +2,170 @@
 
 # 🎯 JobRadar
 
-## L'agrégateur d'offres d'emploi avec IA — Tous les secteurs
+### Agrégateur d'offres d'emploi multi-sources avec scoring adaptatif par secteur et assistant IA
 
-*Trouvez l'offre qui VOUS correspond vraiment*
+*Toutes les offres, tous les métiers, classées selon votre profil.*
+
+[![Java](https://img.shields.io/badge/Java-17-orange.svg)](https://www.java.com/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![Angular](https://img.shields.io/badge/Angular-18-red.svg)](https://angular.dev/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791.svg)](https://www.postgresql.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-Storage-3ECF8E.svg)](https://supabase.com/)
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ED.svg)](https://www.docker.com/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+[💼 Portfolio](https://nourstack.netlify.app) · [🐙 GitHub](https://github.com/NourLassoued)
 
 </div>
 
 ---
 
-## ⚡ En 30 secondes
+## ⚡ Présentation
 
-- **Problème**: 6 millions de Français cherchent un emploi/an. Perdent 11h/semaine sur 5 sites différents.
-- **Solution**: JobRadar agrège 1M+ offres + les **score en fonction de votre profil** (IA Claude)
-- **Résultat**: −70% de temps de recherche · Lettre de motivation générée en 10s · Suivi structuré
+**JobRadar** est une plateforme Full Stack qui centralise les offres d'emploi de plusieurs sources publiques, les classe selon le profil du candidat et l'accompagne jusqu'à la candidature.
 
----
-
-## 🔥 Ce qui différencie JobRadar
-
-| | Feature |
-|---|---|
-| 🌍 | **14 secteurs ROME** — Pas juste IT, mais Tech/Santé/BTP/Commerce/etc |
-| 🧠 | **Scoring adaptatif** — Les critères changent selon le métier (infirmier ≠ dev) |
-| 🤖 | **IA contextuelle** — Claude génère des lettres + conseils adaptés à VOTRE secteur |
-| 🔐 | **Sécurité certifiée** — OAuth2 Google/LinkedIn, JWT, RLS policies Supabase |
-| 📊 | **Données officielles** — API France Travail (légal, à jour, 1M+ offres) |
+- **Candidats** : offres agrégées, score de correspondance adapté à leur métier, profil complet (compétences, langues, CV), lettres de motivation générées par IA et suivi des candidatures.
+- **Recruteurs** *(prévu)* : publication d'annonces et suivi des candidats.
+- **Administrateurs** *(prévu)* : modération, gestion des rôles et pilotage de la plateforme.
 
 ---
 
-## 🛠️ Stack (Production-Ready)
+## 🔥 Fonctionnalités
 
-| Couche | Tech |
-|---|---|
-| **Frontend** | Angular 18 · Signals · Reactive Forms · Tailwind · PWA |
-| **Backend** | Spring Boot 3.4 · Java 21 · Spring Security 6 |
-| **Database** | PostgreSQL 16 · JPA/Hibernate |
-| **Cloud Storage** | **Supabase Storage** (Images 5MB, CVs 10MB + RLS) |
-| **IA** | Claude API (Sonnet + Haiku) |
-| **APIs** | France Travail · Google OAuth2 · LinkedIn OAuth2 |
-| **DevOps** | Docker · GitHub Actions · Kubernetes-ready |
+| | Fonctionnalité | Description | Statut |
+| :--: | :--- | :--- | :--: |
+| 🔐 | **Authentification** | Email / mot de passe, OAuth2 (Google, LinkedIn), JWT, réinitialisation du mot de passe par email | ✅ |
+| 🌐 | **Agrégation multi-API** | France Travail, Adzuna, Jooble, The Muse ([détails](#-sources-doffres--agrégation-multi-api)) | 🔄 |
+| 🏷️ | **14 familles de métiers** | Référentiel aligné sur le ROME de France Travail | ✅ |
+| 🎯 | **Scoring adaptatif** | Pondération différente selon le métier (Strategy Pattern) | ✅ |
+| 👤 | **Profil candidat** | Compétences proposées selon le secteur, langues (niveaux CECRL), CV et photo | ✅ |
+| 🤖 | **Assistant IA** | Lettres de motivation et adaptation de CV (Claude API) | 🔄 |
+| 📋 | **Suivi des candidatures** | Tableau Kanban à 5 colonnes | 🔄 |
+| 📊 | **Tableaux de bord** | Statistiques de recherche et de candidatures | 🔜 |
+| 🏢 | **Espace recruteur** | Publication d'offres, suivi des candidats | 🔜 |
+| 🛡️ | **Espace administrateur** | Modération, rôles, journal d'audit | 🔜 |
+| ☁️ | **Stockage cloud** | CV et photos sur Supabase Storage avec politiques RLS | ✅ |
 
----
-
-## 📁 Fichiers livrés
-
-```
-✅ Backend complet    (Spring Boot 3.4, Java 21)
-✅ Frontend complet   (Angular 18, Signals)
-✅ ProfileComponent   (ULTRA PROFESSIONAL — avec validation CV/LinkedIn)
-✅ Base de données    (PostgreSQL 16 + migrations)
-✅ Supabase config    (RLS policies incluses)
-✅ Documentation      (Guides d'intégration)
-```
+✅ Livré · 🔄 En cours · 🔜 Prévu
 
 ---
 
-## 🚀 Comment ça marche
+## 🌐 Sources d'offres : agrégation multi-API
 
-### 1️⃣ Candidat crée un profil
-```
-Prénom + Nom + Email + Secteur (14 options) + Années d'expérience
-+ Upload photo + Upload CV + LinkedIn URL
-→ Données sécurisées dans PostgreSQL + Supabase
-```
+JobRadar interroge plusieurs API d'emploi, puis ramène toutes les offres dans **un format unique** avant de les classer pour chaque candidat.
 
-### 2️⃣ JobRadar score les offres
-```
-L'IA (Claude) analyse:
-- Votre CV + profil
-- Les offres disponibles (France Travail)
-- Votre secteur (pondération différente pour chaque)
-→ Score personnalisé 0-100 par offre
-```
+| Source | Couverture | Données principales | Authentification | Statut |
+| :--- | :--- | :--- | :--- | :--: |
+| 🇫🇷 **[France Travail API](https://francetravail.io/)** | France, tous métiers (référentiel ROME) | Intitulé, entreprise, lieu, contrat, salaire, code ROME | OAuth2 *client credentials* | ✅ |
+| 🌍 **[Adzuna API](https://developer.adzuna.com/)** | France et une vingtaine de pays | Intitulé, entreprise, lieu, fourchette de salaire, catégorie | `app_id` + `app_key` | 🔄 |
+| 🔎 **[Jooble API](https://jooble.org/api/about)** | Agrégateur international, dont la France | Intitulé, entreprise, lieu, salaire, extrait, lien source | Clé API | 🔄 |
+| 💼 **[The Muse API](https://www.themuse.com/developers/api/v2)** | Surtout États-Unis, profils tech et business | Intitulé, entreprise, niveau, catégorie, lieu | Clé API (facultative) | 🔄 |
 
-### 3️⃣ Candidat trouve les meilleures offres
-```
-Dashboard: Offres triées par score
-- Top matches en premier
-- Filtre par secteur/expérience
-- Lettre de motivation générée en 1 clic
+### Fonctionnement
+
+```text
+ France Travail ─┐
+ Adzuna ─────────┤      ┌──────────────┐    ┌───────────────┐    ┌────────────┐    ┌──────────┐
+ Jooble ─────────┼────► │  Adaptateurs │──► │ Normalisation │──► │ Dédoublon- │──► │PostgreSQL│
+ The Muse ───────┘      │  par source  │    │  + secteur    │    │   nage     │    │ job_offer│
+                        └──────────────┘    └───────────────┘    └────────────┘    └────┬─────┘
+                                                                                         │
+                                                         Score adaptatif par candidat ◄──┘
 ```
 
-### 4️⃣ Suivi Kanban des candidatures
-```
-À faire → En cours → Entretien → Décision
-Toutes les candidatures en un seul endroit
-```
+1. **Un adaptateur par source** : chaque API a son propre client, qui transforme sa réponse en `JobOffer` commun. Ajouter une source revient à écrire un nouvel adaptateur.
+2. **Normalisation** : contrat (CDI, CDD, stage…), lieu, salaire annuel brut et rattachement à l'un des 14 secteurs.
+3. **Dédoublonnage** : une même offre publiée sur plusieurs sites n'apparaît qu'une fois, avec sa source d'origine conservée.
+4. **Synchronisation planifiée** : import régulier via `@Scheduled`, avec gestion des quotas propres à chaque API.
+
+> Les clés d'API ne sont jamais versionnées : elles sont lues depuis les variables d'environnement.
 
 ---
 
-## 🔐 Sécurité (Enterprise-Grade)
+## 🏷️ Les 14 familles de métiers
 
-- ✅ JWT + BCrypt (passwords hashs)
-- ✅ OAuth2 Google + LinkedIn (OIDC compliant)
-- ✅ Spring Security 6 (latest)
-- ✅ **Supabase RLS policies** (chaque user = ses données)
-- ✅ CORS strict
-- ✅ Validation inputs + sanitization
-- ✅ RGPD-compliant
+Les secteurs correspondent à l'enum `SectorType`, partagée par le backend et le frontend. Chacun dispose de son référentiel de compétences.
+
+| | Secteur | Code | Exemples de compétences |
+| :--: | :--- | :--- | :--- |
+| 💻 | Informatique / Tech | `TECH` | Java, Angular, Docker, Kubernetes |
+| 🏥 | Santé / Médical | `HEALTH` | Soins infirmiers, Pharmacologie, Gériatrie |
+| 🛍️ | Commerce / Vente | `COMMERCE` | Négociation, CRM, Vente B2B |
+| 🏗️ | BTP / Construction | `BTP` | Lecture de plans, AutoCAD, BIM |
+| 🏨 | Hôtellerie / Restauration | `HOSPITALITY` | Réception, Normes HACCP, Service en salle |
+| 🚚 | Transport / Logistique | `TRANSPORT` | Permis C/EC, WMS, Supply Chain |
+| 🏭 | Industrie | `INDUSTRY` | Lean Manufacturing, SolidWorks, Contrôle qualité |
+| 📢 | Communication | `COMMUNICATION` | SEO, Social media, Relations presse |
+| 🌾 | Agriculture | `AGRICULTURE` | Maraîchage, Élevage, Certiphyto |
+| 💰 | Banque / Assurance | `BANKING` | Analyse financière, Normes IFRS, KYC |
+| 📚 | Éducation / Formation | `EDUCATION` | Pédagogie, E-learning, Ingénierie de formation |
+| 🎭 | Arts / Spectacle | `ARTS` | UI/UX Design, Figma, Montage vidéo |
+| 👤 | Services à la personne | `PERSONAL_SERVICES` | Aide à domicile, Garde d'enfants |
+| 🔧 | Maintenance | `MAINTENANCE` | Diagnostic de panne, Habilitation électrique, GMAO |
 
 ---
 
-## 📊 Algorithme de scoring (Smart)
+## 🧠 Scoring adaptatif par secteur
 
-### Le score change selon le métier
+Le score (0 à 100) mesure la correspondance entre un candidat et une offre. **Les critères ne pèsent pas pareil selon le métier** : les diplômes comptent beaucoup pour un infirmier, les compétences techniques pour un développeur.
 
 | Critère | Tech | Santé | Commerce | BTP |
-|---|:---:|:---:|:---:|:---:|
-| Skills techniques | **40%** | 15% | 20% | 30% |
-| Diplômes | 10% | **40%** | 15% | 25% |
-| Expérience | 20% | 25% | 25% | 25% |
-| Soft skills | 5% | 5% | **30%** | 5% |
+| :--- | :--: | :--: | :--: | :--: |
+| Compétences techniques | **40 %** | 15 % | 20 % | 30 % |
+| Diplômes / certifications | 10 % | **40 %** | 15 % | 25 % |
+| Expérience | 20 % | 25 % | 25 % | 25 % |
+| Savoir-être | 5 % | 5 % | **30 %** | 5 % |
 
-**Implementation**: Strategy Pattern → ajouter un secteur = < 4h
+Mis en œuvre avec le **Strategy Pattern** (`SectorTemplate`) : chaque secteur a sa propre stratégie de pondération, et ajouter un secteur ne modifie pas le moteur existant.
 
----
-
-## 💾 Upload Files (Cloud)
-
-### Images de profil
-- Bucket Supabase: `profiles`
-- Format: JPEG, PNG, GIF, WebP
-- Max: 5MB
-- **RLS**: Candidat accède uniquement à SA photo
-
-### CVs
-- Bucket Supabase: `cvs`
-- Format: PDF, DOCX, DOC, TXT
-- Max: 10MB
-- **RLS**: Candidat accède uniquement à SON CV
-
-### Upload Flow
-```
-Angular UI → Spring Boot → Supabase API → Fichier stocké
-                         ↓
-                    PostgreSQL (URL sauvegardée)
+```text
+Profil candidat (secteur, compétences, langues, expérience)
+                    │
+                    ▼
+     ┌─────────────────────────────┐
+     │  SectorTemplate du métier   │  ← stratégie choisie selon le secteur de l'offre
+     └──────────────┬──────────────┘
+                    ▼
+    Offre d'emploi ─► Score 0-100 ─► Offres triées par pertinence
 ```
 
 ---
 
-## 🎯 API REST (Endpoints clés)
+## 🏗️ Architecture
 
-```
-Auth
-  POST   /api/auth/register                    (email/password)
-  POST   /api/auth/login                       (JWT token)
-  POST   /api/auth/oauth-callback              (Google/LinkedIn)
-
-Profile
-  GET    /api/candidates/profile               (profil connecté)
-  PUT    /api/candidates/profile               (update)
-  POST   /api/candidates/{id}/profile-image    (upload photo)
-  POST   /api/candidates/{id}/cv               (upload CV)
-
-Jobs
-  GET    /api/jobs?sector=TECH&limit=20        (offres triées)
-  POST   /api/candidates/{id}/apply            (candidature + lettre IA)
-  GET    /api/candidates/{id}/applications     (historique)
-
-Analytics
-  GET    /api/candidates/{id}/analytics        (dashboard)
-```
-
----
-
-## ⚡ Performance
-
-- **Frontend**: Lazy loading + Code splitting (< 200KB gzipped)
-- **Backend**: Connection pooling + Query optimization
-- **Database**: Indexing sur `candidateId`, `sector`, `createdAt`
-- **Storage**: CDN Supabase (< 100ms worldwide)
-- **Overall**: **60+ FPS** · **< 2s page load** (Lighthouse score 95+)
-
----
-
-## 🧪 Tests
-
-```bash
-# Backend
-mvn test                    (45 tests, 98% coverage)
-
-# Frontend
-ng test                     (32 tests, e2e + unit)
-
-# E2E
-ng e2e                      (complete user flows)
+```text
+                      ┌───────────────────────────────┐
+                      │          Angular 18           │
+                      │  Standalone · Signals · SSR   │
+                      └───────────────┬───────────────┘
+                                      │ REST + JWT
+                      ┌───────────────▼───────────────┐
+                      │        Spring Boot 3.4        │
+                      │  Spring Security 6 · OAuth2   │
+                      │  Auth · Offres · Profil · IA  │
+                      └──────┬────────┬────────┬──────┘
+                             │        │        │
+            ┌────────────────┘        │        └─────────────────┐
+            ▼                         ▼                          ▼
+   ┌─────────────────┐       ┌─────────────────┐       ┌───────────────────┐
+   │   PostgreSQL    │       │    Supabase     │       │   API externes    │
+   │ Candidats,      │       │ Storage (CV,    │       │ • France Travail  │
+   │ offres, langues │       │ photos) + RLS   │       │ • Adzuna · Jooble │
+   └─────────────────┘       └─────────────────┘       │ • The Muse        │
+                                                       │ • Claude API      │
+                                                       └───────────────────┘
 ```
 
 ---
 
-## 🎨 Features complètes
+## 🧰 Stack technique
 
-| Feature | Status | Détail |
-|---------|--------|--------|
-| ✅ Authentification | Livré | Email/password + OAuth2 Google/LinkedIn |
-| ✅ Profile candidat | Livré | Vue + Edit, upload photo + CV |
-| ✅ Job aggregation | Livré | France Travail API intégrée |
-| ✅ Scoring IA | Livré | Claude API, scoring adaptatif par secteur |
-| ✅ Supabase Storage | Livré | Images + CVs, RLS policies |
-| ✅ Dashboard | Livré | Offres personnalisées |
-| ✅ Kanban tracker | Livré | Suivi candidatures |
-| 🔄 Cover letter gen | Livré | Claude API (1 clic) |
-| ⏳ Notifications push | Q1 2026 | En cours |
-| ⏳ Multi-CV | Q2 2026 | Roadmap |
-
----
-
-## 📱 Responsive Design
-
-- ✅ Mobile first (375px+)
-- ✅ Tablet optimized (768px+)
-- ✅ Desktop premium (1200px+)
-- ✅ PWA (offline mode)
-- ✅ Dark mode
-
----
-
-## 💼 Pour les recruteurs
-
-### Pourquoi JobRadar vous intéresse ?
-
-**Si vous cherchez un dev Full Stack:**
-- Autonomie complète (design → API → DB → deploy)
-- Stack moderne (Angular 18 + Spring Boot 3.4 + Java 21)
-- Security-first (JWT + OAuth2 + RLS)
-- Cloud integration (Supabase)
-- IA ready (Claude API)
-
-**Si vous cherchez un DevOps:**
-- Docker containerization
-- GitHub Actions CI/CD
-- Kubernetes ready
-- Monitoring/logging design
-- Cloud infrastructure planning
-
-**Si vous cherchez un architect:**
-- Modular architecture (Strategy Pattern)
-- Clean code + SOLID principles
-- Database design (PostgreSQL)
-- API REST design
-- Security architecture
-
----
-
-## 🚀 Démarrer rapidement
-
-```bash
-# 1. Clone
-git clone https://github.com/NourLassoued/JobRadar.git
-
-# 2. Backend (Java 21)
-cd Backend
-mvn clean install
-mvn spring-boot:run
-
-# 3. Frontend (Node 18+)
-cd ../Frontend
-npm install
-ng serve
-
-# 4. Accès
-http://localhost:4200
-```
-
----
-
-## 📊 Architecture
-
-```
-┌─────────────────────────┐
-│   Angular 18 PWA        │
-│   (Signals + Tailwind)  │
-└────────────┬────────────┘
-             │ REST + JWT
-┌────────────▼────────────┐
-│  Spring Boot 3.4        │
-│  (Java 21)              │
-└──────┬────────────┬─────┘
-       │            │
-    ┌──▼──┐      ┌──▼──────────┐
-    │ PG  │      │ Supabase    │
-    │ SQL │      │ Storage     │
-    └─────┘      └─────────────┘
-```
-
----
-
-## 👤 Auteur
-
-**Nour El Houda Lassoued**  
-Full Stack Developer & DevOps Engineer
-
-- 🌐 [Portfolio](https://nourstack.netlify.app)
-- 💼 [LinkedIn](https://linkedin.com/in/lassouednourelhouda)
-- 🐙 [GitHub](https://github.com/NourLassoued)
-- 📧 lassoued.nourhouda@gmail.com
-- 📱 +216 26446609
-
----
-
-## 🎁 Ce que ce projet démontre
-
-| Compétence | Preuve |
-|---|---|
-| 🏗️ **Architecture** | Modules découplés + Design patterns (Strategy) |
-| 🔐 **Sécurité** | JWT + OAuth2 + Spring Security 6 + RLS |
-| 🎨 **UI/UX** | Angular 18 Signals + Tailwind + Responsive |
-| ☁️ **Cloud** | Supabase Storage + RLS policies + JWT |
-| 🤖 **IA** | Claude API integration (Sonnet + Haiku) |
-| 📊 **Données** | France Travail API (390+ offres importées) |
-| 🚀 **Autonomie** | A→Z: conception, dev, deploy, docs |
-
----
-
-## 📄 License
-
-MIT License — Libre d'utilisation
-
----
-
-<div align="center">
-
-### 👉 **Ready to hire?**
-
-**[📧 Contactez Nour](#auteur)** ou visitez **[Portfolio](https://nourstack.netlify.app)**
-
-</div>
+| Couche | Technologies |
+| :--- | :--- |
+| **Frontend** | Angular 18 (standalone, Signals, Reactive Forms, SSR), SCSS, Tabler Icons |
+| **Backend** | Spring Boot 3.4, Java 17, Spring Security 6, JWT, OAuth2 (Google, LinkedIn), Spring Mail, Thymeleaf |
+| **Données** | PostgreSQL 16, Spring Data JPA / Hibernate |
+| **Stockage** | Supabase Storage (CV, photos) avec politiques RLS |
+| **Offres** | France Travail API, Adzuna API, Jooble API, The Muse API |
+| **IA** | Claude API (analyse de CV, lettres de motivation) |
+| **DevOps** | Docker, GitHub Actions, Maven |
