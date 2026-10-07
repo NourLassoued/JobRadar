@@ -59,7 +59,6 @@ JobRadar interroge plusieurs API d'emploi, puis ramène toutes les offres dans *
 | 🇫🇷 **[France Travail API](https://francetravail.io/)** | France, tous métiers (référentiel ROME) | Intitulé, entreprise, lieu, contrat, salaire, code ROME | OAuth2 *client credentials* | ✅ |
 | 🌍 **[Adzuna API](https://developer.adzuna.com/)** | France et une vingtaine de pays | Intitulé, entreprise, lieu, fourchette de salaire, catégorie | `app_id` + `app_key` | 🔄 |
 | 🔎 **[Jooble API](https://jooble.org/api/about)** | Agrégateur international, dont la France | Intitulé, entreprise, lieu, salaire, extrait, lien source | Clé API | 🔄 |
-| 💼 **[The Muse API](https://www.themuse.com/developers/api/v2)** | Surtout États-Unis, profils tech et business | Intitulé, entreprise, niveau, catégorie, lieu | Clé API (facultative) | 🔄 |
 
 ### Fonctionnement
 
