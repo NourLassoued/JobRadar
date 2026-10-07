@@ -35,7 +35,7 @@
 | | Fonctionnalité | Description | Statut |
 | :--: | :--- | :--- | :--: |
 | 🔐 | **Authentification** | Email / mot de passe, OAuth2 (Google, LinkedIn), JWT, réinitialisation du mot de passe par email | ✅ |
-| 🌐 | **Agrégation multi-API** | France Travail, Adzuna, Jooble, The Muse ([détails](#-sources-doffres--agrégation-multi-api)) | 🔄 |
+| 🌐 | **Agrégation multi-API** | France Travail, Adzuna, Jooble ([détails](#-sources-doffres--agrégation-multi-api)) | 🔄 |
 | 🏷️ | **14 familles de métiers** | Référentiel aligné sur le ROME de France Travail | ✅ |
 | 🎯 | **Scoring adaptatif** | Pondération différente selon le métier (Strategy Pattern) | ✅ |
 | 👤 | **Profil candidat** | Compétences proposées selon le secteur, langues (niveaux CECRL), CV et photo | ✅ |
