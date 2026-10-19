@@ -6,17 +6,31 @@ import { isPlatformBrowser } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, map, of, switchMap } from 'rxjs';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { JobOffer, JobService } from '../../../core/services/job.service';
 import { AdzunaError, AdzunaService } from '../../../core/services/adzuna.service';
 import { JoobleError, JoobleService } from '../../../core/services/jooble.service';
 import { FranceTravailService } from '../../../core/services/france-travail.service';
+import { MatchResult, MatchingService } from '../../../core/services/matching.service';
 import { Observable } from 'rxjs';
 import { SECTOR_LABELS } from '../../../core/models/candidate';
 import { sectorCode, sectorIcon, sectorLabel } from '../../../core/models/sector.utils';
+import { RecommendationService } from '../../../core/services/recommendation-service.service';
+import { JobOfferModalComponent } from '../job-offer-modal/job-offer-modal.component';
+import { ModalTab } from '../../../core/models/job-offer-modal.models';
+
 
 type FilterType = 'all' | 'active' | 'remote';
-type SortType = 'recent' | 'salary' | 'title';
+type SortType = 'recent' | 'score' | 'salary' | 'title';
+/** Niveau d'un score, pour la couleur */
+type ScoreLevel = 'high' | 'mid' | 'low';
+/** Filtre de score minimum : 0 = toutes, 40 = compatibles, 70 = très compatibles */
+type MinScore = 0 | 40 | 70;
+/** Raison pour laquelle les scores ne sont pas disponibles */
+type ScoreNoticeKind = 'profile' | 'auth' | 'error';
+
+/** Score à partir duquel une offre est mise en avant (« Top match ») */
+const TOP_MATCH = 80;
 type DateFilter = 'all' | '24h' | '3d' | '7d' | '30d';
 type ViewMode = 'grid' | 'list';
 
@@ -66,12 +80,12 @@ const DEFAULT_SOURCE = 'FRANCE_TRAVAIL';
 const normalize = (s: string | null | undefined): string =>
   (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
-interface Chip { key: 'q' | 'sector' | 'type' | 'date' | 'source'; label: string }
+interface Chip { key: 'q' | 'sector' | 'type' | 'date' | 'source' | 'score'; label: string }
 
 @Component({
   selector: 'app-jobs-list',
   standalone: true,
-  imports: [],
+  imports: [RouterLink, JobOfferModalComponent],
   templateUrl: './jobs-list.component.html',
   styleUrl: './jobs-list.component.scss',
 })
@@ -80,6 +94,8 @@ export class JobsListComponent implements OnInit {
   private adzunaService = inject(AdzunaService);
   private joobleService = inject(JoobleService);
   private franceTravailService = inject(FranceTravailService);
+  private matchingService = inject(MatchingService);
+  private recommendationService = inject(RecommendationService);
   private destroyRef = inject(DestroyRef);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -97,7 +113,8 @@ export class JobsListComponent implements OnInit {
   filterType = signal<FilterType>('all');
   sectorFilter = signal('');
   dateFilter = signal<DateFilter>('all');
-  sortBy = signal<SortType>('recent');
+  /** Tri par défaut : meilleur score d'abord (offres recommandées) */
+  sortBy = signal<SortType>('score');
   /** '' = toutes les sources */
   sourceFilter = signal('');
 
@@ -111,6 +128,23 @@ export class JobsListComponent implements OnInit {
   /** Source externe en cours d'interrogation (une à la fois) et message de résultat */
   externalLoading = signal<ExternalSource | null>(null);
   externalMessage = signal<{ source: ExternalSource; type: 'success' | 'error'; text: string } | null>(null);
+
+  // ── Scores de matching ────────────────────────────────────
+  /** Score par id d'offre (rempli au fur et à mesure de l'affichage) */
+  scores = signal<Map<number, MatchResult>>(new Map());
+  /** Offres dont le score est en cours de calcul */
+  scoringIds = signal<Set<number>>(new Set());
+  /** Message si les scores ne peuvent pas être calculés (profil incomplet, non connecté…) */
+  scoreNotice = signal<{ kind: ScoreNoticeKind; text: string } | null>(null);
+  /** Score minimum demandé (filtre « Compatibilité ») */
+  minScore = signal<MinScore>(0);
+  // ── Fenêtre modale d'une offre ────────────────────────────
+  /** Offre ouverte dans la fenêtre (null = fermée) */
+  selectedOffer = signal<JobOffer | null>(null);
+  /** Onglet affiché à l'ouverture : score, CV adapté ou lettre */
+  modalTab = signal<ModalTab>('score');
+  /** Ids déjà demandés : évite de redemander le même score */
+  private requestedScoreIds = new Set<number>();
 
   readonly skeletons = [1, 2, 3, 4, 5, 6];
   readonly dateOptions = DATE_OPTIONS;
@@ -171,9 +205,19 @@ export class JobsListComponent implements OnInit {
     return counts;
   });
 
-  filteredJobs = computed(() => {
+  /** Offres filtrées par tout sauf le score (sert au résumé de compatibilité) */
+  private filteredExceptScore = computed(() => {
     const days = DATE_OPTIONS.find(o => o.value === this.dateFilter())?.days ?? Infinity;
-    const sorted = this.filteredExceptDate().filter(j => this.withinDays(j.createdAt, days));
+    return this.filteredExceptDate().filter(j => this.withinDays(j.createdAt, days));
+  });
+
+  filteredJobs = computed(() => {
+    const min = this.minScore();
+    const map = this.scores();
+    // Filtre de score : les offres pas encore notées sont masquées tant que leur score n'est pas connu
+    const sorted = min
+      ? this.filteredExceptScore().filter(j => (map.get(j.id)?.score ?? -1) >= min)
+      : [...this.filteredExceptScore()];
 
     switch (this.sortBy()) {
       case 'salary':
@@ -182,6 +226,12 @@ export class JobsListComponent implements OnInit {
       case 'title':
         sorted.sort((a, b) => a.title.localeCompare(b.title, 'fr'));
         break;
+      case 'score': {
+        // Offres sans score encore calculé à la fin
+        const map = this.scores();
+        sorted.sort((a, b) => (map.get(b.id)?.score ?? -1) - (map.get(a.id)?.score ?? -1));
+        break;
+      }
       default:
         sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
@@ -210,6 +260,37 @@ export class JobsListComponent implements OnInit {
     return groups;
   });
 
+  /** Résumé : moyenne, répartition et meilleure offre parmi les offres notées */
+  scoreStats = computed(() => {
+    const map = this.scores();
+    const list = this.filteredExceptScore();
+    let high = 0, mid = 0, low = 0, sum = 0;
+    let best: { job: JobOffer; result: MatchResult } | null = null;
+
+    for (const job of list) {
+      const r = map.get(job.id);
+      if (!r) continue;
+      sum += r.score;
+      const level = this.scoreLevel(r.score);
+      if (level === 'high') high++; else if (level === 'mid') mid++; else low++;
+      if (!best || r.score > best.result.score) best = { job, result: r };
+    }
+
+    const scored = high + mid + low;
+    const pct = (n: number) => (scored ? Math.round((n / scored) * 100) : 0);
+    return {
+      scored,
+      total: list.length,
+      average: scored ? Math.round(sum / scored) : 0,
+      high, mid, low,
+      highPct: pct(high), midPct: pct(mid), lowPct: pct(low),
+      best,
+    };
+  });
+
+  /** Vrai tant qu'au moins un lot de scores est en cours de calcul */
+  scoringInProgress = computed(() => this.scoringIds().size > 0);
+
   /** Pastilles des filtres actifs */
   chips = computed<Chip[]>(() => {
     const chips: Chip[] = [];
@@ -219,10 +300,11 @@ export class JobsListComponent implements OnInit {
     if (this.sourceFilter()) chips.push({ key: 'source', label: `Source : ${this.sourceLabel(this.sourceFilter())}` });
     if (this.filterType() !== 'all') chips.push({ key: 'type', label: TYPE_LABELS[this.filterType()] });
     if (this.dateFilter() !== 'all') chips.push({ key: 'date', label: DATE_OPTIONS.find(o => o.value === this.dateFilter())!.label });
+    if (this.minScore()) chips.push({ key: 'score', label: `Score ≥ ${this.minScore()}` });
     return chips;
   });
 
-  hasActiveFilters = computed(() => this.chips().length > 0 || this.sortBy() !== 'recent');
+  hasActiveFilters = computed(() => this.chips().length > 0 || this.sortBy() !== 'score');
 
   /** Suggestions quand aucune offre ne correspond */
   suggestions = computed(() => {
@@ -234,6 +316,7 @@ export class JobsListComponent implements OnInit {
     if (this.sourceFilter()) s.push({ label: 'Toutes les sources', action: () => this.sourceFilter.set('') });
     if (this.filterType() !== 'all') s.push({ label: `Retirer « ${TYPE_LABELS[this.filterType()]} »`, action: () => this.filterType.set('all') });
     if (this.searchQuery().trim()) s.push({ label: 'Effacer la recherche', action: () => this.searchQuery.set('') });
+    if (this.minScore()) s.push({ label: 'Retirer le filtre de score', action: () => this.minScore.set(0) });
     return s;
   });
 
@@ -254,7 +337,7 @@ export class JobsListComponent implements OnInit {
 
     // Revenir aux 24 premières offres quand un filtre change
     effect(() => {
-      this.filteredExceptDate(); this.dateFilter(); this.sortBy();
+      this.filteredExceptDate(); this.dateFilter(); this.sortBy(); this.minScore();
       untracked(() => this.visibleCount.set(PAGE_SIZE));
     }, { allowSignalWrites: true });
 
@@ -272,6 +355,14 @@ export class JobsListComponent implements OnInit {
       });
     }, { allowSignalWrites: true });
 
+    // Calcule le score des offres affichées (par lots de 100, une seule fois par offre)
+    effect(() => {
+      // Tri ou filtre par score : on note toutes les offres filtrées ; sinon seulement celles visibles
+      const all = this.sortBy() === 'score' || this.minScore() > 0;
+      const jobs = all ? this.filteredExceptScore() : this.visibleJobs();
+      untracked(() => this.loadScores(jobs));
+    });
+
     // Garder les filtres dans l'URL (rechargement, bouton retour, partage)
     effect(() => {
       const params = {
@@ -280,7 +371,8 @@ export class JobsListComponent implements OnInit {
         source: this.sourceFilter() || null,
         type: this.filterType() !== 'all' ? this.filterType() : null,
         date: this.dateFilter() !== 'all' ? this.dateFilter() : null,
-        tri: this.sortBy() !== 'recent' ? this.sortBy() : null,
+        tri: this.sortBy() !== 'score' ? this.sortBy() : null,
+        score: this.minScore() || null,
       };
       if (!this.isBrowser) return;
       untracked(() => this.router.navigate([], {
@@ -312,7 +404,11 @@ export class JobsListComponent implements OnInit {
     else if (DATE_OPTIONS.some(o => o.value === date)) this.dateFilter.set(date as DateFilter);
 
     const tri = p.get('tri') as SortType;
-    if (tri === 'salary' || tri === 'title') this.sortBy.set(tri);
+    // Par défaut (pas de « tri » dans l'URL) : meilleur score d'abord
+    if (tri === 'salary' || tri === 'title' || tri === 'recent') this.sortBy.set(tri);
+
+    const score = Number(p.get('score'));
+    if (score === 40 || score === 70) this.minScore.set(score);
   }
 
   /** Chargement initial (et bouton « Réessayer ») */
@@ -328,7 +424,7 @@ export class JobsListComponent implements OnInit {
   private fetchOffers(code: string) {
     const request$ = code
       ? this.jobService.getOffersBySector(code)
-      : this.jobService.getRecommendedOffers();
+      : this.recommendedOffers();
 
     return request$.pipe(
       catchError(err => {
@@ -341,10 +437,47 @@ export class JobsListComponent implements OnInit {
     );
   }
 
+  /**
+   * Offres recommandées déjà triées par score (GET /api/jobs/recommended).
+   * Si ce nouvel endpoint échoue (backend pas à jour, erreur serveur…),
+   * on revient à l'ancien /api/job-offers/recommended : la page reste utilisable.
+   */
+  private recommendedOffers(): Observable<JobOffer[]> {
+    return this.recommendationService.getRecommended().pipe(
+      map(offers => offers as JobOffer[]),
+      catchError(err => {
+        console.warn('GET /api/jobs/recommended indisponible, retour à l\'ancien endpoint', err);
+        return this.jobService.getRecommendedOffers();
+      }),
+    );
+  }
+
   private applyOffers(offers: JobOffer[] | null): void {
-    if (offers) this.jobs.set(offers);
+    if (offers) {
+      this.jobs.set(offers);
+      this.useEmbeddedScores(offers);
+    }
     this.loading.set(false);
     this.sectorLoading.set(false);
+  }
+
+  /**
+   * GET /api/jobs/recommended renvoie déjà le score de chaque offre (champ « match ») :
+   * on le reprend directement, sans redemander les scores au backend.
+   */
+  private useEmbeddedScores(offers: JobOffer[]): void {
+    const withScore = offers as (JobOffer & { match?: MatchResult })[];
+    const embedded = withScore.filter(o => o.match && typeof o.id === 'number');
+    if (!embedded.length) return;
+
+    this.scores.update(map => {
+      const next = new Map(map);
+      for (const o of embedded) {
+        next.set(o.id, o.match!);
+        this.requestedScoreIds.add(o.id);
+      }
+      return next;
+    });
   }
 
   // ── Actions ────────────────────────────────────────────────
@@ -379,6 +512,7 @@ export class JobsListComponent implements OnInit {
     if (key === 'source') this.sourceFilter.set('');
     if (key === 'type') this.filterType.set('all');
     if (key === 'date') this.dateFilter.set('all');
+    if (key === 'score') this.minScore.set(0);
   }
 
   clearSearch(input?: HTMLInputElement): void {
@@ -392,7 +526,8 @@ export class JobsListComponent implements OnInit {
     this.sectorFilter.set('');
     this.sourceFilter.set('');
     this.dateFilter.set('all');
-    this.sortBy.set('recent');
+    this.sortBy.set('score');
+    this.minScore.set(0);
   }
 
   showMore(): void {
@@ -437,7 +572,7 @@ export class JobsListComponent implements OnInit {
           switchMap(res => {
             const reload$ = sector
               ? this.jobService.getOffersBySector(sector)
-              : this.jobService.getRecommendedOffers();
+              : this.recommendedOffers();
             return reload$.pipe(map(offers => ({ offers, imported: res.imported })));
           }),
         );
@@ -504,6 +639,148 @@ export class JobsListComponent implements OnInit {
           this.externalMessage.set({ source, type: 'error', text: `${text} (erreur ${err.status}${reason})` });
         },
       });
+  }
+
+  // ── Scores de matching ────────────────────────────────────
+  /** Demande au backend les scores des offres pas encore notées */
+  private loadScores(jobs: JobOffer[]): void {
+    if (!this.isBrowser || this.scoreNotice()) return;
+
+    const missing = jobs
+      .map(j => j.id)
+      .filter((id): id is number => typeof id === 'number' && !this.requestedScoreIds.has(id));
+    if (!missing.length) return;
+
+    // Lots de 100 (limite du backend)
+    for (let i = 0; i < missing.length; i += 100) {
+      const batch = missing.slice(i, i + 100);
+      batch.forEach(id => this.requestedScoreIds.add(id));
+      this.scoringIds.update(set => new Set([...set, ...batch]));
+
+      this.matchingService.scoreOffers(batch)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: results => {
+            this.scores.update(map => {
+              const next = new Map(map);
+              results.forEach(r => next.set(r.offerId, r));
+              return next;
+            });
+            this.doneScoring(batch);
+          },
+          error: (err: HttpErrorResponse) => {
+            this.doneScoring(batch);
+            // Ces offres pourront être redemandées plus tard
+            batch.forEach(id => this.requestedScoreIds.delete(id));
+            if (err.status === 404) {
+              this.scoreNotice.set({ kind: 'profile', text: 'Complétez votre profil (secteur, compétences, expérience) pour voir votre score sur chaque offre.' });
+            } else if (err.status === 401 || err.status === 403) {
+              this.scoreNotice.set({ kind: 'auth', text: 'Connectez-vous pour voir votre score de compatibilité sur chaque offre.' });
+            } else {
+              console.error('Calcul des scores impossible', err);
+              this.scoreNotice.set({ kind: 'error', text: `Les scores sont momentanément indisponibles (erreur ${err.status || 'réseau'}).` });
+            }
+          },
+        });
+    }
+  }
+
+  private doneScoring(ids: number[]): void {
+    this.scoringIds.update(set => {
+      const next = new Set(set);
+      ids.forEach(id => next.delete(id));
+      return next;
+    });
+  }
+
+  scoreOf(job: JobOffer): MatchResult | undefined {
+    return this.scores().get(job.id);
+  }
+
+  isScoring(job: JobOffer): boolean {
+    return this.scoringIds().has(job.id);
+  }
+
+  /** 70+ : très compatible ; 40-69 : compatible ; < 40 : peu compatible */
+  scoreLevel(score: number): ScoreLevel {
+    if (score >= 70) return 'high';
+    if (score >= 40) return 'mid';
+    return 'low';
+  }
+
+  scoreLabel(score: number): string {
+    const level = this.scoreLevel(score);
+    return level === 'high' ? 'Très compatible' : level === 'mid' ? 'Compatible' : 'Peu compatible';
+  }
+
+  /** Texte de l'infobulle : détail des 3 critères et explications */
+  scoreTooltip(r: MatchResult): string {
+    return [
+      `Score ${r.score}/100 — ${this.scoreLabel(r.score)}`,
+      `Compétences ${r.skillsScore} · Expérience ${r.experienceScore} · Secteur ${r.sectorScore}`,
+      ...r.reasons,
+    ].join('\n');
+  }
+
+  dismissScoreNotice(): void {
+    this.scoreNotice.set(null);
+  }
+
+  /** Bouton « Réessayer » du bandeau : relance le calcul des offres affichées */
+  retryScores(): void {
+    this.scoreNotice.set(null);
+    const all = this.sortBy() === 'score' || this.minScore() > 0;
+    this.loadScores(all ? this.filteredExceptScore() : this.visibleJobs());
+  }
+
+  /** Filtre « Compatibilité » : toutes, ≥ 40 ou ≥ 70 */
+  setMinScore(value: MinScore): void {
+    this.minScore.set(value);
+  }
+
+  // ── Fenêtre modale ────────────────────────────────────────
+  /** Clic sur une carte : ouvre la fenêtre de l'offre */
+  openOffer(job: JobOffer, tab: ModalTab = 'score'): void {
+    this.modalTab.set(tab);
+    this.selectedOffer.set(job);
+  }
+
+  closeOffer(): void {
+    this.selectedOffer.set(null);
+  }
+
+  /** Score recalculé dans la fenêtre : la carte affiche la nouvelle valeur */
+  onModalMatch(result: MatchResult): void {
+    this.scores.update(map => new Map(map).set(result.offerId, result));
+  }
+
+  /** Offre très bien notée, mise en avant */
+  /** Libellé du secteur sans emoji : « 💻 Informatique / Tech » → « Informatique / Tech » */
+  sectorText(code: string | null | undefined): string {
+    return sectorLabel(code)
+      .replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, '')
+      .trim();
+  }
+
+  /** Lien entre le secteur de l'offre et celui du candidat, d'après le critère « Secteur » */
+  sectorMatch(r: MatchResult): 'same' | 'near' | 'other' {
+    if (r.sectorScore >= 70) return 'same';
+    if (r.sectorScore >= 40) return 'near';
+    return 'other';
+  }
+
+  sectorMatchLabel(r: MatchResult): string {
+    const m = this.sectorMatch(r);
+    return m === 'same' ? 'Votre secteur' : m === 'near' ? 'Secteur proche' : 'Autre secteur';
+  }
+
+  sectorMatchIcon(r: MatchResult): string {
+    const m = this.sectorMatch(r);
+    return m === 'same' ? 'ti-circle-check' : m === 'near' ? 'ti-arrows-exchange' : 'ti-circle-dashed';
+  }
+
+  isTopMatch(job: JobOffer): boolean {
+    return (this.scoreOf(job)?.score ?? 0) >= TOP_MATCH;
   }
 
   dismissExternalMessage(): void {
@@ -578,6 +855,7 @@ export class JobsListComponent implements OnInit {
   /** « / » place le curseur dans la recherche */
   @HostListener('document:keydown', ['$event'])
   onKeydown(e: KeyboardEvent): void {
+    if (this.selectedOffer()) return; // fenêtre ouverte : elle gère le clavier
     const target = e.target as HTMLElement;
     const typing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(target?.tagName) || target?.isContentEditable;
     if (e.key === '/' && !typing) {
@@ -631,9 +909,31 @@ export class JobsListComponent implements OnInit {
     const t = normalize(type);
     if (t.includes('cdi')) return 'badge--cdi';
     if (t.includes('cdd')) return 'badge--cdd';
-    if (t.includes('stage') || t.includes('altern')) return 'badge--stage';
+    if (t.includes('stage') || t.includes('altern') || t.includes('apprenti')) return 'badge--stage';
     if (t.includes('freelance') || t.includes('independant') || t.includes('mission')) return 'badge--freelance';
+    if (t.includes('interim') || t.includes('temporaire')) return 'badge--interim';
     return '';
+  }
+
+  /**
+   * Teinte de la carte selon le secteur (1 à 6), toujours la même pour un secteur donné.
+   * Les 6 teintes sont accordées à la palette (sarcelle, bleu, violet, rose, ambre, vert).
+   */
+  sectorTone(code?: string | null): number {
+    const key = (code || '').toUpperCase();
+    if (!key) return 1;
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+    return (hash % 6) + 1;
+  }
+
+  /** Fraîcheur de l'offre, pour la couleur de la date */
+  freshness(date?: string | null): 'today' | 'week' | 'old' {
+    if (!date) return 'old';
+    const t = new Date(date).getTime();
+    if (isNaN(t)) return 'old';
+    const days = (Date.now() - t) / 86_400_000;
+    return days < 1 ? 'today' : days < 7 ? 'week' : 'old';
   }
 
   format(n: number): string {

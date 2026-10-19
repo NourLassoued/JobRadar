@@ -25,4 +25,5 @@ public interface JobOfferRepository extends JpaRepository<JobOffer, Long> {
     Optional<JobOffer> findByExternalId(String externalId);
 
     List<JobOffer> findByRemoteTrue();
+    List<JobOffer> findBySectorAndIsActiveTrue(String sector);
 }

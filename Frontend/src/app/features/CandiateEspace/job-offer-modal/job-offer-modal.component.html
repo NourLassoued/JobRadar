@@ -1,0 +1,501 @@
+<p>job-offer-modal works!</p>
+<dialog #dialog class="modal" [attr.aria-labelledby]="titleId"
+        (close)="onDialogClose()" (click)="onBackdropClick($event)">
+  <div class="modal__panel" [attr.data-level]="match() ? level() : null">
+
+    <!-- ── En-tête : l'offre ────────────────────────────── -->
+    <header class="modal__head">
+      <span class="modal__sector" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path [attr.d]="sectorIcon(offer().sector)" /></svg>
+      </span>
+
+      <div class="modal__heading">
+        <p class="modal__company">
+          {{ offer().company || 'Entreprise non précisée' }}
+          @if (offer().sector) { <span class="modal__dot" aria-hidden="true">·</span> {{ sectorText(offer().sector) }} }
+        </p>
+        <h2 class="modal__title" [id]="titleId" tabindex="-1" autofocus>{{ offer().title }}</h2>
+        <ul class="modal__facts">
+          @if (offer().location) {
+            <li><i class="ti ti-map-pin" aria-hidden="true"></i>{{ offer().location }}</li>
+          }
+          @if (offer().contractType) {
+            <li><span class="tag">{{ offer().contractType }}</span></li>
+          }
+          @if (offer().remote) {
+            <li><span class="tag tag--soft"><i class="ti ti-home" aria-hidden="true"></i>Télétravail</span></li>
+          }
+          @if (formatSalary(offer().salaryMin, offer().salaryMax); as salary) {
+            <li><i class="ti ti-coin-euro" aria-hidden="true"></i>{{ salary }}</li>
+          }
+          @if (relativeDate(offer().createdAt); as published) {
+            <li class="muted">{{ published }}</li>
+          }
+          @if (offer().isActive === false) {
+            <li><span class="tag tag--closed">Clôturée</span></li>
+          }
+        </ul>
+      </div>
+
+      <!-- Résumé du score, visible quel que soit l'onglet -->
+      @if (match(); as m) {
+        <button type="button" [class]="'ring ring--' + level()" [style.--p]="m.score"
+                (click)="selectTab('score')"
+                [attr.aria-label]="'Compatibilité ' + m.score + ' %, ' + label() + '. Voir le détail'">
+          <span class="ring__value">{{ m.score }}<small>%</small></span>
+        </button>
+      } @else if (matchLoading()) {
+        <span class="ring ring--loading" aria-label="Calcul du score"></span>
+      }
+
+      <button type="button" class="modal__close" (click)="close()" aria-label="Fermer">
+        <i class="ti ti-x" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <!-- ── Onglets ─────────────────────────────────────── -->
+    <div class="tabs" role="tablist" aria-label="Contenu de l'offre" (keydown)="onTabKeydown($event)">
+      <button type="button" role="tab" id="tab-score" class="tabs__btn" aria-controls="panel-score"
+              [class.is-active]="tab() === 'score'" [attr.aria-selected]="tab() === 'score'"
+              [attr.tabindex]="tab() === 'score' ? 0 : -1" (click)="selectTab('score')">
+        <i class="ti ti-target-arrow" aria-hidden="true"></i>Compatibilité
+      </button>
+      <button type="button" role="tab" id="tab-cv" class="tabs__btn" aria-controls="panel-cv"
+              [class.is-active]="tab() === 'cv'" [attr.aria-selected]="tab() === 'cv'"
+              [attr.tabindex]="tab() === 'cv' ? 0 : -1" (click)="selectTab('cv')">
+        <i class="ti ti-file-text" aria-hidden="true"></i>CV adapté
+        @if (adaptation()) { <span class="tabs__dot" aria-label="(prêt)"></span> }
+        @if (aiBusy() === 'cv') { <span class="spinner" aria-label="(en cours)"></span> }
+      </button>
+      <button type="button" role="tab" id="tab-letter" class="tabs__btn" aria-controls="panel-letter"
+              [class.is-active]="tab() === 'letter'" [attr.aria-selected]="tab() === 'letter'"
+              [attr.tabindex]="tab() === 'letter' ? 0 : -1" (click)="selectTab('letter')">
+        <i class="ti ti-mail" aria-hidden="true"></i>Lettre
+        @if (letter()) { <span class="tabs__dot" aria-label="(prête)"></span> }
+        @if (aiBusy() === 'letter') { <span class="spinner" aria-label="(en cours)"></span> }
+      </button>
+    </div>
+
+    <div class="modal__body">
+
+      <!-- ═══════════ 1. Compatibilité ═══════════ -->
+      @if (tab() === 'score') {
+        <section id="panel-score" role="tabpanel" aria-labelledby="tab-score" class="panel">
+
+          @if (matchLoading() && !match()) {
+            <div class="loading-card" aria-busy="true">
+              <span class="skeleton w-40"></span>
+              <span class="skeleton w-90"></span>
+              <span class="skeleton w-70"></span>
+            </div>
+          } @else { @if (match(); as m) {
+
+            <!-- Verdict -->
+            @if (verdict(); as v) {
+              <div [class]="'verdict verdict--' + v.level" role="status">
+                <i [class]="'ti ' + v.icon" aria-hidden="true"></i>
+                <div>
+                  <p class="verdict__title">{{ v.title }} <span class="verdict__score">{{ m.score }} %</span></p>
+                  <p class="verdict__text">{{ v.text }}</p>
+                </div>
+              </div>
+            }
+
+            <!-- Les 3 critères -->
+            <h3 class="section-title">Détail du score</h3>
+            <div class="criteria">
+              @for (c of criteria(); track c.key) {
+                <div class="criteria__row">
+                  <span class="criteria__label"><i [class]="'ti ' + c.icon" aria-hidden="true"></i>{{ c.label }} <small>{{ c.weight }} %</small></span>
+                  <span class="criteria__track" role="meter" aria-valuemin="0" aria-valuemax="100"
+                        [attr.aria-valuenow]="c.value" [attr.aria-label]="c.label + ' ' + c.value + ' sur 100'">
+                    <span [class]="'criteria__fill criteria__fill--' + c.level" [style.width.%]="c.value"></span>
+                  </span>
+                  <span class="criteria__value">{{ c.points }}<small>/{{ c.weight }} pts</small></span>
+                </div>
+              }
+            </div>
+
+            <!-- Points forts -->
+            <h3 class="section-title">
+              <i class="ti ti-circle-check text-high" aria-hidden="true"></i>Points forts
+              @if (coverage(); as cov) { <small>vous couvrez {{ cov.covered }} / {{ cov.total }} technologies de l'offre</small> }
+            </h3>
+            @if (m.matchedSkills.length) {
+              <ul class="chips" aria-label="Compétences en commun">
+                @for (skill of m.matchedSkills; track skill) {
+                  <li class="chip chip--ok"><i class="ti ti-check" aria-hidden="true"></i>{{ skill }}</li>
+                }
+              </ul>
+            } @else {
+              <p class="muted">Aucune de vos compétences n'apparaît dans l'offre.</p>
+            }
+
+            <!-- Compétences manquantes (si le backend les renvoie) -->
+            @if (m.missingSkills?.length) {
+              <h3 class="section-title">
+                <i class="ti ti-plus text-mid" aria-hidden="true"></i>Compétences manquantes
+              </h3>
+              <ul class="chips" aria-label="Technologies de l'offre absentes de votre profil">
+                @for (skill of missingSkills(); track skill) {
+                  <li class="chip chip--missing">{{ skill }}</li>
+                }
+                @if (hiddenMissing()) {
+                  <li><button type="button" class="link" (click)="showAllMissing.set(true)">+{{ hiddenMissing() }} autres</button></li>
+                }
+              </ul>
+            }
+
+            @if (m.requiredYears) {
+              <p class="note"><i class="ti ti-calendar-stats" aria-hidden="true"></i>
+                Expérience demandée : {{ m.requiredYears }} an{{ m.requiredYears > 1 ? 's' : '' }}</p>
+            }
+
+            @if (m.reasons.length) {
+              <ul class="reasons">
+                @for (reason of m.reasons; track $index) { <li>{{ reason }}</li> }
+              </ul>
+            }
+
+            <!-- Résultat d'une adaptation déjà faite -->
+            @if (coverageGain(); as g) {
+              <div class="gain">
+                <p class="gain__title"><i class="ti ti-sparkles" aria-hidden="true"></i>Avec votre CV adapté</p>
+                <p class="gain__line">
+                  <strong>{{ g.before }} %</strong> avant adaptation
+                  <i class="ti ti-arrow-right" aria-hidden="true"></i>
+                  <strong class="text-high">{{ g.after }} %</strong> après adaptation
+                  @if (g.gain > 0) { <span class="gain__delta">+{{ g.gain }}</span> }
+                </p>
+                <p class="hint">Part des technologies de l'offre présentes dans le texte du CV.</p>
+              </div>
+            }
+
+            <div class="panel__actions">
+              <button type="button" class="btn btn--primary" (click)="startCv()">
+                <i class="ti ti-sparkles" aria-hidden="true"></i>
+                {{ adaptation() ? 'Voir mon CV adapté' : 'Générer un CV adapté avec l\'IA' }}
+              </button>
+              <button type="button" class="btn btn--secondary" (click)="startLetter()">
+                <i class="ti ti-mail" aria-hidden="true"></i>Générer une lettre de motivation
+              </button>
+              <button type="button" class="btn btn--ghost btn--sm" (click)="loadMatch()" [disabled]="matchLoading()"
+                      title="Recalcule le score à partir de votre profil actuel">
+                @if (matchLoading()) { <span class="spinner"></span> } @else { <i class="ti ti-refresh" aria-hidden="true"></i> }
+                Recalculer
+              </button>
+            </div>
+
+          } @else { @if (matchNotice(); as n) {
+            <div class="empty-state">
+              <i class="ti ti-target-arrow" aria-hidden="true"></i>
+              <p>{{ n.text }}</p>
+              @if (n.kind === 'profile') {
+                <a routerLink="/app/profil" class="btn btn--primary btn--sm" (click)="close()">
+                  <i class="ti ti-user-edit" aria-hidden="true"></i>Compléter mon profil
+                </a>
+              } @else if (n.kind === 'error') {
+                <button type="button" class="btn btn--secondary btn--sm" (click)="loadMatch()">
+                  <i class="ti ti-refresh" aria-hidden="true"></i>Réessayer
+                </button>
+              }
+            </div>
+            <div class="panel__actions">
+              <button type="button" class="btn btn--primary" (click)="startCv()">
+                <i class="ti ti-sparkles" aria-hidden="true"></i>Générer un CV adapté avec l'IA
+              </button>
+              <button type="button" class="btn btn--secondary" (click)="startLetter()">
+                <i class="ti ti-mail" aria-hidden="true"></i>Générer une lettre de motivation
+              </button>
+            </div>
+          } } }
+
+          <!-- Description de l'offre -->
+          @if (description()) {
+            <details class="desc">
+              <summary>Description de l'offre</summary>
+              <p class="prose">{{ description() }}</p>
+              @if (descriptionTruncated()) {
+                <button type="button" class="link" (click)="showFullDescription.set(!showFullDescription())">
+                  {{ showFullDescription() ? 'Réduire' : 'Lire la suite' }}
+                </button>
+              }
+            </details>
+          }
+        </section>
+      }
+
+      <!-- ═══════════ 2. CV adapté ═══════════ -->
+      @if (tab() === 'cv') {
+        <section id="panel-cv" role="tabpanel" aria-labelledby="tab-cv" class="panel">
+          <p class="intro">
+            L'IA réorganise et reformule votre CV pour cette offre, <strong>sans inventer</strong> d'expérience ni de compétence.
+          </p>
+
+          <ng-container [ngTemplateOutlet]="cvPicker" [ngTemplateOutletContext]="{ $implicit: 'cv' }" />
+
+          @if (aiError()?.tab === 'cv') {
+            <p class="error" role="alert"><i class="ti ti-alert-circle" aria-hidden="true"></i>{{ aiError()!.text }}</p>
+          }
+
+          <div class="panel__actions">
+            <button type="button" class="btn btn--primary" (click)="adaptCv()"
+                    [disabled]="!!aiBusy() || quotaEmpty() || !selectedCvId()" [attr.aria-busy]="aiBusy() === 'cv'">
+              @if (aiBusy() === 'cv') { <span class="spinner spinner--light"></span>Génération en cours… }
+              @else { <i class="ti ti-sparkles" aria-hidden="true"></i>{{ adaptation() ? 'Régénérer le CV' : 'Générer un CV adapté avec l\'IA' }} }
+            </button>
+            <ng-container [ngTemplateOutlet]="quotaInfo" />
+          </div>
+
+          @if (aiBusy() === 'cv') {
+            <div class="loading-card" aria-live="polite">
+              <p class="loading-card__text"><span class="spinner"></span>L'IA analyse l'offre et adapte votre CV (10 à 20 secondes)…</p>
+              <span class="skeleton w-40"></span>
+              <span class="skeleton w-90"></span>
+              <span class="skeleton w-70"></span>
+              <span class="skeleton w-90"></span>
+            </div>
+          } @else { @if (adaptation(); as a) {
+            <article id="modal-cv-result" class="result">
+              <!-- Avant / après : uniquement si l'API renvoie les deux valeurs -->
+              @if (coverageGain(); as g) {
+                <div class="compare">
+                  <div class="compare__item">
+                    <span [class]="'ring ring--sm ring--' + (g.before >= 70 ? 'high' : g.before >= 40 ? 'mid' : 'low')" [style.--p]="g.before">
+                      <span class="ring__value">{{ g.before }}<small>%</small></span>
+                    </span>
+                    <span>avant<br>adaptation</span>
+                  </div>
+                  <i class="ti ti-arrow-right compare__arrow" aria-hidden="true"></i>
+                  <div class="compare__item">
+                    <span [class]="'ring ring--sm ring--' + (g.after >= 70 ? 'high' : g.after >= 40 ? 'mid' : 'low')" [style.--p]="g.after">
+                      <span class="ring__value">{{ g.after }}<small>%</small></span>
+                    </span>
+                    <span>après<br>adaptation</span>
+                  </div>
+                  <p class="compare__text">
+                    @if (g.gain > 0) { <strong class="text-high">+{{ g.gain }} points</strong> }
+                    @else if (g.gain === 0) { <strong>Score inchangé</strong> }
+                    @else { <strong>{{ g.gain }} points</strong> }
+                    <span class="hint">Couverture des technologies de l'offre dans le texte du CV.
+                      @if (match(); as m) { Votre compatibilité globale ({{ m.score }} %) dépend de votre profil. }
+                    </span>
+                  </p>
+                </div>
+              }
+
+              @if (a.unverifiedSkills.length) {
+                <div class="warning" role="note">
+                  <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+                  @if (a.unverifiedSkills.length > 1) {
+                    <p><strong>À vérifier :</strong> {{ a.unverifiedSkills.join(', ') }} n'apparaissent pas dans votre CV d'origine. Retirez-les si vous ne les maîtrisez pas.</p>
+                  } @else {
+                    <p><strong>À vérifier :</strong> {{ a.unverifiedSkills[0] }} n'apparaît pas dans votre CV d'origine. Retirez-le si vous ne le maîtrisez pas.</p>
+                  }
+                </div>
+              }
+
+              <div class="result__bar">
+                <p class="result__meta">
+                  {{ a.cvTitle }} · {{ a.aiModel }}
+                  @if (a.status === 'ACCEPTED') { <span class="tag tag--ok"><i class="ti ti-check" aria-hidden="true"></i>Conservé</span> }
+                </p>
+                <div class="result__tools">
+                  <button type="button" class="btn btn--secondary btn--sm" (click)="copy(a.adaptedContent, 'cv')">
+                    <i class="ti" [class.ti-copy]="copied() !== 'cv'" [class.ti-check]="copied() === 'cv'" aria-hidden="true"></i>
+                    {{ copied() === 'cv' ? 'Copié' : 'Copier' }}
+                  </button>
+                  <button type="button" class="btn btn--secondary btn--sm" (click)="printPdf('cv')">
+                    <i class="ti ti-file-type-pdf" aria-hidden="true"></i>PDF
+                  </button>
+                  <button type="button" class="btn btn--secondary btn--sm" (click)="download(a.adaptedContent, 'cv')">
+                    <i class="ti ti-download" aria-hidden="true"></i>.md
+                  </button>
+                </div>
+              </div>
+
+              <div class="doc">
+                @for (b of adaptationBlocks(); track $index) {
+                  @switch (b.kind) {
+                    @case ('h') { <h4 class="doc__h">{{ b.text }}</h4> }
+                    @case ('li') { <p class="doc__li">{{ b.text }}</p> }
+                    @default { <p class="doc__p">{{ b.text }}</p> }
+                  }
+                }
+              </div>
+
+              @if (a.keywordsAdded.length) {
+                <h3 class="section-title">Mots-clés de l'offre mis en avant</h3>
+                <ul class="chips">
+                  @for (k of a.keywordsAdded; track k) { <li class="chip chip--ok">{{ k }}</li> }
+                </ul>
+              }
+
+              @if (a.suggestions.length) {
+                <h3 class="section-title">Conseils pour aller plus loin</h3>
+                <ul class="reasons">
+                  @for (s of a.suggestions; track $index) { <li>{{ s }}</li> }
+                </ul>
+              }
+
+              <div class="panel__actions panel__actions--end">
+                @if (a.status !== 'ACCEPTED') {
+                  <button type="button" class="btn btn--primary btn--sm" (click)="setAdaptationStatus('ACCEPTED')">
+                    <i class="ti ti-check" aria-hidden="true"></i>Conserver cette version
+                  </button>
+                }
+                <button type="button" class="btn btn--ghost btn--sm" (click)="setAdaptationStatus('REJECTED')">
+                  <i class="ti ti-trash" aria-hidden="true"></i>Écarter
+                </button>
+              </div>
+            </article>
+          } @else if (!aiError()) {
+            <div class="empty-state">
+              <i class="ti ti-file-text" aria-hidden="true"></i>
+              <p>Aucun CV adapté pour cette offre pour l'instant.</p>
+            </div>
+          } }
+        </section>
+      }
+
+      <!-- ═══════════ 3. Lettre de motivation ═══════════ -->
+      @if (tab() === 'letter') {
+        <section id="panel-letter" role="tabpanel" aria-labelledby="tab-letter" class="panel">
+          <p class="intro">Une lettre rédigée à partir de l'offre, de votre profil et de votre CV.</p>
+
+          <ng-container [ngTemplateOutlet]="cvPicker" [ngTemplateOutletContext]="{ $implicit: 'letter' }" />
+
+          <div class="options">
+            <div class="option" role="radiogroup" aria-label="Ton">
+              <span class="option__label">Ton</span>
+              <div class="seg">
+                <button type="button" role="radio" [attr.aria-checked]="tone() === 'FORMAL'" [class.is-active]="tone() === 'FORMAL'" (click)="tone.set('FORMAL')">Formel</button>
+                <button type="button" role="radio" [attr.aria-checked]="tone() === 'DYNAMIC'" [class.is-active]="tone() === 'DYNAMIC'" (click)="tone.set('DYNAMIC')">Dynamique</button>
+              </div>
+            </div>
+            <div class="option" role="radiogroup" aria-label="Longueur">
+              <span class="option__label">Longueur</span>
+              <div class="seg">
+                <button type="button" role="radio" [attr.aria-checked]="letterLength() === 'SHORT'" [class.is-active]="letterLength() === 'SHORT'" (click)="letterLength.set('SHORT')">Courte</button>
+                <button type="button" role="radio" [attr.aria-checked]="letterLength() === 'STANDARD'" [class.is-active]="letterLength() === 'STANDARD'" (click)="letterLength.set('STANDARD')">Standard</button>
+              </div>
+            </div>
+            <div class="option" role="radiogroup" aria-label="Langue">
+              <span class="option__label">Langue</span>
+              <div class="seg">
+                <button type="button" role="radio" [attr.aria-checked]="language() === 'FR'" [class.is-active]="language() === 'FR'" (click)="language.set('FR')">Français</button>
+                <button type="button" role="radio" [attr.aria-checked]="language() === 'EN'" [class.is-active]="language() === 'EN'" (click)="language.set('EN')">English</button>
+              </div>
+            </div>
+          </div>
+
+          @if (aiError()?.tab === 'letter') {
+            <p class="error" role="alert"><i class="ti ti-alert-circle" aria-hidden="true"></i>{{ aiError()!.text }}</p>
+          }
+
+          <div class="panel__actions">
+            <button type="button" class="btn btn--primary" (click)="generateLetter()"
+                    [disabled]="!!aiBusy() || quotaEmpty()" [attr.aria-busy]="aiBusy() === 'letter'">
+              @if (aiBusy() === 'letter') { <span class="spinner spinner--light"></span>Rédaction en cours… }
+              @else { <i class="ti ti-mail" aria-hidden="true"></i>{{ letter() ? 'Régénérer la lettre' : 'Générer une lettre de motivation' }} }
+            </button>
+            <ng-container [ngTemplateOutlet]="quotaInfo" />
+          </div>
+
+          @if (aiBusy() === 'letter') {
+            <div class="loading-card" aria-live="polite">
+              <p class="loading-card__text"><span class="spinner"></span>L'IA rédige votre lettre…</p>
+              <span class="skeleton w-70"></span>
+              <span class="skeleton w-90"></span>
+              <span class="skeleton w-90"></span>
+              <span class="skeleton w-50"></span>
+            </div>
+          } @else { @if (letter(); as l) {
+            <article id="modal-letter-result" class="result">
+              <div class="result__bar">
+                <p class="result__meta">{{ l.aiModel }}</p>
+                <div class="result__tools">
+                  <button type="button" class="btn btn--secondary btn--sm" (click)="copy(letterText(l), 'letter')">
+                    <i class="ti" [class.ti-copy]="copied() !== 'letter'" [class.ti-check]="copied() === 'letter'" aria-hidden="true"></i>
+                    {{ copied() === 'letter' ? 'Copiée' : 'Copier' }}
+                  </button>
+                  <button type="button" class="btn btn--secondary btn--sm" (click)="printPdf('lettre')">
+                    <i class="ti ti-file-type-pdf" aria-hidden="true"></i>PDF
+                  </button>
+                  <button type="button" class="btn btn--secondary btn--sm" (click)="download(letterText(l), 'lettre')">
+                    <i class="ti ti-download" aria-hidden="true"></i>.txt
+                  </button>
+                </div>
+              </div>
+
+              <div class="doc doc--letter">
+                @if (l.subject) { <p class="doc__subject">Objet : {{ l.subject }}</p> }
+                @for (p of letterParagraphs(); track $index) { <p class="doc__p">{{ p }}</p> }
+              </div>
+
+              @if (l.highlights.length) {
+                <h3 class="section-title">Points mis en avant</h3>
+                <ul class="reasons">
+                  @for (h of l.highlights; track $index) { <li>{{ h }}</li> }
+                </ul>
+              }
+              <p class="hint">Relisez et personnalisez la lettre avant de l'envoyer.</p>
+            </article>
+          } @else if (!aiError()) {
+            <div class="empty-state">
+              <i class="ti ti-mail" aria-hidden="true"></i>
+              <p>Choisissez le ton et la longueur, puis lancez la génération.</p>
+            </div>
+          } }
+        </section>
+      }
+    </div>
+
+    <!-- ── Pied : lien vers l'offre d'origine ───────────── -->
+    <footer class="modal__foot">
+      @if (offer().url) {
+        <a [href]="offer().url" target="_blank" rel="noopener noreferrer" class="btn btn--secondary btn--sm">
+          <i [class]="'ti ' + source().icon" aria-hidden="true"></i>Postuler sur {{ source().label }}
+          <i class="ti ti-arrow-up-right" aria-hidden="true"></i>
+        </a>
+      }
+    </footer>
+  </div>
+</dialog>
+
+<!-- Choix du CV, commun aux deux onglets IA -->
+<ng-template #cvPicker let-forTab>
+  <div class="cv-picker">
+    @if (!cvsLoaded()) {
+      <span class="skeleton w-50"></span>
+    } @else if (cvsError()) {
+      <p class="muted"><i class="ti ti-alert-circle" aria-hidden="true"></i> Vos CV n'ont pas pu être chargés.</p>
+    } @else if (noCv()) {
+      <div class="cv-picker__empty">
+        <p><i class="ti ti-file-off" aria-hidden="true"></i> Aucun CV enregistré pour l'assistant IA.</p>
+        <button type="button" class="btn btn--secondary btn--sm" (click)="importProfileCv(forTab)" [disabled]="!!aiBusy()">
+          @if (aiBusy() === 'import') { <span class="spinner"></span> } @else { <i class="ti ti-file-import" aria-hidden="true"></i> }
+          Utiliser le CV de mon profil
+        </button>
+      </div>
+    } @else {
+      <label class="cv-picker__label" [attr.for]="'cv-select-' + forTab">CV de départ</label>
+      <select class="select" [id]="'cv-select-' + forTab" (change)="setCv($event)" [disabled]="!!aiBusy()">
+        @for (cv of cvs(); track cv.id) {
+          <option [value]="cv.id" [selected]="cv.id === selectedCvId()">
+            {{ cv.title }}{{ cv.defaultCv ? ' (par défaut)' : '' }}
+          </option>
+        }
+      </select>
+    }
+  </div>
+</ng-template>
+
+<ng-template #quotaInfo>
+  @if (quota(); as q) {
+    <span class="quota" [class.quota--empty]="q.remaining === 0">
+      @if (q.remaining === 0) { Limite du jour atteinte, revenez demain. }
+      @else { {{ q.remaining }} génération{{ q.remaining > 1 ? 's' : '' }} restante{{ q.remaining > 1 ? 's' : '' }} aujourd'hui }
+    </span>
+  }
+</ng-template>

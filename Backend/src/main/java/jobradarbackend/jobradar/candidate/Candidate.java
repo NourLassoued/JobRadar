@@ -1,7 +1,9 @@
 package jobradarbackend.jobradar.candidate;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jobradarbackend.jobradar.candidate.language.CandidateLanguage;
+import jobradarbackend.jobradar.cv.CandidateCv;
 import jobradarbackend.jobradar.user.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -90,7 +92,11 @@ public class Candidate {
     @Column(name = "skills", columnDefinition = "jsonb")
     private List<String> skills;
     private LocalDateTime updatedAt;
-
+    @Builder.Default
+    @JsonIgnore
+    @OneToMany(mappedBy = "candidate", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("createdAt DESC")
+    private List<CandidateCv> cvs = new ArrayList<>();
     @PrePersist
     public void onCreate() {
         this.createdAt = LocalDateTime.now();

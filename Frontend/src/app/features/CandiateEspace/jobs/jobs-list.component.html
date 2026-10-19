@@ -195,6 +195,7 @@
           <label for="sort">Trier par</label>
           <select id="sort" class="select select--inline" (change)="onSortChange($event)">
             <option value="recent" [selected]="sortBy() === 'recent'">Plus récentes</option>
+            <option value="score" [selected]="sortBy() === 'score'">Meilleur score</option>
             <option value="salary" [selected]="sortBy() === 'salary'">Salaire le plus élevé</option>
             <option value="title" [selected]="sortBy() === 'title'">Titre (A à Z)</option>
           </select>
@@ -224,6 +225,84 @@
     </div>
   }
 
+  <!-- ── Scores indisponibles ──────────────────────────── -->
+  @if (scoreNotice(); as notice) {
+    <div class="score-notice" [class.score-notice--error]="notice.kind === 'error'" role="status">
+      <i class="ti ti-target-arrow" aria-hidden="true"></i>
+      <p>{{ notice.text }}</p>
+      @if (notice.kind === 'profile') {
+        <a routerLink="/app/profil" class="btn btn--primary btn--sm">
+          <i class="ti ti-user-edit" aria-hidden="true"></i> Compléter mon profil
+        </a>
+      } @else if (notice.kind === 'error') {
+        <button type="button" class="btn btn--secondary btn--sm" (click)="retryScores()">
+          <i class="ti ti-refresh" aria-hidden="true"></i> Réessayer
+        </button>
+      }
+      <button type="button" class="adzuna-msg__close" (click)="dismissScoreNotice()" aria-label="Fermer le message">
+        <i class="ti ti-x" aria-hidden="true"></i>
+      </button>
+    </div>
+  }
+
+  <!-- ── Résumé de compatibilité ───────────────────────── -->
+  @if (!loading() && scoreStats().scored; as scored) {
+    <section class="insight" aria-label="Votre compatibilité avec ces offres">
+      <div class="insight__ring score score--xl" [class]="'insight__ring score score--xl score--' + scoreLevel(scoreStats().average)"
+           [style.--p]="scoreStats().average" role="img"
+           [attr.aria-label]="'Compatibilité moyenne ' + scoreStats().average + ' sur 100'">
+        <span class="score__value">{{ scoreStats().average }}</span>
+      </div>
+
+      <div class="insight__body">
+        <p class="insight__title">
+          Compatibilité moyenne <strong>{{ scoreStats().average }}/100</strong>
+          <span class="insight__sub">
+            sur {{ format(scored) }} offre{{ scored > 1 ? 's' : '' }} analysée{{ scored > 1 ? 's' : '' }}
+            @if (scoringInProgress()) { <span class="spinner-dot" aria-label="Analyse en cours"></span> }
+          </span>
+        </p>
+
+        <div class="insight__bar" aria-hidden="true">
+          <span class="insight__seg insight__seg--high" [style.flex-grow]="scoreStats().high"></span>
+          <span class="insight__seg insight__seg--mid" [style.flex-grow]="scoreStats().mid"></span>
+          <span class="insight__seg insight__seg--low" [style.flex-grow]="scoreStats().low"></span>
+        </div>
+
+        <ul class="insight__legend">
+          <li><span class="dot dot--high"></span>{{ scoreStats().high }} très compatible{{ scoreStats().high > 1 ? 's' : '' }} <small>{{ scoreStats().highPct }} %</small></li>
+          <li><span class="dot dot--mid"></span>{{ scoreStats().mid }} compatible{{ scoreStats().mid > 1 ? 's' : '' }} <small>{{ scoreStats().midPct }} %</small></li>
+          <li><span class="dot dot--low"></span>{{ scoreStats().low }} peu compatible{{ scoreStats().low > 1 ? 's' : '' }} <small>{{ scoreStats().lowPct }} %</small></li>
+        </ul>
+
+        @if (scoreStats().best; as best) {
+          <p class="insight__best">
+            <i class="ti ti-trophy" aria-hidden="true"></i>
+            Meilleure offre :
+            <button type="button" class="insight__best-link" (click)="openOffer(best.job)">{{ best.job.title }}</button>
+            <span class="insight__best-score">{{ best.result.score }}</span>
+          </p>
+        }
+      </div>
+
+      <div class="insight__filter">
+        <span class="field__label">Compatibilité</span>
+        <div class="segmented segmented--sm" role="group" aria-label="Filtrer par score">
+          <button type="button" class="segmented__btn" [class.is-active]="minScore() === 0"
+                  [attr.aria-pressed]="minScore() === 0" (click)="setMinScore(0)">Toutes</button>
+          <button type="button" class="segmented__btn" [class.is-active]="minScore() === 40"
+                  [attr.aria-pressed]="minScore() === 40" (click)="setMinScore(40)">
+            ≥ 40 <span class="segmented__count">{{ scoreStats().high + scoreStats().mid }}</span>
+          </button>
+          <button type="button" class="segmented__btn" [class.is-active]="minScore() === 70"
+                  [attr.aria-pressed]="minScore() === 70" (click)="setMinScore(70)">
+            ≥ 70 <span class="segmented__count">{{ scoreStats().high }}</span>
+          </button>
+        </div>
+      </div>
+    </section>
+  }
+
   <!-- ── Offres ────────────────────────────────────────── -->
   @if (!loading() && visibleJobs().length) {
     @for (group of groupedJobs(); track group.label) {
@@ -236,17 +315,19 @@
       <ul class="grid" [class.grid--list]="viewMode() === 'list'"
           [class.is-refreshing]="sectorLoading()" [attr.aria-busy]="sectorLoading()">
         @for (job of group.jobs; track job.id; let i = $index) {
-          <li class="card" [style.animation-delay.ms]="(i % 24) * 25">
+          <li class="card" [class.card--top]="isTopMatch(job)" [attr.data-tone]="sectorTone(job.sector)"
+              [style.animation-delay.ms]="(i % 24) * 25">
+            <!-- En-tête : secteur, entreprise, source -->
             <div class="card__top">
-              <span class="card__sector" [attr.title]="sectorLabel(job.sector)" aria-hidden="true">
+              <span class="card__sector" [attr.title]="sectorText(job.sector)" aria-hidden="true">
                 <svg viewBox="0 0 24 24"><path [attr.d]="sectorIcon(job.sector)" /></svg>
               </span>
               <div class="card__company">
-                <p class="card__company-name">
+                <p class="card__company-name" [attr.title]="job.company || null">
                   @for (seg of highlight(job.company || 'Entreprise non précisée'); track $index) {<span [class.hl]="seg.match">{{ seg.text }}</span>}
                 </p>
                 @if (job.sector) {
-                  <p class="card__company-sector">{{ sectorLabel(job.sector) }}</p>
+                  <p class="card__company-sector" [attr.title]="sectorText(job.sector)">{{ sectorText(job.sector) }}</p>
                 }
               </div>
               <span class="card__badges">
@@ -263,9 +344,9 @@
 
             <div class="card__main">
               <h3 class="card__title">
-                <a [href]="job.url" target="_blank" rel="noopener noreferrer" class="card__link">
+                <button type="button" class="card__link" (click)="openOffer(job)" aria-haspopup="dialog">
                   @for (seg of highlight(job.title); track $index) {<span [class.hl]="seg.match">{{ seg.text }}</span>}
-                </a>
+                </button>
               </h3>
 
               <ul class="card__facts">
@@ -287,24 +368,70 @@
               </ul>
             </div>
 
-            @if (job.description) {
-              <p class="card__desc">{{ job.description }}</p>
+            <!-- Bandeau de compatibilité : score + secteur + compétences -->
+            @if (scoreOf(job); as m) {
+              <div [class]="'match match--' + scoreLevel(m.score)">
+                <button type="button" [class]="'score score--btn score--' + scoreLevel(m.score)"
+                        [style.--p]="m.score" [attr.title]="scoreTooltip(m)" aria-haspopup="dialog"
+                        [attr.aria-label]="'Score de compatibilité ' + m.score + ' sur 100, ' + scoreLabel(m.score) + '. Afficher le détail'"
+                        (click)="openOffer(job, 'score')">
+                  <span class="score__value">{{ m.score }}</span>
+                </button>
+
+                <div class="match__body">
+                  <p class="match__head">
+                    <span class="match__label">{{ scoreLabel(m.score) }}</span>
+                    @if (isTopMatch(job)) {
+                      <span class="badge badge--top"><i class="ti ti-flame" aria-hidden="true"></i>Top match</span>
+                    }
+                  </p>
+                  <p class="match__meta">
+                    <span [class]="'match__sector match__sector--' + sectorMatch(m)"
+                          [attr.title]="'Critère secteur : ' + m.sectorScore + '/100'">
+                      <i [class]="'ti ' + sectorMatchIcon(m)" aria-hidden="true"></i>{{ sectorMatchLabel(m) }}
+                    </span>
+                    @if (m.matchedSkills.length) {
+                      <span class="match__skills" [attr.title]="m.matchedSkills.join(', ')">
+                        <i class="ti ti-check" aria-hidden="true"></i>
+                        {{ m.matchedSkills.slice(0, 2).join(', ') }}@if (m.matchedSkills.length > 2) { +{{ m.matchedSkills.length - 2 }} }
+                      </span>
+                    } @else {
+                      <span class="match__skills match__skills--none">Aucune compétence en commun</span>
+                    }
+                  </p>
+                </div>
+
+                <button type="button" class="match__why" (click)="openOffer(job, 'cv')" aria-haspopup="dialog"
+                        title="Générer un CV adapté à cette offre">
+                  <i class="ti ti-sparkles" aria-hidden="true"></i> CV IA
+                </button>
+              </div>
+
+            } @else if (isScoring(job)) {
+              <div class="match match--loading" aria-label="Calcul du score">
+                <span class="score score--loading"></span>
+                <div class="match__body">
+                  <span class="skeleton skeleton--line w-40"></span>
+                  <span class="skeleton skeleton--line w-70"></span>
+                </div>
+              </div>
             }
 
+       
             <div class="card__foot">
               <div class="card__meta">
                 @if (formatSalary(job.salaryMin, job.salaryMax)) {
-                  <p class="card__salary">{{ formatSalary(job.salaryMin, job.salaryMax) }}</p>
+                  <p class="card__salary"><i class="ti ti-coin-euro" aria-hidden="true"></i>{{ formatSalary(job.salaryMin, job.salaryMax) }}</p>
                 } @else {
                   <p class="card__salary card__salary--empty">Salaire non communiqué</p>
                 }
                 <p class="card__date">
-                  <time [attr.datetime]="job.createdAt">{{ relativeDate(job.createdAt) }}</time>
+                  <time [class]="'card__time card__time--' + freshness(job.createdAt)" [attr.datetime]="job.createdAt">{{ relativeDate(job.createdAt) }}</time>
                   · via {{ sourceLabel(sourceKey(job)) }}
                 </p>
               </div>
               <span class="card__cta" aria-hidden="true">
-                Voir sur {{ sourceLabel(sourceKey(job)) }} <i class="ti ti-arrow-up-right"></i>
+                Voir le détail <i class="ti ti-arrow-right"></i>
               </span>
             </div>
           </li>
@@ -325,7 +452,12 @@
   }
 
   <!-- ── Aucun résultat ────────────────────────────────── -->
-  @if (!loading() && !errorMessage() && !filteredJobs().length) {
+  @if (!loading() && !errorMessage() && !filteredJobs().length && minScore() && scoringInProgress()) {
+    <div class="empty empty--soft" role="status">
+      <span class="spinner-dot" aria-hidden="true"></span>
+      <p>Analyse de votre compatibilité avec les offres…</p>
+    </div>
+  } @else if (!loading() && !errorMessage() && !filteredJobs().length) {
     <div class="empty">
       <span class="empty__icon" aria-hidden="true"><i class="ti ti-briefcase-off"></i></span>
       @if (totalCount()) {
@@ -363,6 +495,16 @@
         </div>
       }
     </div>
+  }
+
+  <!-- ── Fenêtre modale : score, CV adapté, lettre ─────── -->
+  @if (selectedOffer(); as offer) {
+    <app-job-offer-modal
+      [offer]="offer"
+      [initialMatch]="scoreOf(offer)"
+      [initialTab]="modalTab()"
+      (matchChange)="onModalMatch($event)"
+      (closed)="closeOffer()" />
   }
 
   @if (showBackToTop()) {

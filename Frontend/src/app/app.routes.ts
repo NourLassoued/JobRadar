@@ -41,12 +41,7 @@ export const routes: Routes = [
           import('./features/CandiateEspace/jobs/jobs-list.component').then(m => m.JobsListComponent),
         title: 'JobRadar — Offres',
       },
-      {
-        path: 'offres/:id',
-        loadComponent: () =>
-          import('./features/CandiateEspace/jobs/job-detail.component').then(m => m.JobDetailComponent),
-        title: 'JobRadar — Détail de l\'offre',
-      },
+     
       {
         path: 'candidatures',
         loadComponent: () =>

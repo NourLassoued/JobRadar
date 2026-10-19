@@ -286,4 +286,5 @@ public class JobOfferService {
         log.info("✅ Trouvé {} offres pour secteur: {}", offers.size(), enumName);
         return offers;
     }
+
 }
