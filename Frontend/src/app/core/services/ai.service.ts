@@ -80,7 +80,42 @@ export interface AiError {
   code?: string;
   message: string;
 }
+export type InterviewCategory = 'TECHNICAL' | 'EXPERIENCE' | 'BEHAVIORAL' | 'MOTIVATION' | 'GAP';
+export interface InterviewPrepRequest {
+  jobOfferId: number;
+  cvId?: number | null;
+  language: LetterLanguage;
+  /** De 5 à 12 */
+  questionCount: number;
+}
 
+/** Une question probable — InterviewDtos.InterviewQuestion */
+export interface InterviewQuestion {
+  category: InterviewCategory;
+  question: string;
+  /** Pourquoi le recruteur posera probablement cette question */
+  why: string;
+  /** Piste de réponse construite avec le parcours réel du candidat */
+  suggestedAnswer: string;
+  keyPoints: string[];
+  relatedSkill: string | null;
+}
+
+/** Réponse de POST /api/ai/interview-prep — InterviewDtos.InterviewPrepResponse */
+export interface InterviewPrep {
+  jobOfferId: number;
+  offerTitle: string;
+  offerCompany: string | null;
+  matchScore: number;
+  matchedSkills: string[];
+  missingSkills: string[];
+  questions: InterviewQuestion[];
+  /** Questions que le candidat peut poser au recruteur */
+  questionsToAsk: string[];
+  tips: string[];
+  aiModel: string;
+  remainingQuota: number | null;
+}
 
 @Injectable({ providedIn: 'root' })
 export class AiService {
@@ -135,6 +170,10 @@ export class AiService {
   coverLetter(body: CoverLetterRequest): Observable<CoverLetter> {
     return this.http.post<CoverLetter>(`${this.api}/ai/cover-letters`, body);
   }
+   interviewPrep(body: InterviewPrepRequest): Observable<InterviewPrep> {
+    return this.http.post<InterviewPrep>(`${this.api}/ai/interview-prep`, body);
+  }
+
 
   // ── Quota : /api/ai/quota ─────────────────────────────────
 

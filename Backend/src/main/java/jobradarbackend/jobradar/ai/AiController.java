@@ -1,6 +1,8 @@
 package jobradarbackend.jobradar.ai;
 
 import jakarta.validation.Valid;
+import jobradarbackend.jobradar.ai.interview.InterviewDtos;
+import jobradarbackend.jobradar.ai.interview.InterviewPrepService;
 import jobradarbackend.jobradar.ai.letter.CoverLetterService;
 import jobradarbackend.jobradar.candidate.CurrentCandidateResolver;
 import jobradarbackend.jobradar.cv.CvAdaptationService;
@@ -30,6 +32,7 @@ public class AiController {
     private final CoverLetterService coverLetterService;
     private final AiQuotaService quota;
     private final CurrentCandidateResolver current;
+    private final InterviewPrepService interviewPrepService;
 
     @PostMapping("/cv-adaptations")
     public AiDtos.CvAdaptationResponse adaptCv(@Valid @RequestBody AiDtos.AdaptCvRequest request, Principal principal) {
@@ -72,4 +75,10 @@ public class AiController {
         return ResponseEntity.status(e.getStatusCode())
                 .body(Map.of("status", e.getStatusCode().value(), "message", String.valueOf(e.getReason())));
     }
+    @PostMapping("/interview-prep")
+    public InterviewDtos.InterviewPrepResponse interviewPrep(@Valid @RequestBody InterviewDtos.InterviewPrepRequest request,
+                                                             Principal principal) {
+        return interviewPrepService.generate(current.candidateId(principal), request);
+    }
+
 }

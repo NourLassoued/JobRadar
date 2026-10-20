@@ -1,9 +1,13 @@
-import { MatchResult } from "../services/matching.service";
+import { MatchResult } from '../services/matching.service';
 
-export type ModalTab = 'score' | 'cv' | 'letter';
+/** Onglets de la fenêtre */
+export type ModalTab = 'score' | 'cv' | 'letter' | 'interview';
 
 /** Action IA en cours */
-export type AiBusy = 'cv' | 'letter' | 'import' | null;
+export type AiBusy = 'cv' | 'letter' | 'interview' | 'import' | null;
+
+/** Onglet d'une action IA (pour afficher l'erreur au bon endroit) */
+export type AiTab = 'cv' | 'letter' | 'interview';
 
 export type ScoreLevel = 'high' | 'mid' | 'low';
 
@@ -40,6 +44,15 @@ const CRITERIA = [
   { key: 'skills', label: 'Compétences', weight: 60, icon: 'ti-code' },
   { key: 'experience', label: 'Expérience', weight: 20, icon: 'ti-briefcase' },
   { key: 'sector', label: 'Secteur', weight: 20, icon: 'ti-category' },
+] as const;
+
+/** Catégories de questions d'entretien : libellé, icône Tabler et explication, dans l'ordre d'affichage */
+export const INTERVIEW_CATEGORIES = [
+  { key: 'MOTIVATION', label: 'Motivation', icon: 'ti-heart-handshake', hint: 'Pourquoi ce poste et cette entreprise' },
+  { key: 'EXPERIENCE', label: 'Parcours et projets', icon: 'ti-briefcase', hint: 'Vos expériences racontées concrètement' },
+  { key: 'TECHNICAL', label: 'Questions techniques', icon: 'ti-code', hint: 'Les technologies de l\'offre que vous maîtrisez' },
+  { key: 'BEHAVIORAL', label: 'Mises en situation', icon: 'ti-users', hint: 'Répondez avec la méthode STAR : Situation, Tâche, Action, Résultat' },
+  { key: 'GAP', label: 'Points à renforcer', icon: 'ti-alert-triangle', hint: 'Compétences demandées absentes de votre profil : restez honnête' },
 ] as const;
 
 export function levelOf(score: number): ScoreLevel {
