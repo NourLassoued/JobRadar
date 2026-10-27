@@ -1,4 +1,5 @@
-import { Component, HostListener, signal } from '@angular/core';
+import { SignupRoleDialogComponent, } from './../signup-role-dialog/signup-role-dialog.component';
+import { Component, HostListener, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 interface NavLink {
@@ -9,7 +10,7 @@ interface NavLink {
 @Component({
   selector: 'jr-nav-bar',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink,SignupRoleDialogComponent],
   template: `
     <header class="nav" [class.is-scrolled]="scrolled()" [class.is-open]="menuOpen()">
       <div class="nav__inner">
@@ -26,9 +27,10 @@ interface NavLink {
 
         <div class="nav__actions">
           <a routerLink="/auth/login" class="btn btn--ghost">Se connecter</a>
-          <a routerLink="/auth/register" class="btn btn--primary">
+          <!-- Ouvre le choix Candidat / Recruteur avant l'inscription -->
+          <button type="button" class="btn btn--primary" (click)="openSignup()">
             Commencer <i class="ti ti-arrow-right" aria-hidden="true"></i>
-          </a>
+          </button>
         </div>
 
         <button type="button" class="nav__toggle" (click)="toggleMenu()"
@@ -49,9 +51,9 @@ interface NavLink {
             }
           </nav>
           <div class="mobile__actions">
-            <a routerLink="/auth/register" class="btn btn--primary btn--block" (click)="closeMenu()">
+            <button type="button" class="btn btn--primary btn--block" (click)="openSignup()">
               Commencer gratuitement
-            </a>
+            </button>
             <a routerLink="/auth/login" class="btn btn--secondary btn--block" (click)="closeMenu()">
               Se connecter
             </a>
@@ -59,6 +61,9 @@ interface NavLink {
         </div>
       }
     </header>
+
+    <!-- Fenêtre « Vous êtes candidat ou recruteur ? » -->
+    <jr-signup-role-dialog #signup />
   `,
   styles: [`
     :host {
@@ -201,6 +206,7 @@ interface NavLink {
     .btn--secondary:hover { border-color: var(--accent); color: var(--accent); }
 
     .btn--block { width: 100%; height: 46px; font-size: 15px; }
+    button.btn { cursor: pointer; }
 
     @media (prefers-color-scheme: dark) {
       .btn--primary, .brand__mark { color: #0f1519; }
@@ -275,6 +281,8 @@ export class NavBarComponent {
     { label: 'Tarifs', fragment: 'tarifs' },
   ];
 
+  private signup = viewChild.required<SignupRoleDialogComponent>('signup');
+
   scrolled = signal(false);
   menuOpen = signal(false);
 
@@ -291,6 +299,12 @@ export class NavBarComponent {
   @HostListener('window:resize')
   onResize(): void {
     if (window.innerWidth > 820) this.menuOpen.set(false);
+  }
+
+  /** « Commencer » : ferme le menu mobile puis demande Candidat ou Recruteur */
+  openSignup(): void {
+    this.closeMenu();
+    this.signup().open();
   }
 
   toggleMenu(): void {

@@ -1,0 +1,294 @@
+// Styles communs de l'espace recruteur, inclus par chaque composant avec :
+//   @use '../recruiter';
+// Les couleurs reprennent vos variables globales si elles existent (--primary…), sinon les valeurs par défaut.
+
+:host {
+  --r-primary: var(--primary, #4f46e5);
+  --r-primary-soft: var(--primary-soft, #eef2ff);
+  --r-text: var(--text, #111827);
+  --r-muted: var(--text-muted, #6b7280);
+  --r-border: var(--border, #e5e7eb);
+  --r-surface: var(--surface, #ffffff);
+  --r-bg: var(--bg, #f8fafc);
+  --r-success: #059669;
+  --r-success-soft: #ecfdf5;
+  --r-warning: #b45309;
+  --r-warning-soft: #fffbeb;
+  --r-danger: #dc2626;
+  --r-danger-soft: #fef2f2;
+  --r-radius: 12px;
+
+  display: block;
+  color: var(--r-text);
+}
+
+// ── Page ─────────────────────────────────────────────────
+
+.r-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+.r-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+
+  h1 {
+    margin: 0;
+    font-size: 1.6rem;
+    line-height: 1.2;
+  }
+
+  p {
+    margin: 6px 0 0;
+    color: var(--r-muted);
+  }
+}
+
+.r-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+  color: var(--r-muted);
+  font-size: 0.9rem;
+  text-decoration: none;
+
+  &:hover { color: var(--r-primary); }
+}
+
+.r-card {
+  background: var(--r-surface);
+  border: 1px solid var(--r-border);
+  border-radius: var(--r-radius);
+  padding: 20px;
+}
+
+// ── Boutons ──────────────────────────────────────────────
+
+.r-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 16px;
+  border: 1px solid var(--r-border);
+  border-radius: 10px;
+  background: var(--r-surface);
+  color: var(--r-text);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.92rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+
+  &:hover:not(:disabled) { border-color: var(--r-primary); color: var(--r-primary); }
+  &:focus-visible { outline: 2px solid var(--r-primary); outline-offset: 2px; }
+  &:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  &--primary {
+    background: var(--r-primary);
+    border-color: var(--r-primary);
+    color: #fff;
+
+    &:hover:not(:disabled) { color: #fff; filter: brightness(1.08); }
+  }
+
+  &--danger:hover:not(:disabled) { border-color: var(--r-danger); color: var(--r-danger); }
+  &--success:hover:not(:disabled) { border-color: var(--r-success); color: var(--r-success); }
+
+  &--sm { min-height: 34px; padding: 6px 12px; font-size: 0.85rem; }
+}
+
+// ── Formulaires ──────────────────────────────────────────
+
+.r-form {
+  display: grid;
+  gap: 20px;
+}
+
+.r-section {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+
+  h2 {
+    grid-column: 1 / -1;
+    margin: 0;
+    font-size: 1.05rem;
+  }
+
+  @media (max-width: 640px) { grid-template-columns: 1fr; }
+}
+
+.r-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+
+  &--full { grid-column: 1 / -1; }
+
+  label, .r-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  input, select, textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border: 1px solid var(--r-border);
+    border-radius: 10px;
+    background: var(--r-surface);
+    color: inherit;
+    font: inherit;
+
+    &:focus { outline: none; border-color: var(--r-primary); box-shadow: 0 0 0 3px var(--r-primary-soft); }
+  }
+
+  textarea { resize: vertical; min-height: 120px; line-height: 1.5; }
+
+  &.is-invalid input, &.is-invalid select, &.is-invalid textarea { border-color: var(--r-danger); }
+}
+
+.r-required { color: var(--r-danger); }
+
+.r-hint {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--r-muted);
+  font-size: 0.8rem;
+}
+
+.r-error {
+  color: var(--r-danger);
+  font-size: 0.82rem;
+}
+
+.r-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+  cursor: pointer;
+
+  input { width: 18px; height: 18px; accent-color: var(--r-primary); }
+}
+
+.r-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+// ── Messages ─────────────────────────────────────────────
+
+.r-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 0.92rem;
+  background: var(--r-danger-soft);
+  color: var(--r-danger);
+
+  &--success { background: var(--r-success-soft); color: var(--r-success); }
+  &--info { background: var(--r-primary-soft); color: var(--r-primary); }
+
+  a { color: inherit; font-weight: 600; }
+}
+
+.r-empty {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--r-muted);
+
+  i { font-size: 2.4rem; color: var(--r-primary); }
+  h2 { margin: 0; color: var(--r-text); font-size: 1.15rem; }
+  p { margin: 0; max-width: 440px; }
+}
+
+// ── Badges et puces ──────────────────────────────────────
+
+.r-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: var(--r-bg);
+  color: var(--r-muted);
+  white-space: nowrap;
+
+  &--active, &--OFFER { background: var(--r-success-soft); color: var(--r-success); }
+  &--closed, &--REJECTED { background: var(--r-danger-soft); color: var(--r-danger); }
+  &--APPLIED { background: var(--r-primary-soft); color: var(--r-primary); }
+  &--INTERVIEW { background: var(--r-warning-soft); color: var(--r-warning); }
+}
+
+.r-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.r-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--r-bg);
+  border: 1px solid var(--r-border);
+  font-size: 0.82rem;
+
+  &--ok { background: var(--r-success-soft); border-color: transparent; color: var(--r-success); }
+  &--missing { background: var(--r-danger-soft); border-color: transparent; color: var(--r-danger); }
+}
+
+// ── Chargement ───────────────────────────────────────────
+
+.r-skeleton {
+  height: 88px;
+  border-radius: var(--r-radius);
+  background: linear-gradient(90deg, var(--r-bg) 25%, var(--r-border) 50%, var(--r-bg) 75%);
+  background-size: 200% 100%;
+  animation: r-shimmer 1.2s infinite;
+
+  & + & { margin-top: 12px; }
+}
+
+@keyframes r-shimmer {
+  to { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .r-skeleton { animation: none; }
+}
+
+.r-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

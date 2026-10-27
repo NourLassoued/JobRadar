@@ -236,4 +236,9 @@ public class AuthController {
                     .body("Échec de l'envoi : " + e.getMessage());
         }
     }
+    /** Appelée au retour de Google/LinkedIn quand l'utilisateur avait choisi « Recruteur » */
+    @PostMapping("/become-recruiter")
+    public ResponseEntity<AuthResponse> becomeRecruiter(Authentication authentication) {
+        return ResponseEntity.ok(authService.becomeRecruiter(authentication));
+    }
 }

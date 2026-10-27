@@ -1,0 +1,26 @@
+@if (visible()) {
+  <div class="apply" [class.apply--done]="state() === 'done'">
+    @if (closed()) {
+      <p class="apply__note"><i class="ti ti-lock" aria-hidden="true"></i> Cette offre n'accepte plus de candidatures.</p>
+    } @else {
+      @if (hasLetter() && state() !== 'done') {
+        <label class="apply__check">
+          <input type="checkbox" [checked]="attachLetter()" (change)="toggleLetter($event)" />
+          Joindre la lettre de motivation générée
+        </label>
+      }
+
+      <button type="button" class="apply__btn" [disabled]="state() === 'sending' || state() === 'done'" (click)="apply()">
+        @switch (state()) {
+          @case ('sending') { <i class="ti ti-loader-2 spin" aria-hidden="true"></i> Envoi… }
+          @case ('done') { <i class="ti ti-circle-check" aria-hidden="true"></i> Candidature envoyée }
+          @default { <i class="ti ti-send" aria-hidden="true"></i> Postuler avec mon profil JobRadar }
+        }
+      </button>
+
+      @if (message(); as m) {
+        <p class="apply__msg" [class.apply__msg--error]="state() === 'error'" [attr.role]="state() === 'error' ? 'alert' : 'status'">{{ m }}</p>
+      }
+    }
+  </div>
+}

@@ -1,8 +1,17 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
-import { AuthService } from '../../../core/services/auth.service';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { AuthService, SIGNUP_ROLE_KEY } from '../../../core/services/auth.service';
+
+/** Rôle choisi dans la fenêtre « Commencer » (enum Java Role) */
+export type SignupRole = 'USER' | 'RECRUITER';
+
+
+/** Page d'arrivée après inscription ou connexion, selon le rôle */
+export function homeForRole(role: string | null | undefined): string {
+  return role === 'RECRUITER' ? '/app/recruteur' : '/app/dashboard';
+}
 
 @Component({
   selector: 'jr-register',
@@ -15,6 +24,13 @@ export class RegisterComponent {
   private fb = inject(FormBuilder);
   private auth = inject(AuthService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
+
+  /** Lu dans l'adresse : /auth/register?role=RECRUITER (USER par défaut) */
+  readonly role = signal<SignupRole>(
+    this.route.snapshot.queryParamMap.get('role') === 'RECRUITER' ? 'RECRUITER' : 'USER'
+  );
+  readonly isRecruiter = computed(() => this.role() === 'RECRUITER');
 
   loading = signal(false);
   loadingGoogle = signal(false);
@@ -95,18 +111,31 @@ export class RegisterComponent {
     return c.invalid && c.touched;
   }
 
+  /** Change de rôle sans recharger la page et garde l'adresse à jour */
+  setRole(role: SignupRole): void {
+    this.role.set(role);
+    this.router.navigate([], { relativeTo: this.route, queryParams: { role }, replaceUrl: true });
+  }
+
   togglePassword(): void {
     this.showPassword.update(v => !v);
   }
 
   loginWithGoogle(): void {
+    this.rememberRole();
     this.loadingGoogle.set(true);
     this.auth.loginWithGoogle();
   }
 
   loginWithLinkedIn(): void {
+    this.rememberRole();
     this.loadingLinkedIn.set(true);
     this.auth.loginWithLinkedIn();
+  }
+
+  /** Garde le rôle choisi pendant la redirection vers Google/LinkedIn (même onglet) */
+  private rememberRole(): void {
+    try { sessionStorage.setItem(SIGNUP_ROLE_KEY, this.role()); } catch { /* navigation privée */ }
   }
 
   submit(): void {
@@ -119,10 +148,14 @@ export class RegisterComponent {
     this.errorMessage.set(null);
     this.emailTaken.set(false);
 
-    const { acceptTerms, ...payload } = this.form.getRawValue();
+    const { acceptTerms, ...fields } = this.form.getRawValue();
+    const payload = { ...fields, role: this.role() };
 
     this.auth.register(payload).subscribe({
-      next: () => this.router.navigate(['/app/dashboard']),
+      // Redirection selon le rôle choisi dans l'adresse : /auth/register?role=RECRUITER
+      next: () => {
+        this.router.navigate([this.isRecruiter() ? '/app/recruteur/entreprise' : '/app/dashboard']);
+      },
       error: err => {
         this.loading.set(false);
         if (err?.status === 409) {

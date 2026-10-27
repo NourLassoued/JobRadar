@@ -1,0 +1,289 @@
+<div class="r-page cp">
+  <a class="r-back" [routerLink]="base"><i class="ti ti-arrow-left" aria-hidden="true"></i> Mes offres</a>
+
+  @if (loading()) {
+    <div class="r-skeleton cp-skeleton"></div>
+    <div class="r-skeleton"></div>
+  } @else {
+
+    <!-- ═══ En-tête : la fiche entreprise telle que la verront les candidats ═══ -->
+    <section class="hero" aria-label="Aperçu de votre fiche entreprise">
+      <div class="hero__banner" aria-hidden="true">
+        <span class="hero__sweep"></span>
+        <span class="hero__tag"><i class="ti ti-eye"></i> Aperçu candidat en direct</span>
+      </div>
+
+      <div class="hero__body">
+        <!-- Logo : clic ou glisser-déposer -->
+        <label class="hero__logo" for="c-logo-file" [class.is-busy]="uploadingLogo()"
+               (dragover)="$event.preventDefault()" (drop)="onLogoDrop($event)"
+               [attr.title]="logoPreview() ? 'Changer le logo' : 'Ajouter un logo'">
+          @if (logoPreview() && !logoBroken()) {
+            <img [src]="logoPreview()" alt="Logo de l'entreprise" (error)="logoBroken.set(true)" />
+          } @else {
+            <span class="hero__initials">{{ initials(form.controls.name.value) }}</span>
+          }
+          <span class="hero__logo-overlay" aria-hidden="true">
+            <i class="ti" [class.ti-camera]="!uploadingLogo()" [class.ti-loader-2]="uploadingLogo()" [class.spin]="uploadingLogo()"></i>
+            <small>{{ uploadingLogo() ? 'Envoi…' : (logoPreview() ? 'Changer' : 'Ajouter') }}</small>
+          </span>
+        </label>
+        <input id="c-logo-file" class="r-sr-only" type="file" accept="image/png,image/jpeg,image/gif,image/webp"
+               [disabled]="uploadingLogo()" (change)="onLogoSelected($event)" />
+
+        <div class="hero__identity">
+          <h1 [class.is-placeholder]="!form.controls.name.value">{{ form.controls.name.value || 'Nom de votre entreprise' }}</h1>
+          <ul class="hero__meta">
+            @if (sectorName()) { <li><i class="ti ti-category" aria-hidden="true"></i> {{ sectorName() }}</li> }
+            @if (form.controls.city.value) { <li><i class="ti ti-map-pin" aria-hidden="true"></i> {{ form.controls.city.value }}</li> }
+            @if (form.controls.size.value) { <li><i class="ti ti-users" aria-hidden="true"></i> {{ sizeLabel(form.controls.size.value) }}</li> }
+            @if (!sectorName() && !form.controls.city.value && !form.controls.size.value) {
+              <li class="is-placeholder">Secteur · Ville · Taille</li>
+            }
+          </ul>
+        </div>
+
+        <div class="hero__side">
+          @if (company(); as c) {
+            <span class="hero__jobs">
+              <strong>{{ c.activeJobs }}</strong>
+              offre{{ c.activeJobs > 1 ? 's' : '' }} ouverte{{ c.activeJobs > 1 ? 's' : '' }}
+            </span>
+          }
+          @if (form.controls.website.value || form.controls.linkedinUrl.value) {
+            <span class="hero__links">
+              @if (form.controls.website.value) { <i class="ti ti-world" title="Site web" aria-label="Site web"></i> }
+              @if (form.controls.linkedinUrl.value) { <i class="ti ti-brand-linkedin" title="LinkedIn" aria-label="LinkedIn"></i> }
+            </span>
+          }
+        </div>
+      </div>
+
+      @if (logoError(); as e) {
+        <div class="hero__alert" role="alert"><i class="ti ti-photo-off" aria-hidden="true"></i> {{ e }}</div>
+      } @else if (form.controls.logoUrl.dirty && form.controls.logoUrl.value && !uploadingLogo()) {
+        <div class="hero__alert hero__alert--ok" role="status"><i class="ti ti-info-circle" aria-hidden="true"></i>
+          Logo prêt : enregistrez pour le garder.</div>
+      }
+    </section>
+
+    <div class="layout">
+      <!-- ═══ Formulaire ═══ -->
+      <form class="sheet" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        @if (error(); as message) {
+          <div class="r-alert" role="alert"><i class="ti ti-alert-circle" aria-hidden="true"></i> {{ message }}</div>
+        }
+        @if (success(); as message) {
+          <div class="r-alert r-alert--success" role="status">
+            <i class="ti ti-circle-check" aria-hidden="true"></i>
+            <span>{{ message }} <a [routerLink]="[base, 'offres', 'nouvelle']">Publier une offre</a></span>
+          </div>
+        }
+
+        <!-- 1. Identité -->
+        <section class="step">
+          <header class="step__head">
+            <span class="step__num" [class.is-done]="!!form.controls.name.value && !!form.controls.sector.value">
+              @if (form.controls.name.value && form.controls.sector.value) { <i class="ti ti-check"></i> } @else { 1 }
+            </span>
+            <span>
+              <strong>Identité</strong>
+              <small>Nom, secteur et taille de l'entreprise</small>
+            </span>
+          </header>
+
+          <div class="r-field" [class.is-invalid]="fieldError('name')">
+            <label for="c-name">Nom de l'entreprise <span class="r-required">*</span></label>
+            <input id="c-name" formControlName="name" autocomplete="organization" maxlength="150" placeholder="NourStack Solutions" />
+            @if (fieldError('name'); as e) { <span class="r-error">{{ e }}</span> }
+          </div>
+
+          <div class="duo">
+            <div class="r-field" [class.is-invalid]="fieldError('sector')">
+              <label for="c-sector">Secteur <span class="r-required">*</span></label>
+              <select id="c-sector" formControlName="sector">
+                <option value="" disabled>Choisir un secteur</option>
+                @for (s of sectors; track s.value) { <option [value]="s.value">{{ s.label }}</option> }
+              </select>
+              @if (fieldError('sector'); as e) { <span class="r-error">{{ e }}</span> }
+            </div>
+
+            <div class="r-field">
+              <label for="c-size">Taille</label>
+              <select id="c-size" formControlName="size">
+                <option value="">Non précisée</option>
+                @for (s of sizes; track s.value) { <option [value]="s.value">{{ s.label }}</option> }
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. Présentation -->
+        <section class="step">
+          <header class="step__head">
+            <span class="step__num" [class.is-done]="descriptionLength() >= 80">
+              @if (descriptionLength() >= 80) { <i class="ti ti-check"></i> } @else { 2 }
+            </span>
+            <span>
+              <strong>Présentation</strong>
+              <small>Ce qui donne envie de vous rejoindre</small>
+            </span>
+          </header>
+
+          <div class="duo">
+            <div class="r-field" [class.is-invalid]="fieldError('city')">
+              <label for="c-city">Ville du siège</label>
+              <div class="input-icon">
+                <i class="ti ti-map-pin" aria-hidden="true"></i>
+                <input id="c-city" formControlName="city" autocomplete="address-level2" placeholder="Tunis" />
+              </div>
+              @if (fieldError('city'); as e) { <span class="r-error">{{ e }}</span> }
+            </div>
+
+            <div class="r-field" [class.is-invalid]="fieldError('contactEmail')">
+              <label for="c-email">E-mail de contact</label>
+              <div class="input-icon">
+                <i class="ti ti-mail" aria-hidden="true"></i>
+                <input id="c-email" type="email" formControlName="contactEmail" autocomplete="email" placeholder="recrutement@entreprise.fr" />
+              </div>
+              @if (fieldError('contactEmail'); as e) { <span class="r-error">{{ e }}</span> }
+            </div>
+          </div>
+
+          <div class="r-field" [class.is-invalid]="fieldError('description')">
+            <label for="c-desc">À propos de l'entreprise</label>
+            <textarea id="c-desc" formControlName="description" rows="7" maxlength="5000"
+                      placeholder="Votre activité, vos valeurs, l'équipe, les avantages proposés…"></textarea>
+            <div class="meter" aria-hidden="true">
+              <span class="meter__bar" [style.width.%]="descriptionLength() >= 600 ? 100 : descriptionLength() / 6"
+                    [class.is-good]="descriptionLength() >= 80"></span>
+            </div>
+            <span class="r-hint">
+              <span>{{ descriptionLength() < 80 ? 'Encore ' + (80 - descriptionLength()) + ' caractères pour une présentation complète.' : 'Bonne présentation. Les candidats la lisent avant de postuler.' }}</span>
+              <span class="counter" [class.counter--warn]="descriptionLength() > 4500">{{ descriptionLength() }} / 5000</span>
+            </span>
+            @if (fieldError('description'); as e) { <span class="r-error">{{ e }}</span> }
+          </div>
+        </section>
+
+        <!-- 3. Liens -->
+        <section class="step">
+          <header class="step__head">
+            <span class="step__num" [class.is-done]="!!form.controls.website.value || !!form.controls.linkedinUrl.value">
+              @if (form.controls.website.value || form.controls.linkedinUrl.value) { <i class="ti ti-check"></i> } @else { 3 }
+            </span>
+            <span>
+              <strong>Liens</strong>
+              <small>Facultatifs, mais rassurants pour les candidats</small>
+            </span>
+          </header>
+
+          <div class="duo">
+            <div class="r-field" [class.is-invalid]="fieldError('website')">
+              <label for="c-web">Site web</label>
+              <div class="input-icon">
+                <i class="ti ti-world" aria-hidden="true"></i>
+                <input id="c-web" type="url" formControlName="website" autocomplete="url" placeholder="https://www.entreprise.fr" />
+              </div>
+              @if (fieldError('website'); as e) { <span class="r-error">{{ e }}</span> }
+            </div>
+
+            <div class="r-field" [class.is-invalid]="fieldError('linkedinUrl')">
+              <label for="c-linkedin">Page LinkedIn</label>
+              <div class="input-icon">
+                <i class="ti ti-brand-linkedin" aria-hidden="true"></i>
+                <input id="c-linkedin" type="url" formControlName="linkedinUrl" autocomplete="off" placeholder="https://www.linkedin.com/company/…" />
+              </div>
+              @if (fieldError('linkedinUrl'); as e) { <span class="r-error">{{ e }}</span> }
+            </div>
+          </div>
+
+          <button type="button" class="link-btn" (click)="showLogoUrl.set(!showLogoUrl())" [attr.aria-expanded]="showLogoUrl()">
+            <i class="ti" [class.ti-chevron-down]="!showLogoUrl()" [class.ti-chevron-up]="showLogoUrl()" aria-hidden="true"></i>
+            {{ showLogoUrl() ? 'Masquer l’adresse du logo' : 'Logo déjà en ligne ? Coller son adresse' }}
+          </button>
+
+          @if (showLogoUrl()) {
+            <div class="r-field" [class.is-invalid]="fieldError('logoUrl')">
+              <label for="c-logo">Adresse du logo</label>
+              <div class="input-icon">
+                <i class="ti ti-photo" aria-hidden="true"></i>
+                <input id="c-logo" type="url" formControlName="logoUrl" autocomplete="off" placeholder="https://…/logo.png" />
+              </div>
+              @if (fieldError('logoUrl'); as e) { <span class="r-error">{{ e }}</span> }
+            </div>
+          }
+        </section>
+
+        <!-- Barre d'actions collée en bas -->
+        <div class="actions-bar">
+          <span class="actions-bar__state">
+            @if (saving()) {
+              <i class="ti ti-loader-2 spin" aria-hidden="true"></i> Enregistrement…
+            } @else if (form.dirty) {
+              <span class="dot dot--warn" aria-hidden="true"></span> Modifications non enregistrées
+            } @else if (!isNew()) {
+              <span class="dot dot--ok" aria-hidden="true"></span> Tout est enregistré
+            }
+          </span>
+          <a class="r-btn" [routerLink]="base">Annuler</a>
+          <button class="r-btn r-btn--primary" type="submit" [disabled]="saving() || uploadingLogo() || (!isNew() && form.pristine)">
+            <i class="ti ti-device-floppy" aria-hidden="true"></i> {{ isNew() ? 'Créer le profil' : 'Enregistrer' }}
+          </button>
+        </div>
+      </form>
+
+      <!-- ═══ Colonne de droite ═══ -->
+      <aside class="side">
+        <!-- Complétude du profil -->
+        <section class="panel score">
+          <div class="score__top">
+            <svg class="ring" viewBox="0 0 64 64" aria-hidden="true">
+              <circle class="ring__track" cx="32" cy="32" r="26" />
+              <circle class="ring__value" cx="32" cy="32" r="26"
+                      [attr.stroke-dasharray]="ringLength"
+                      [attr.stroke-dashoffset]="ringLength * (1 - completion() / 100)" />
+            </svg>
+            <span class="score__pct"><strong>{{ completion() }}</strong>%</span>
+            <div>
+              <h2>Profil complété</h2>
+              <p>{{ completion() === 100 ? 'Votre fiche est complète.' : 'Complétez votre fiche pour attirer plus de candidats.' }}</p>
+            </div>
+          </div>
+
+          <ul class="checklist">
+            @for (item of checklist(); track item.for) {
+              <li [class.is-done]="item.done">
+                <label [attr.for]="item.for">
+                  <i class="ti" [class.ti-circle-check-filled]="item.done" [class.ti-circle-dashed]="!item.done" aria-hidden="true"></i>
+                  <span>{{ item.label }}</span>
+                  @if (!item.done) { <i class="ti ti-arrow-right go" aria-hidden="true"></i> }
+                </label>
+              </li>
+            }
+          </ul>
+        </section>
+
+        <!-- Comment l'offre apparaît dans la liste -->
+        <section class="panel">
+          <p class="panel__label"><i class="ti ti-list-search" aria-hidden="true"></i> Dans la liste des offres</p>
+          <div class="job-card">
+            <span class="job-card__logo">
+              @if (logoPreview() && !logoBroken()) { <img [src]="logoPreview()" alt="" /> }
+              @else { {{ initials(form.controls.name.value) }} }
+            </span>
+            <div class="job-card__text">
+              <strong>Votre prochaine offre</strong>
+              <span>{{ form.controls.name.value || 'Votre entreprise' }}{{ form.controls.city.value ? ' · ' + form.controls.city.value : '' }}</span>
+              <span class="job-card__tags">
+                <em>CDI</em>
+                <em class="match"><i class="ti ti-target-arrow" aria-hidden="true"></i> Score candidat</em>
+              </span>
+            </div>
+          </div>
+          <p class="panel__hint">Le logo et le nom s'affichent sur chacune de vos offres.</p>
+        </section>
+      </aside>
+    </div>
+  }
+</div>

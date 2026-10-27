@@ -9,6 +9,7 @@ import jobradarbackend.jobradar.user.dto.LoginRequest;
 import jobradarbackend.jobradar.user.dto.RegisterRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -47,6 +48,7 @@ public class AuthService {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("Cet email est d\u00e9j\u00e0 utilis\u00e9.");
         }
+        Role role = resolveSignupRole(request.getRole());
 
         User user = User.builder()
 
@@ -54,7 +56,7 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
-                .role(Role.USER)
+                .role(role)
                 .build();
         User saved = userRepository.save(user);
         log.info("✅ Utilisateur créé : {}", saved.getId());
@@ -200,5 +202,29 @@ public class AuthService {
             return false;
         }
     }
+    private Role resolveSignupRole(Role requested) {
+        if (requested == null) return Role.USER;          // ancien front, Postman sans rôle
+        if (requested == Role.ADMIN) {
+            throw new IllegalArgumentException("Rôle non autorisé à l'inscription.");
+        }
+        return requested;                                  // USER ou RECRUITER
+    }
+    /**
+     * Passe l'utilisateur connecté de USER à RECRUITER (inscription Google/LinkedIn « espace recruteur »).
+     * Renvoie un nouveau token qui contient le nouveau rôle. ADMIN n'est jamais modifié.
+     */
+    @Transactional
+    public AuthResponse becomeRecruiter(Authentication authentication) {
+        User user = userRepository.findByEmail(authentication.getName())
+                .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable."));
 
+        if (user.getRole() == Role.USER) {
+            user.setRole(Role.RECRUITER);
+            user = userRepository.save(user);
+            log.info("✅ Utilisateur {} passé au rôle RECRUITER", user.getId());
+        }
+
+        String token = jwtService.generateToken(user);
+        return buildAuthResponse(user, token);
+    }
 }

@@ -1,0 +1,294 @@
+<div class="r-page jf">
+  <a class="r-back" [routerLink]="base"><i class="ti ti-arrow-left" aria-hidden="true"></i> Mes offres</a>
+
+  <!-- ═══ En-tête ═══ -->
+  <header class="hero">
+    <div class="hero__banner" aria-hidden="true"><span class="hero__sweep"></span></div>
+    <div class="hero__body">
+      <span class="hero__icon" aria-hidden="true"><i class="ti" [class.ti-pencil]="isEdit()" [class.ti-speakerphone]="!isEdit()"></i></span>
+      <div>
+        <h1>{{ isEdit() ? "Modifier l'offre" : 'Publier une offre' }}</h1>
+        <p>Les compétences et l'expérience demandées servent au calcul du score de compatibilité des candidats.</p>
+      </div>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="r-skeleton"></div>
+    <div class="r-skeleton"></div>
+  } @else if (noCompany()) {
+    <div class="empty">
+      <span class="empty__icon" aria-hidden="true"><i class="ti ti-building"></i></span>
+      <h2>Profil entreprise requis</h2>
+      <p>Créez d'abord le profil de votre entreprise : son nom et son logo s'affichent sur chaque offre.</p>
+      <a class="r-btn r-btn--primary" [routerLink]="[base, 'entreprise']">Créer le profil entreprise</a>
+    </div>
+  } @else {
+    <div class="layout">
+      <!-- ═══ Formulaire en étapes ═══ -->
+      <form class="sheet" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        @if (error(); as message) {
+          <div class="r-alert" role="alert"><i class="ti ti-alert-circle" aria-hidden="true"></i> {{ message }}</div>
+        }
+        @if (isEdit() && applicantsCount() > 0) {
+          <div class="r-alert r-alert--info" role="note">
+            <i class="ti ti-info-circle" aria-hidden="true"></i>
+            <span>{{ applicantsCount() }} candidature{{ applicantsCount() > 1 ? 's' : '' }} déjà reçue{{ applicantsCount() > 1 ? 's' : '' }} :
+              les scores seront recalculés avec la nouvelle version de l'offre.</span>
+          </div>
+        }
+
+        <!-- 1. Le poste -->
+        <section class="step">
+          <header class="step__head">
+            <span class="step__num" [class.is-done]="!!form.controls.title.value && form.controls.description.valid">
+              @if (form.controls.title.value && form.controls.description.valid) { <i class="ti ti-check"></i> } @else { 1 }
+            </span>
+            <span><strong>Le poste</strong><small>Intitulé, contrat, lieu et missions</small></span>
+          </header>
+
+          <div class="r-field" [class.is-invalid]="fieldError('title')">
+            <label for="j-title">Intitulé du poste <span class="r-required">*</span></label>
+            <input id="j-title" class="input-lg" formControlName="title" maxlength="255" placeholder="Développeur Full Stack Java / Angular (H/F)" />
+            @if (fieldError('title'); as e) { <span class="r-error">{{ e }}</span> }
+          </div>
+
+          <!-- Contrat : pastilles au lieu d'une liste déroulante -->
+          <div class="r-field" [class.is-invalid]="fieldError('contractType')">
+            <span class="r-label" id="j-contract-label">Type de contrat <span class="r-required">*</span></span>
+            <div class="pills" role="radiogroup" aria-labelledby="j-contract-label">
+              @for (c of contracts; track c.value) {
+                <button type="button" class="pill" role="radio"
+                        [class.is-on]="form.controls.contractType.value === c.value"
+                        [attr.aria-checked]="form.controls.contractType.value === c.value"
+                        (click)="setContract(c.value)">{{ c.label }}</button>
+              }
+            </div>
+            @if (fieldError('contractType'); as e) { <span class="r-error">{{ e }}</span> }
+          </div>
+
+          <div class="duo">
+            <div class="r-field" [class.is-invalid]="fieldError('sector')">
+              <label for="j-sector">Secteur <span class="r-required">*</span></label>
+              <select id="j-sector" formControlName="sector">
+                <option value="" disabled>Choisir un secteur</option>
+                @for (s of sectors; track s.value) { <option [value]="s.value">{{ s.label }}</option> }
+              </select>
+              @if (fieldError('sector'); as e) { <span class="r-error">{{ e }}</span> }
+            </div>
+
+            <div class="r-field" [class.is-invalid]="fieldError('location')">
+              <label for="j-location">Lieu <span class="r-required">*</span></label>
+              <div class="input-icon">
+                <i class="ti ti-map-pin" aria-hidden="true"></i>
+                <input id="j-location" formControlName="location" placeholder="Tunis" />
+              </div>
+              @if (fieldError('location'); as e) { <span class="r-error">{{ e }}</span> }
+            </div>
+          </div>
+
+          <!-- Télétravail : interrupteur -->
+          <label class="switch">
+            <input type="checkbox" formControlName="remote" />
+            <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
+            <span class="switch__text">
+              <strong>Télétravail possible</strong>
+              <small>Affiche le badge « télétravail » sur l'offre</small>
+            </span>
+          </label>
+
+          <div class="r-field" [class.is-invalid]="fieldError('description')">
+            <label for="j-desc">Description du poste <span class="r-required">*</span></label>
+            <textarea id="j-desc" formControlName="description" rows="10" maxlength="10000"
+                      placeholder="Missions, environnement de travail, équipe, avantages…"></textarea>
+            <div class="meter" aria-hidden="true">
+              <span class="meter__bar"
+                    [style.width.%]="descriptionLength() >= goodDescription ? 100 : (descriptionLength() / goodDescription) * 100"
+                    [class.is-min]="descriptionLength() >= minDescription"
+                    [class.is-good]="descriptionLength() >= goodDescription"></span>
+            </div>
+            <span class="r-hint">
+              <span>
+                @if (descriptionLength() < minDescription) {
+                  Encore {{ minDescription - descriptionLength() }} caractères pour pouvoir publier.
+                } @else if (descriptionLength() < goodDescription) {
+                  Publiable. Une description de {{ goodDescription }} caractères ou plus attire plus de candidats.
+                } @else {
+                  Description détaillée, parfait.
+                }
+              </span>
+              <span class="counter">{{ descriptionLength() }} / 10000</span>
+            </span>
+            @if (fieldError('description'); as e) { <span class="r-error">{{ e }}</span> }
+          </div>
+        </section>
+
+        <!-- 2. Profil recherché -->
+        <section class="step">
+          <header class="step__head">
+            <span class="step__num" [class.is-done]="skills().length >= 3">
+              @if (skills().length >= 3) { <i class="ti ti-check"></i> } @else { 2 }
+            </span>
+            <span><strong>Profil recherché</strong><small>Utilisé pour calculer le score des candidats</small></span>
+          </header>
+
+          <div class="r-field">
+            <label for="j-skill">Compétences recherchées</label>
+            <div class="skills" (click)="skillInput.focus()">
+              @for (skill of skills(); track skill) {
+                <span class="skill">
+                  {{ skill }}
+                  <button type="button" class="skill__remove" (click)="removeSkill(skill); $event.stopPropagation()"
+                          [attr.aria-label]="'Retirer ' + skill"><i class="ti ti-x" aria-hidden="true"></i></button>
+                </span>
+              }
+              <input #skillInput id="j-skill" [disabled]="skills().length >= maxSkills"
+                     [placeholder]="skills().length ? 'Ajouter une compétence…' : 'Java, Spring Boot, Angular…'"
+                     (input)="onSkillInput($event)" (keydown)="onSkillKeydown($event)" (blur)="commitSkill(skillInput)" />
+            </div>
+            <span class="r-hint">
+              <span><kbd>Entrée</kbd> ou virgule pour valider. Chaque compétence compte dans le score.</span>
+              <span class="counter">{{ skills().length }} / {{ maxSkills }}</span>
+            </span>
+          </div>
+
+          <div class="duo">
+            <div class="r-field" [class.is-invalid]="fieldError('experienceYears')">
+              <label for="j-exp">Expérience demandée</label>
+              <div class="stepper">
+                <button type="button" (click)="stepExperience(-1)" aria-label="Moins d'expérience"><i class="ti ti-minus"></i></button>
+                <input id="j-exp" type="number" min="0" max="30" step="1" formControlName="experienceYears" placeholder="–" />
+                <span class="stepper__unit">{{ form.controls.experienceYears.value === 1 ? 'an' : 'ans' }}</span>
+                <button type="button" (click)="stepExperience(1)" aria-label="Plus d'expérience"><i class="ti ti-plus"></i></button>
+              </div>
+              <span class="r-hint"><span>{{ experienceLabel() ?? '0 = débutant accepté' }}</span></span>
+              @if (fieldError('experienceYears'); as e) { <span class="r-error">{{ e }}</span> }
+            </div>
+          </div>
+
+          <div class="r-field" [class.is-invalid]="fieldError('requirements')">
+            <label for="j-req">Autres exigences</label>
+            <textarea id="j-req" formControlName="requirements" rows="4" maxlength="5000"
+                      placeholder="Diplôme, permis, langues, disponibilité…"></textarea>
+            @if (fieldError('requirements'); as e) { <span class="r-error">{{ e }}</span> }
+          </div>
+        </section>
+
+        <!-- 3. Rémunération -->
+        <section class="step">
+          <header class="step__head">
+            <span class="step__num" [class.is-done]="!!salaryLabel()">
+              @if (salaryLabel()) { <i class="ti ti-check"></i> } @else { 3 }
+            </span>
+            <span><strong>Rémunération</strong><small>Facultatif, brut annuel. Les offres avec salaire reçoivent plus de candidatures.</small></span>
+          </header>
+
+          <div class="duo">
+            <div class="r-field" [class.is-invalid]="fieldError('salaryMin') || salaryError()">
+              <label for="j-smin">Minimum</label>
+              <div class="input-suffix">
+                <input id="j-smin" type="number" min="0" step="1000" formControlName="salaryMin" placeholder="24000" />
+                <span>€ / an</span>
+              </div>
+              @if (fieldError('salaryMin'); as e) { <span class="r-error">{{ e }}</span> }
+            </div>
+
+            <div class="r-field" [class.is-invalid]="fieldError('salaryMax') || salaryError()">
+              <label for="j-smax">Maximum</label>
+              <div class="input-suffix">
+                <input id="j-smax" type="number" min="0" step="1000" formControlName="salaryMax" placeholder="32000" />
+                <span>€ / an</span>
+              </div>
+              @if (fieldError('salaryMax'); as e) { <span class="r-error">{{ e }}</span> }
+            </div>
+          </div>
+          @if (salaryError(); as e) { <span class="r-error">{{ e }}</span> }
+        </section>
+
+        <!-- Barre d'actions -->
+        <div class="actions-bar">
+          <span class="actions-bar__state">
+            @if (form.dirty) { <span class="dot dot--warn" aria-hidden="true"></span> Modifications non enregistrées }
+          </span>
+          <a class="r-btn" [routerLink]="base">Annuler</a>
+          <button class="r-btn r-btn--primary" type="submit" [disabled]="saving()">
+            @if (saving()) {
+              <i class="ti ti-loader-2 spin" aria-hidden="true"></i> Enregistrement…
+            } @else {
+              <i class="ti ti-send" aria-hidden="true"></i> {{ isEdit() ? 'Enregistrer' : "Publier l'offre" }}
+            }
+          </button>
+        </div>
+      </form>
+
+      <!-- ═══ Colonne de droite : aperçu + qualité ═══ -->
+      <aside class="side">
+        <section class="panel">
+          <p class="panel__label"><i class="ti ti-eye" aria-hidden="true"></i> Aperçu candidat</p>
+
+          <article class="offer">
+            <div class="offer__top">
+              <span class="offer__logo">
+                @if (company()?.logoUrl) { <img [src]="company()!.logoUrl" alt="" /> } @else { {{ companyInitials() }} }
+              </span>
+              <span class="offer__company">{{ company()?.name || 'Votre entreprise' }}</span>
+              <span class="offer__score"><i class="ti ti-target-arrow" aria-hidden="true"></i> Score</span>
+            </div>
+
+            <h3 [class.is-placeholder]="!form.controls.title.value">{{ form.controls.title.value || 'Intitulé du poste' }}</h3>
+
+            <ul class="offer__tags">
+              @if (form.controls.contractType.value) { <li class="is-strong">{{ contractLabel(form.controls.contractType.value) }}</li> }
+              @if (form.controls.location.value) { <li><i class="ti ti-map-pin" aria-hidden="true"></i> {{ form.controls.location.value }}</li> }
+              @if (form.controls.remote.value) { <li class="is-remote"><i class="ti ti-home" aria-hidden="true"></i> Télétravail</li> }
+              @if (salaryLabel(); as s) { <li class="is-salary"><i class="ti ti-coin-euro" aria-hidden="true"></i> {{ s }}</li> }
+            </ul>
+
+            @if (skills().length) {
+              <ul class="offer__skills">
+                @for (s of skills().slice(0, 6); track s) { <li>{{ s }}</li> }
+                @if (skills().length > 6) { <li class="more">+{{ skills().length - 6 }}</li> }
+              </ul>
+            }
+
+            <p class="offer__desc" [class.is-placeholder]="!form.controls.description.value">{{ form.controls.description.value || 'La description de votre offre apparaîtra ici.' }}</p>
+
+            <div class="offer__foot">
+              @if (sectorName()) { <span>{{ sectorName() }}</span> }
+              @if (experienceLabel(); as e) { <span>{{ e }}</span> }
+            </div>
+          </article>
+          <p class="panel__hint">Chaque candidat voit ici son propre score de compatibilité avec l'offre.</p>
+        </section>
+
+        <section class="panel">
+          <div class="quality">
+            <span class="quality__ring">
+              <svg viewBox="0 0 64 64" aria-hidden="true">
+                <circle class="ring__track" cx="32" cy="32" r="26" />
+                <circle class="ring__value" cx="32" cy="32" r="26"
+                        [attr.stroke-dasharray]="ringLength" [attr.stroke-dashoffset]="ringLength * (1 - qualityScore() / 100)" />
+              </svg>
+              <span><strong>{{ qualityScore() }}</strong>%</span>
+            </span>
+            <div>
+              <h2>Qualité de l'offre</h2>
+              <p>{{ qualityScore() === 100 ? 'Offre complète, prête à attirer des candidats.' : 'Complétez ces points pour une offre plus attractive.' }}</p>
+            </div>
+          </div>
+          <ul class="checklist">
+            @for (item of quality(); track item.for) {
+              <li [class.is-done]="item.done">
+                <label [attr.for]="item.for">
+                  <i class="ti" [class.ti-circle-check-filled]="item.done" [class.ti-circle-dashed]="!item.done" aria-hidden="true"></i>
+                  <span>{{ item.label }}</span>
+                  @if (!item.done) { <i class="ti ti-arrow-right go" aria-hidden="true"></i> }
+                </label>
+              </li>
+            }
+          </ul>
+        </section>
+      </aside>
+    </div>
+  }
+</div>

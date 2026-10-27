@@ -1,0 +1,200 @@
+<div class="r-page rj">
+  @if (loading()) {
+    <div class="r-skeleton rj-skeleton"></div>
+    <div class="r-skeleton"></div>
+    <div class="r-skeleton"></div>
+  } @else if (error() && !company()) {
+    <div class="r-alert" role="alert">
+      <i class="ti ti-alert-circle" aria-hidden="true"></i>
+      <span>{{ error() }} <button class="link" type="button" (click)="load()">Réessayer</button></span>
+    </div>
+  } @else {
+    @if (company(); as c) {
+
+      <!-- ═══ En-tête entreprise ═══ -->
+      <section class="hero">
+        <div class="hero__banner" aria-hidden="true"><span class="hero__sweep"></span></div>
+        <div class="hero__body">
+          <a class="hero__logo" [routerLink]="[base, 'entreprise']" title="Modifier le profil entreprise">
+            @if (c.logoUrl) { <img [src]="c.logoUrl" alt="" /> } @else { <span>{{ companyInitials(c) }}</span> }
+          </a>
+          <div class="hero__identity">
+            <p class="hero__eyebrow">Espace recruteur</p>
+            <h1>Mes offres</h1>
+            <p class="hero__company">
+              {{ c.name }}
+              <a [routerLink]="[base, 'entreprise']"><i class="ti ti-pencil" aria-hidden="true"></i> Profil entreprise</a>
+            </p>
+          </div>
+          <a class="r-btn r-btn--primary hero__cta" [routerLink]="[base, 'offres', 'nouvelle']">
+            <i class="ti ti-plus" aria-hidden="true"></i> Publier une offre
+          </a>
+        </div>
+
+        <dl class="stats">
+          <div>
+            <dt><i class="ti ti-broadcast" aria-hidden="true"></i> Offres ouvertes</dt>
+            <dd>{{ stats().active }}</dd>
+          </div>
+          <div>
+            <dt><i class="ti ti-users" aria-hidden="true"></i> Candidatures reçues</dt>
+            <dd>{{ stats().applicants }}</dd>
+          </div>
+          <div>
+            <dt><i class="ti ti-chart-bar" aria-hidden="true"></i> Moyenne par offre</dt>
+            <dd>{{ stats().average }}</dd>
+          </div>
+          <div>
+            <dt><i class="ti ti-lock" aria-hidden="true"></i> Offres fermées</dt>
+            <dd>{{ stats().closed }}</dd>
+          </div>
+        </dl>
+      </section>
+
+      @if (error(); as message) {
+        <div class="r-alert" role="alert"><i class="ti ti-alert-circle" aria-hidden="true"></i> {{ message }}</div>
+      }
+
+      @if (jobs().length === 0) {
+        <!-- Aucune offre -->
+        <div class="empty">
+          <div class="empty__radar" aria-hidden="true"><span></span><i class="ti ti-speakerphone"></i></div>
+          <h2>Aucune offre publiée</h2>
+          <p>Publiez votre première offre : elle apparaîtra dans les recherches des candidats JobRadar,
+             avec leur score de compatibilité.</p>
+          <a class="r-btn r-btn--primary" [routerLink]="[base, 'offres', 'nouvelle']">
+            <i class="ti ti-plus" aria-hidden="true"></i> Publier une offre
+          </a>
+        </div>
+      } @else {
+
+        <!-- ═══ Filtres ═══ -->
+        <div class="toolbar">
+          <div class="tabs" role="group" aria-label="Filtrer les offres">
+            <button type="button" [class.is-on]="filter() === 'all'" [attr.aria-pressed]="filter() === 'all'"
+                    (click)="setFilter('all')">Toutes <span>{{ stats().total }}</span></button>
+            <button type="button" [class.is-on]="filter() === 'active'" [attr.aria-pressed]="filter() === 'active'"
+                    (click)="setFilter('active')"><i class="dot dot--on" aria-hidden="true"></i> Ouvertes <span>{{ stats().active }}</span></button>
+            <button type="button" [class.is-on]="filter() === 'closed'" [attr.aria-pressed]="filter() === 'closed'"
+                    (click)="setFilter('closed')"><i class="dot dot--off" aria-hidden="true"></i> Fermées <span>{{ stats().closed }}</span></button>
+          </div>
+          <label class="search">
+            <span class="r-sr-only">Rechercher une offre</span>
+            <i class="ti ti-search" aria-hidden="true"></i>
+            <input type="search" placeholder="Titre, ville, compétence…" [value]="query()" (input)="onSearch($event)" />
+          </label>
+          <label class="sort">
+            <span class="r-sr-only">Trier par</span>
+            <i class="ti ti-arrows-sort" aria-hidden="true"></i>
+            <select (change)="onSort($event)" [value]="sortBy()">
+              <option value="recent">Plus récentes</option>
+              <option value="applicants">Plus de candidats</option>
+              <option value="title">Titre (A-Z)</option>
+            </select>
+          </label>
+        </div>
+
+        <!-- ═══ Offres ═══ -->
+        <ul class="jobs">
+          @for (job of visibleJobs(); track job.id) {
+            <li class="job" [class.job--closed]="!job.active">
+              <div class="job__main">
+                <div class="job__head">
+                  <span class="state" [class.is-closed]="!job.active">
+                    <span class="state__dot" aria-hidden="true"></span>{{ job.active ? 'Ouverte' : 'Fermée' }}
+                  </span>
+                  <span class="job__date" [title]="(job.createdAt | date: 'd MMMM y') ?? ''">
+                    <i class="ti ti-clock" aria-hidden="true"></i> Publiée {{ ago(job.createdAt) }}
+                  </span>
+                </div>
+
+                <h2><a [routerLink]="[base, 'offres', job.id, 'candidats']">{{ job.title }}</a></h2>
+
+                <ul class="tags">
+                  <li class="tag tag--strong">{{ contractLabel(job.contractType) }}</li>
+                  <li class="tag"><i class="ti ti-map-pin" aria-hidden="true"></i> {{ job.location }}</li>
+                  @if (job.remote) { <li class="tag tag--remote"><i class="ti ti-home" aria-hidden="true"></i> Télétravail</li> }
+                  @if (salary(job); as s) { <li class="tag tag--salary"><i class="ti ti-coin-euro" aria-hidden="true"></i> {{ s }}</li> }
+                  @if (sector(job.sector); as s) { <li class="tag">{{ s }}</li> }
+                </ul>
+
+                @if (job.skills.length) {
+                  <ul class="skills">
+                    @for (skill of job.skills.slice(0, 6); track skill) { <li>{{ skill }}</li> }
+                    @if (job.skills.length > 6) { <li class="more">+{{ job.skills.length - 6 }}</li> }
+                  </ul>
+                }
+              </div>
+
+              <div class="job__side">
+                <a class="applicants" [routerLink]="[base, 'offres', job.id, 'candidats']"
+                   [attr.aria-label]="'Voir les ' + job.applicantsCount + ' candidats'">
+                  <span class="applicants__count">
+                    <strong>{{ job.applicantsCount }}</strong>
+                    candidat{{ job.applicantsCount > 1 ? 's' : '' }}
+                  </span>
+                  <span class="applicants__bar" aria-hidden="true"><span [style.width.%]="popularity(job)"></span></span>
+                  <span class="applicants__link">Voir les candidats <i class="ti ti-arrow-right" aria-hidden="true"></i></span>
+                </a>
+
+                <div class="job__actions">
+                  <a class="icon-btn" [routerLink]="[base, 'offres', job.id, 'modifier']" title="Modifier l'offre" aria-label="Modifier l'offre">
+                    <i class="ti ti-pencil" aria-hidden="true"></i>
+                  </a>
+                  <button type="button" class="toggle" [class.is-active]="job.active"
+                          [disabled]="busyId() === job.id" (click)="toggleActive(job)"
+                          [attr.aria-label]="job.active ? 'Fermer cette offre' : 'Rouvrir cette offre'">
+                    @if (busyId() === job.id) {
+                      <i class="ti ti-loader-2 spin" aria-hidden="true"></i>
+                    } @else {
+                      <i class="ti" [class.ti-lock]="job.active" [class.ti-lock-open]="!job.active" aria-hidden="true"></i>
+                    }
+                    {{ job.active ? 'Fermer' : 'Rouvrir' }}
+                  </button>
+                </div>
+              </div>
+            </li>
+          } @empty {
+            <li class="list-empty">
+              <i class="ti ti-filter-off" aria-hidden="true"></i>
+              Aucune offre ne correspond à ce filtre.
+            </li>
+          }
+        </ul>
+      }
+    } @else {
+
+      <!-- ═══ Premier passage : pas encore d'entreprise ═══ -->
+      <section class="welcome">
+        <div class="welcome__banner" aria-hidden="true"><span class="hero__sweep"></span></div>
+        <div class="welcome__body">
+          <span class="welcome__icon" aria-hidden="true"><i class="ti ti-building-skyscraper"></i></span>
+          <h1>Bienvenue dans l'espace recruteur</h1>
+          <p>Trois étapes pour recevoir des candidatures classées par compatibilité.</p>
+
+          <ol class="steps">
+            <li class="is-current">
+              <span class="steps__num">1</span>
+              <strong>Créez le profil entreprise</strong>
+              <small>Nom, logo et présentation</small>
+            </li>
+            <li>
+              <span class="steps__num">2</span>
+              <strong>Publiez une offre</strong>
+              <small>Compétences et expérience demandées</small>
+            </li>
+            <li>
+              <span class="steps__num">3</span>
+              <strong>Recevez des candidats</strong>
+              <small>Triés par score de compatibilité</small>
+            </li>
+          </ol>
+
+          <a class="r-btn r-btn--primary" [routerLink]="[base, 'entreprise']">
+            Créer le profil entreprise <i class="ti ti-arrow-right" aria-hidden="true"></i>
+          </a>
+        </div>
+      </section>
+    }
+  }
+</div>

@@ -5,13 +5,14 @@ import jobradarbackend.jobradar.candidate.CandidateRepository;
 import jobradarbackend.jobradar.candidate.SectorType;
 import jobradarbackend.jobradar.joboffer.DtoJoboffer.JobOfferRequest;
 import jobradarbackend.jobradar.joboffer.DtoJoboffer.JobOfferResponse;
-import jobradarbackend.jobradar.user.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Stream;
 
 
 @Slf4j
@@ -21,7 +22,27 @@ import java.util.List;
 public class JobOfferService {
 
     private final JobOfferRepository repository;
-    private final CandidateRepository candidateRepository;      // ← AJOUTER
+    private final CandidateRepository candidateRepository;
+
+    /** Source des offres publiées directement par une entreprise sur JobRadar */
+    static final String JOBRADAR = "JOBRADAR";
+
+    /**
+     * Ordre d'affichage côté candidat : d'abord les offres publiées sur JobRadar
+     * (on peut y postuler directement), puis les plus récentes.
+     */
+    static final Comparator<JobOffer> JOBRADAR_FIRST = Comparator
+            .comparing((JobOffer o) -> !JOBRADAR.equals(o.getSource()))
+            .thenComparing(JobOffer::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder()));
+
+    /** Offres visibles par les candidats : seulement les offres ouvertes, JobRadar en premier */
+    private List<JobOfferResponse> forCandidates(Stream<JobOffer> offers) {
+        return offers
+                .filter(o -> Boolean.TRUE.equals(o.getIsActive()))
+                .sorted(JOBRADAR_FIRST)
+                .map(JobOfferResponse::fromEntity)
+                .toList();
+    }
 
 
     public JobOfferResponse create(JobOfferRequest request) {
@@ -79,8 +100,8 @@ public class JobOfferService {
 
         // 1️⃣ Vérifier que candidate n'est pas null
         if (candidate == null) {
-            log.warn(" Candidate est NULL → retourner toutes les offres");
-            return findAll();
+            log.warn(" Candidate est NULL → retourner toutes les offres ouvertes");
+            return findActiveOffers();
         }
 
         log.debug("Candidate trouvé: ID={}, email={}", candidate.getId(), candidate.getEmail());
@@ -92,19 +113,17 @@ public class JobOfferService {
 
         // 3️⃣ Vérifier que le secteur est renseigné
         if (sectorType == null) {
-            log.warn(" Secteur de {} est NULL → retourner toutes les offres", candidate.getEmail());
-            return findAll();
+            log.warn(" Secteur de {} est NULL → retourner toutes les offres ouvertes", candidate.getEmail());
+            return findActiveOffers();
         }
 
-
         String sectorForSearch = getSectorForSearch(sectorType);
-
         log.debug("Sector converted for search: {} → {}", sectorType, sectorForSearch);
 
-        // 5️⃣ Chercher les offres
+        // 4️⃣ Chercher les offres
         if (sectorForSearch == null || sectorForSearch.isBlank()) {
             log.warn("Cannot convert sector {} to search string", sectorType);
-            return findAll();
+            return findActiveOffers();
         }
 
         log.info(" Searching offers for sector: {}", sectorForSearch);
@@ -127,7 +146,9 @@ public class JobOfferService {
 
         String keyword = sectorType.getSearchKeyword();
         log.debug("searchKeyword null, using keyword: {}", keyword);
-        return keyword; }
+        return keyword;
+    }
+
     @Transactional(readOnly = true)
     public List<JobOfferResponse> findRecommendedOffersByEnumName(String enumName) {
         if (enumName == null || enumName.isBlank()) {
@@ -165,12 +186,11 @@ public class JobOfferService {
 
     // ═════════════════════════════════════════════════════════
 
+    /** Offres ouvertes d'un secteur, celles publiées sur JobRadar en premier */
     @Transactional(readOnly = true)
     public List<JobOfferResponse> findBySector(String sector) {
         log.debug("Recherche offres pour secteur: {}", sector);
-        return repository.findBySector(sector).stream()
-                .map(JobOfferResponse::fromEntity)
-                .toList();
+        return forCandidates(repository.findBySector(sector).stream());
     }
 
     @Transactional(readOnly = true)
@@ -187,11 +207,17 @@ public class JobOfferService {
                 .toList();
     }
 
+    /** Toutes les offres ouvertes, celles publiées sur JobRadar en premier */
     @Transactional(readOnly = true)
     public List<JobOfferResponse> findActiveOffers() {
-        return repository.findByIsActiveTrue().stream()
-                .map(JobOfferResponse::fromEntity)
-                .toList();
+        return forCandidates(repository.findByIsActiveTrue().stream());
+    }
+
+    /** Uniquement les offres publiées par des entreprises sur JobRadar (ouvertes) */
+    @Transactional(readOnly = true)
+    public List<JobOfferResponse> findJobRadarOffers() {
+        return forCandidates(repository.findByIsActiveTrue().stream()
+                .filter(o -> JOBRADAR.equals(o.getSource())));
     }
 
     @Transactional(readOnly = true)
@@ -254,6 +280,7 @@ public class JobOfferService {
 
         return JobOfferResponse.fromEntity(saved);
     }
+
     @Transactional(readOnly = true)
     public List<JobOffer> getOffersBySector(SectorType sectorType) {
         if (sectorType == null) {
@@ -269,6 +296,7 @@ public class JobOfferService {
 
         return offers;
     }
+
     @Transactional(readOnly = true)
     public List<JobOfferResponse> getOffersBySectorAsResponses(SectorType sectorType) {
         if (sectorType == null) {
@@ -279,12 +307,9 @@ public class JobOfferService {
         String enumName = sectorType.name();
         log.info("🔍 Recherche offres par secteur enum: {}", enumName);
 
-        List<JobOfferResponse> offers = repository.findBySector(enumName).stream()
-                .map(JobOfferResponse::fromEntity)
-                .toList();
+        List<JobOfferResponse> offers = forCandidates(repository.findBySector(enumName).stream());
 
-        log.info("✅ Trouvé {} offres pour secteur: {}", offers.size(), enumName);
+        log.info("✅ Trouvé {} offres ouvertes pour secteur: {}", offers.size(), enumName);
         return offers;
     }
-
 }

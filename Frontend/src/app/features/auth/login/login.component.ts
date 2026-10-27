@@ -6,6 +6,13 @@ import { SECTOR_ICONS, sectorLabel } from '../../../core/models/sector.utils';
 
 /** Durée d'un tour de radar (doit correspondre à --sweep dans le SCSS) */
 const SWEEP_SECONDS = 6;
+export function homeForRole(role: string | null | undefined): string {
+  switch (role) {
+    case 'RECRUITER': return '/app/recruteur';
+    case 'ADMIN':     return '/app/dashboard';   // à remplacer par '/app/admin' quand l'espace admin existera
+    default:          return '/app/dashboard';   // USER (candidat)
+  }
+}
 
 @Component({
   selector: 'jr-login',
@@ -78,7 +85,6 @@ export class LoginComponent {
     this.loadingLinkedIn.set(true);
     this.auth.loginWithLinkedIn();
   }
-
   submit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -89,7 +95,11 @@ export class LoginComponent {
     this.errorMessage.set(null);
 
     this.auth.login(this.form.getRawValue()).subscribe({
-      next: () => this.router.navigate(['/app/dashboard']),
+      // Le backend renvoie { token, role, ... } : on redirige vers l'espace du rôle
+      next: (res: unknown) => {
+        const role = (res as { role?: string } | null)?.role;
+        this.router.navigate([homeForRole(role)]);
+      },
       error: err => {
         this.loading.set(false);
         this.errorMessage.set(

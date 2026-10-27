@@ -1,0 +1,308 @@
+<div class="r-page ja">
+  <a class="r-back" [routerLink]="base"><i class="ti ti-arrow-left" aria-hidden="true"></i> Mes offres</a>
+
+  @if (loading()) {
+    <div class="r-skeleton ja-skeleton"></div>
+    <div class="r-skeleton"></div>
+    <div class="r-skeleton"></div>
+  } @else if (error()) {
+    <div class="r-alert" role="alert"><i class="ti ti-alert-circle" aria-hidden="true"></i> {{ error() }}</div>
+  } @else {
+
+    <!-- ═══ En-tête de l'offre ═══ -->
+    @if (job(); as j) {
+      <section class="hero">
+        <div class="hero__banner" aria-hidden="true"><span class="hero__sweep"></span></div>
+        <div class="hero__body">
+          <div class="hero__title">
+            <span class="hero__state" [class.is-closed]="!j.active">
+              <span class="pulse" aria-hidden="true"></span>{{ j.active ? 'Offre ouverte' : 'Offre fermée' }}
+            </span>
+            <h1>{{ j.title }}</h1>
+            <ul class="hero__meta">
+              <li><i class="ti ti-map-pin" aria-hidden="true"></i> {{ j.location }}{{ j.remote ? ' · télétravail' : '' }}</li>
+              <li><i class="ti ti-file-text" aria-hidden="true"></i> {{ contractLabel(j.contractType) }}</li>
+              <li><i class="ti ti-calendar" aria-hidden="true"></i> Publiée le {{ j.createdAt | date: 'd MMM y' }}</li>
+            </ul>
+          </div>
+          <a class="r-btn" [routerLink]="[base, 'offres', j.id, 'modifier']">
+            <i class="ti ti-pencil" aria-hidden="true"></i> Modifier l'offre
+          </a>
+        </div>
+
+        <!-- Chiffres clés -->
+        <dl class="stats">
+          <div>
+            <dt>Candidatures</dt>
+            <dd>{{ applicants().length }}</dd>
+          </div>
+          <div>
+            <dt>Compatibilité moyenne</dt>
+            <dd [attr.data-tone]="scoreTone(averageScore())" class="tone">
+              {{ averageScore() === null ? '–' : averageScore() + ' %' }}
+            </dd>
+          </div>
+          <div>
+            <dt>En entretien</dt>
+            <dd>{{ counts().INTERVIEW }}</dd>
+          </div>
+          <div>
+            <dt>Propositions</dt>
+            <dd>{{ counts().OFFER }}</dd>
+          </div>
+        </dl>
+      </section>
+    }
+
+    @if (applicants().length === 0) {
+      <div class="empty">
+        <div class="empty__radar" aria-hidden="true"><span></span><i class="ti ti-users"></i></div>
+        <h2>Aucune candidature pour l'instant</h2>
+        <p>Les candidats qui postulent depuis JobRadar apparaîtront ici, classés du plus compatible au moins compatible.</p>
+      </div>
+    } @else {
+
+      <!-- ═══ Étapes du recrutement (filtre) ═══ -->
+      <nav class="pipeline" aria-label="Filtrer par étape">
+        <button type="button" class="stage" [class.is-on]="statusFilter() === ''" [attr.aria-pressed]="statusFilter() === ''"
+                (click)="setFilter('')">
+          <i class="ti ti-users" aria-hidden="true"></i>
+          <span class="stage__label">Toutes</span>
+          <span class="stage__count">{{ applicants().length }}</span>
+        </button>
+        @for (s of statuses; track s) {
+          <button type="button" class="stage" [attr.data-status]="s" [class.is-on]="statusFilter() === s"
+                  [attr.aria-pressed]="statusFilter() === s" (click)="setFilter(s)">
+            <i class="ti {{ statusIcons[s] }}" aria-hidden="true"></i>
+            <span class="stage__label">{{ statusLabels[s] }}</span>
+            <span class="stage__count">{{ counts()[s] }}</span>
+          </button>
+        }
+      </nav>
+
+      <!-- Recherche et tri -->
+      <div class="toolbar">
+        <label class="search">
+          <span class="r-sr-only">Rechercher un candidat</span>
+          <i class="ti ti-search" aria-hidden="true"></i>
+          <input type="search" placeholder="Nom, ville ou compétence…" [value]="query()" (input)="onSearch($event)" />
+        </label>
+        <label class="sort">
+          <span>Trier par</span>
+          <select (change)="onSort($event)" [value]="sortBy()">
+            <option value="score">Compatibilité</option>
+            <option value="date">Date de candidature</option>
+            <option value="name">Nom</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="board" [class.board--open]="!!selected()">
+        <!-- ═══ Liste ═══ -->
+        <ol class="list" aria-label="Candidats">
+          @for (a of visible(); track a.applicationId) {
+            <li>
+              <button type="button" class="row" [class.is-selected]="selectedId() === a.applicationId"
+                      [attr.aria-expanded]="selectedId() === a.applicationId" (click)="select(a)">
+                <span class="row__rank" [class.is-top]="ranks().get(a.applicationId) === 1" title="Rang par compatibilité">
+                  #{{ ranks().get(a.applicationId) }}
+                </span>
+                <span class="avatar">
+                  @if (a.profileImageUrl) { <img [src]="a.profileImageUrl" alt="" /> } @else { {{ initials(a) }} }
+                </span>
+                <span class="row__main">
+                  <span class="row__name">
+                    <strong>{{ fullName(a) }}</strong>
+                    <span class="status" [attr.data-status]="a.status">{{ statusLabels[a.status] }}</span>
+                  </span>
+                  <span class="row__meta">{{ experience(a) }}{{ a.city ? ' · ' + a.city : '' }}</span>
+                  @if (a.matchedSkills.length) {
+                    <span class="row__skills">
+                      @for (s of a.matchedSkills.slice(0, 3); track s) { <em>{{ s }}</em> }
+                      @if (a.matchedSkills.length > 3) { <em class="more">+{{ a.matchedSkills.length - 3 }}</em> }
+                    </span>
+                  }
+                </span>
+                <span class="gauge" [attr.data-tone]="scoreTone(a.matchScore)"
+                      [attr.aria-label]="a.matchScore === null ? 'Score indisponible' : 'Compatibilité ' + a.matchScore + ' %'">
+                  <svg viewBox="0 0 40 40" aria-hidden="true">
+                    <circle class="gauge__track" cx="20" cy="20" r="16" />
+                    <circle class="gauge__value" cx="20" cy="20" r="16"
+                            [attr.stroke-dasharray]="ringSmall" [attr.stroke-dashoffset]="dashOffset(ringSmall, a.matchScore)" />
+                  </svg>
+                  <span>{{ a.matchScore === null ? '–' : a.matchScore }}</span>
+                </span>
+              </button>
+            </li>
+          } @empty {
+            <li class="list__empty">
+              <i class="ti ti-filter-off" aria-hidden="true"></i>
+              Aucun candidat ne correspond à ces critères.
+            </li>
+          }
+        </ol>
+
+        <!-- ═══ Détail ═══ -->
+        @if (selected(); as a) {
+          <aside class="detail" aria-label="Détail de la candidature" [attr.data-tone]="scoreTone(a.matchScore)">
+            <div class="detail__top">
+              <div class="detail__nav">
+                <button type="button" class="icon-btn" (click)="step(-1)" [disabled]="selectedIndex() <= 0"
+                        aria-label="Candidat précédent" title="Précédent (↑)"><i class="ti ti-chevron-up"></i></button>
+                <button type="button" class="icon-btn" (click)="step(1)" [disabled]="selectedIndex() >= visible().length - 1"
+                        aria-label="Candidat suivant" title="Suivant (↓)"><i class="ti ti-chevron-down"></i></button>
+                <span>{{ selectedIndex() + 1 }} / {{ visible().length }}</span>
+              </div>
+              <button type="button" class="icon-btn" (click)="closeDetail()" aria-label="Fermer le détail" title="Fermer (Échap)">
+                <i class="ti ti-x" aria-hidden="true"></i>
+              </button>
+            </div>
+
+            <!-- Identité + score -->
+            <div class="profile">
+              <span class="avatar avatar--lg">
+                @if (a.profileImageUrl) { <img [src]="a.profileImageUrl" alt="" /> } @else { {{ initials(a) }} }
+              </span>
+              <div class="profile__text">
+                <h2>{{ fullName(a) }}</h2>
+                <p>{{ experience(a) }}@if (sector(a.sector); as s) { · {{ s }} }</p>
+                @if (a.appliedAt) { <p class="profile__date"><i class="ti ti-clock" aria-hidden="true"></i> Candidature du {{ a.appliedAt | date: 'd MMMM y' }}</p> }
+              </div>
+              <div class="big-gauge" [attr.aria-label]="'Compatibilité ' + (a.matchScore ?? '–') + ' %'">
+                <svg viewBox="0 0 72 72" aria-hidden="true">
+                  <circle class="gauge__track" cx="36" cy="36" r="30" />
+                  <circle class="gauge__value" cx="36" cy="36" r="30"
+                          [attr.stroke-dasharray]="ringLarge" [attr.stroke-dashoffset]="dashOffset(ringLarge, a.matchScore)" />
+                </svg>
+                <span><strong>{{ a.matchScore ?? '–' }}</strong>@if (a.matchScore !== null) {<small>%</small>}</span>
+              </div>
+            </div>
+
+            <!-- Décision -->
+            @if (actionError(); as message) {
+              <div class="r-alert" role="alert"><i class="ti ti-alert-circle" aria-hidden="true"></i> {{ message }}</div>
+            }
+            <div class="decisions" role="group" aria-label="Décision">
+              <button type="button" class="decision decision--interview" [class.is-current]="a.status === 'INTERVIEW'"
+                      [attr.aria-pressed]="a.status === 'INTERVIEW'" [disabled]="busyId() === a.applicationId" (click)="decide(a, 'INTERVIEW')">
+                <i class="ti ti-calendar-event" aria-hidden="true"></i> Entretien
+              </button>
+              <button type="button" class="decision decision--offer" [class.is-current]="a.status === 'OFFER'"
+                      [attr.aria-pressed]="a.status === 'OFFER'" [disabled]="busyId() === a.applicationId" (click)="decide(a, 'OFFER')">
+                <i class="ti ti-rosette-discount-check" aria-hidden="true"></i> Proposition
+              </button>
+              <button type="button" class="decision decision--reject" [class.is-current]="a.status === 'REJECTED'"
+                      [attr.aria-pressed]="a.status === 'REJECTED'" [disabled]="busyId() === a.applicationId" (click)="decide(a, 'REJECTED')">
+                <i class="ti ti-circle-x" aria-hidden="true"></i> Refuser
+              </button>
+            </div>
+
+            <!-- Compétences de l'offre -->
+            @if (skillRatio(a).total) {
+              <section class="card">
+                <header class="card__head">
+                  <h3>Compétences de l'offre</h3>
+                  <span class="card__aside"><strong>{{ skillRatio(a).have }}</strong> / {{ skillRatio(a).total }}</span>
+                </header>
+                <div class="bar" aria-hidden="true"><span [style.width.%]="skillRatio(a).pct"></span></div>
+                <ul class="r-chips">
+                  @for (s of a.matchedSkills; track s) { <li class="r-chip r-chip--ok"><i class="ti ti-check" aria-hidden="true"></i> {{ s }}</li> }
+                  @for (s of a.missingSkills; track s) { <li class="r-chip r-chip--missing"><i class="ti ti-x" aria-hidden="true"></i> {{ s }}</li> }
+                </ul>
+              </section>
+            }
+
+            <!-- Contact -->
+            <section class="card">
+              <header class="card__head"><h3>Contact</h3></header>
+              <ul class="contact">
+                @if (a.email) {
+                  <li>
+                    <i class="ti ti-mail" aria-hidden="true"></i>
+                    <a [href]="'mailto:' + a.email">{{ a.email }}</a>
+                    <button type="button" class="copy" (click)="copy(a.email, 'mail')" [attr.aria-label]="'Copier ' + a.email">
+                      <i class="ti" [class.ti-copy]="copied() !== 'mail'" [class.ti-check]="copied() === 'mail'" aria-hidden="true"></i>
+                    </button>
+                  </li>
+                }
+                @if (a.phoneNumber) {
+                  <li>
+                    <i class="ti ti-phone" aria-hidden="true"></i>
+                    <a [href]="'tel:' + a.phoneNumber">{{ a.phoneNumber }}</a>
+                    <button type="button" class="copy" (click)="copy(a.phoneNumber, 'tel')" [attr.aria-label]="'Copier ' + a.phoneNumber">
+                      <i class="ti" [class.ti-copy]="copied() !== 'tel'" [class.ti-check]="copied() === 'tel'" aria-hidden="true"></i>
+                    </button>
+                  </li>
+                }
+                @if (a.city) { <li><i class="ti ti-map-pin" aria-hidden="true"></i> <span>{{ a.city }}</span></li> }
+                @if (a.linkedinUrl) {
+                  <li><i class="ti ti-brand-linkedin" aria-hidden="true"></i> <a [href]="a.linkedinUrl" target="_blank" rel="noopener">Profil LinkedIn</a></li>
+                }
+              </ul>
+              @if (a.cvUrl) {
+                <a class="cv" [href]="a.cvUrl" target="_blank" rel="noopener">
+                  <span class="cv__icon"><i class="ti ti-file-cv" aria-hidden="true"></i></span>
+                  <span><strong>{{ a.cvName || 'Curriculum vitae' }}</strong><small>CV · ouvrir dans un nouvel onglet</small></span>
+                  <i class="ti ti-external-link" aria-hidden="true"></i>
+                </a>
+              }
+            </section>
+
+            <!-- Toutes ses compétences -->
+            @if (a.skills.length) {
+              <section class="card">
+                <header class="card__head"><h3>Toutes ses compétences</h3><span class="card__aside">{{ a.skills.length }}</span></header>
+                <ul class="r-chips">
+                  @for (s of a.skills; track s) { <li class="r-chip">{{ s }}</li> }
+                </ul>
+              </section>
+            }
+
+            <!-- Lettre -->
+            <section class="card">
+              <header class="card__head">
+                <h3>Lettre de motivation</h3>
+                @if (a.coverLetterUrl) { <span class="card__aside">{{ fileType(a.coverLetterUrl) }}</span> }
+              </header>
+
+              @if (a.coverLetterUrl) {
+                <!-- Lettre choisie par le candidat dans le formulaire de candidature -->
+                <div class="letter-file">
+                  <span class="letter-file__icon" [class.is-pdf]="isPdf(a.coverLetterUrl)" aria-hidden="true">
+                    <i class="ti" [class.ti-file-type-pdf]="isPdf(a.coverLetterUrl)" [class.ti-file-type-doc]="!isPdf(a.coverLetterUrl)"></i>
+                  </span>
+                  <span class="letter-file__text">
+                    <strong>{{ a.coverLetterName || 'Lettre de motivation' }}</strong>
+                    <small>Jointe à la candidature</small>
+                  </span>
+                </div>
+                <div class="letter-actions">
+                  @if (isPdf(a.coverLetterUrl)) {
+                    <button type="button" class="r-btn letter-actions__btn" (click)="toggleLetterPreview(a)"
+                            [attr.aria-expanded]="letterPreviewId() === a.applicationId">
+                      <i class="ti" [class.ti-eye]="letterPreviewId() !== a.applicationId" [class.ti-eye-off]="letterPreviewId() === a.applicationId" aria-hidden="true"></i>
+                      {{ letterPreviewId() === a.applicationId ? 'Masquer la lettre' : 'Lire la lettre ici' }}
+                    </button>
+                  }
+                  <a class="r-btn letter-actions__btn" [href]="a.coverLetterUrl" target="_blank" rel="noopener">
+                    <i class="ti ti-external-link" aria-hidden="true"></i> Ouvrir dans un onglet
+                  </a>
+                </div>
+                @if (letterPreviewUrl(); as src) {
+                  <iframe class="letter-preview" [src]="src" [title]="'Lettre de motivation de ' + fullName(a)"></iframe>
+                }
+              } @else if (a.coverLetter) {
+                <!-- Anciennes candidatures : lettre envoyée en texte -->
+                <blockquote class="letter">{{ a.coverLetter }}</blockquote>
+              } @else {
+                <p class="muted"><i class="ti ti-mail-off" aria-hidden="true"></i> Aucune lettre jointe.</p>
+              }
+            </section>
+
+            <p class="kbd-hint"><kbd>↑</kbd><kbd>↓</kbd> candidat précédent / suivant · <kbd>Échap</kbd> fermer</p>
+          </aside>
+        }
+      </div>
+    }
+  }
+</div>

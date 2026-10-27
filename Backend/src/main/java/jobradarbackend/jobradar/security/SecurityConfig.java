@@ -67,9 +67,18 @@ public class SecurityConfig {
                                 "/oauth2/**",
                                 "/login/oauth2/**",
                                 "/error",
-                        "/api/sectors",
+                                "/api/sectors",
                                 "/api/sectors/IT/skills",
                                 "/api/sectors/skills").permitAll()
+
+                        // ── Espace recruteur ──────────────────────────────
+                        // Tout utilisateur connecté peut créer son entreprise (il devient alors RECRUITER)
+                        .requestMatchers("/api/recruiter/company").authenticated()
+                        // Offres et candidats : réservés aux recruteurs
+                        .requestMatchers("/api/recruiter/**").hasAnyRole("RECRUITER", "ADMIN")
+                        // Un candidat connecté peut postuler
+                        .requestMatchers("/api/applications/apply").authenticated()
+
                         .requestMatchers("/api/auth/me",
                                 "/api/jobs/**",
                                 "/api/sectors/**",
@@ -80,6 +89,7 @@ public class SecurityConfig {
                                 "/api/job-offers/user-sector",
                                 "/api/job-offers/by-sector").authenticated()
                         .anyRequest().authenticated()
+
                 )
                 .oauth2Login(oauth -> oauth
                         .authorizationEndpoint(auth -> auth

@@ -6,6 +6,17 @@ import { environment } from '../../../environments/environment';
 import { AuthResponse, LoginRequest, RegisterRequest } from '../models/auth.model';
 import { CandidateResponse } from '../models/candidate';
 
+/**
+ * Rôle choisi sur la page d'inscription, gardé pendant l'aller-retour Google/LinkedIn.
+ * Écrit par register.component.ts, lu par handleOAuthCallback().
+ */
+export const SIGNUP_ROLE_KEY = 'jr.signupRole';
+
+/** Page d'arrivée selon le rôle */
+export function homeForRole(role: string | null | undefined): string {
+  return role === 'RECRUITER' ? '/app/recruteur' : '/app/dashboard';
+}
+
 export interface UserResponse {
   id: number;
   email: string;
@@ -147,21 +158,44 @@ export class AuthService {
     this.isAuthenticated.set(true);
   }
 
+  /**
+   * Retour de Google/LinkedIn (/auth/callback?token=...).
+   * Si l'utilisateur avait choisi « Recruteur » avant de partir, on convertit son compte
+   * puis on l'envoie créer son profil entreprise. Sinon : page d'accueil selon son rôle.
+   */
   handleOAuthCallback(token: string): void {
     this.storeToken(token);
-    
-    
+
+    let wanted: string | null = null;
+    try {
+      wanted = sessionStorage.getItem(SIGNUP_ROLE_KEY);
+      sessionStorage.removeItem(SIGNUP_ROLE_KEY);
+    } catch { /* navigation privée */ }
+
     setTimeout(() => {
-      this.getCurrentUserInfo().subscribe({
-        next: () => {
-          this.router.navigate(['/app/dashboard']);
-        },
-        error: (err) => {
-          console.error(' Error from /api/auth/me:', err.status, err.message);
-          this.router.navigate(['/app/dashboard']);
-        }
-      });
+      if (wanted === 'RECRUITER') {
+        this.becomeRecruiter().subscribe({
+          next: () => this.loadUserThenGo('/app/recruteur/entreprise'),
+          error: err => {
+            console.error(' Error from /api/auth/become-recruiter:', err.status, err.message);
+            this.loadUserThenGo(null);
+          },
+        });
+      } else {
+        this.loadUserThenGo(null);
+      }
     }, 500);
+  }
+
+  /** Charge /api/auth/me puis navigue (vers `target`, ou selon le rôle si null) */
+  private loadUserThenGo(target: string | null): void {
+    this.getCurrentUserInfo().subscribe({
+      next: user => this.router.navigate([target ?? homeForRole(user.role)]),
+      error: err => {
+        console.error(' Error from /api/auth/me:', err.status, err.message);
+        this.router.navigate([target ?? '/app/dashboard']);
+      },
+    });
   }
 
   forgotPassword(email: string): Observable<any> {
@@ -258,5 +292,30 @@ public getCurrentUserInfo(): Observable<UserResponse> {
     })
   );
 }
- 
+  /** Passe le compte connecté en RECRUITER et enregistre le nouveau token (qui contient le rôle) */
+  becomeRecruiter(): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.API}/become-recruiter`, {}, {
+      headers: this.getHeaders(),
+    }).pipe(
+      tap(res => this.storeToken(res.token)),
+    );
+  }
+    /**
+   * Rôle de l'utilisateur connecté (USER, RECRUITER, ADMIN), lu dans le JWT.
+   * Le token est remplacé par becomeRecruiter(), donc le rôle suit sans recharger la page.
+   */
+  getRole(): string | null {
+    const token = this.getToken();
+    if (!token) return null;
+    try {
+      const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      return (JSON.parse(atob(payload)) as { role?: string }).role ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  isRecruiter(): boolean {
+    return this.getRole() === 'RECRUITER';
+  }
 }

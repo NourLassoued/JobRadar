@@ -3,6 +3,7 @@ package jobradarbackend.jobradar.applications;
 import jakarta.persistence.*;
 import jobradarbackend.jobradar.candidate.Candidate;
 import jobradarbackend.jobradar.cv.CandidateCv;
+import jobradarbackend.jobradar.documents.CoverLetterDocument;
 import jobradarbackend.jobradar.joboffer.JobOffer;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -98,7 +99,9 @@ public class Application {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
-
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cover_letter_id")
+    private CoverLetterDocument coverLetterDocument;
     public void addNote(ApplicationNote note) {
         notes.add(note);
         note.setApplication(this);

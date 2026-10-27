@@ -21,7 +21,7 @@ export const routes: Routes = [
   {
     path: 'app',
     loadComponent: () =>
-      import('./layouts/main-layout/main-layout.component').then(m => m.MainLayoutComponent),
+      import('./features/CandiateEspace/main-layout/main-layout.component').then(m => m.MainLayoutComponent),
     canActivate: [authGuard],
     children: [
       {
@@ -41,7 +41,6 @@ export const routes: Routes = [
           import('./features/CandiateEspace/jobs/jobs-list.component').then(m => m.JobsListComponent),
         title: 'JobRadar — Offres',
       },
-     
       {
         path: 'candidatures',
         loadComponent: () =>
@@ -67,6 +66,13 @@ export const routes: Routes = [
         title: 'JobRadar — Mon profil',
         data: { myProfile: true },
       },
+
+      // Espace recruteur : /app/recruteur, /app/recruteur/entreprise, /app/recruteur/offres/...
+      {
+        path: 'recruteur',
+        loadChildren: () =>
+          import('./features/RecruitEspace/recruiter.routes').then(m => m.RECRUITER_ROUTES),
+      },
     ],
   },
 
@@ -78,7 +84,7 @@ export const routes: Routes = [
     title: 'JobRadar — Page introuvable',
   },
 
-  // Wildcard
+  // Wildcard (toujours en dernier)
   {
     path: '**',
     redirectTo: '404',

@@ -79,6 +79,16 @@ public class JobOfferController {
         return ResponseEntity.ok(service.findActiveOffers());
     }
 
+    /**
+     * GET /api/job-offers/jobradar
+     * Offres publiées directement par les entreprises sur JobRadar (ouvertes, plus récentes d'abord).
+     * Doit rester AVANT /{id}, sinon « jobradar » serait lu comme un id.
+     */
+    @GetMapping("/jobradar")
+    public ResponseEntity<List<JobOfferResponse>> findJobRadarOffers() {
+        return ResponseEntity.ok(service.findJobRadarOffers());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<JobOfferResponse> findById(@PathVariable Long id) {
         return ResponseEntity.ok(service.findById(id));
@@ -129,23 +139,25 @@ public class JobOfferController {
         return null;
     }
     @GetMapping("/by-sector")
-    public ResponseEntity<List<JobOfferResponse>> getOffersBySector(  // ← CHANGEMENT 1
-                                                                      @RequestParam(name = "sector", required = false) String sector) {
+    public ResponseEntity<List<JobOfferResponse>> getOffersBySector(
+            @RequestParam(name = "sector", required = false) String sector) {
 
         log.info("Recherche offres par secteur: {}", sector);
 
         if (sector == null || sector.trim().isEmpty()) {
-            log.info("⚠️ Secteur vide, retour de toutes les offres");
-            return ResponseEntity.ok(service.findAll());
+            log.info("⚠️ Secteur vide, retour de toutes les offres ouvertes");
+            return ResponseEntity.ok(service.findActiveOffers());
         }
 
         try {
             SectorType sectorType = SectorType.valueOf(sector.toUpperCase());
-            List<JobOfferResponse> offers = service.getOffersBySectorAsResponses(sectorType);  // ← CHANGEMENT 2
+            List<JobOfferResponse> offers = service.getOffersBySectorAsResponses(sectorType);
             log.info("Trouvé {} offres pour secteur {}", offers.size(), sectorType);
             return ResponseEntity.ok(offers);
         } catch (IllegalArgumentException e) {
             log.error("Secteur invalide: {}", sector);
             return ResponseEntity.ok(List.of());
         }
-    }}
+    }
+
+}

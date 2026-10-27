@@ -1,6 +1,7 @@
 package jobradarbackend.jobradar.joboffer;
 
 import jakarta.persistence.*;
+import jobradarbackend.jobradar.recruiter.Company;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -71,6 +72,9 @@ public class JobOffer {
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "publisher_company_id")
+    private Company publisher;
 
     @PrePersist
     public void onCreate() {

@@ -18,6 +18,8 @@ import { sectorCode, sectorIcon, sectorLabel } from '../../../core/models/sector
 import { RecommendationService } from '../../../core/services/recommendation-service.service';
 import { JobOfferModalComponent } from '../job-offer-modal/job-offer-modal.component';
 import { ModalTab } from '../../../core/models/job-offer-modal.models';
+import { ApplyService } from '../../../core/services/apply.service';
+import { ApplyDialogComponent, ApplyDialogResult } from '../apply-dialog/apply-dialog.component';
 
 
 type FilterType = 'all' | 'active' | 'remote';
@@ -55,16 +57,19 @@ const TYPE_LABELS: Record<FilterType, string> = { all: 'Toutes', active: 'Active
 // ── Sources d'offres ─────────────────────────────────────────
 /** Code de source → libellé, icône Tabler et classe CSS */
 const SOURCES: Record<string, { label: string; icon: string; css: string }> = {
+  JOBRADAR: { label: 'JobRadar', icon: 'ti-building-skyscraper', css: 'source--jobradar' },
   FRANCE_TRAVAIL: { label: 'France Travail', icon: 'ti-building-community', css: 'source--ft' },
   ADZUNA: { label: 'Adzuna', icon: 'ti-world-search', css: 'source--adzuna' },
   JOOBLE: { label: 'Jooble', icon: 'ti-radar', css: 'source--jooble' },
 };
 
 /** Sources interrogeables à la demande depuis la liste */
-type ExternalSource = 'FRANCE_TRAVAIL' | 'ADZUNA' | 'JOOBLE';
+type ExternalSource = 'JOBRADAR' | 'FRANCE_TRAVAIL' | 'ADZUNA' | 'JOOBLE';
 
 /** Variantes possibles en base → code unique (« France Travail », « FT », « pole_emploi »…) */
 const SOURCE_ALIASES: Record<string, string> = {
+  JOBRADAR: 'JOBRADAR',
+  RECRUTEUR: 'JOBRADAR',
   FRANCE_TRAVAIL: 'FRANCE_TRAVAIL',
   FRANCETRAVAIL: 'FRANCE_TRAVAIL',
   FT: 'FRANCE_TRAVAIL',
@@ -85,7 +90,7 @@ interface Chip { key: 'q' | 'sector' | 'type' | 'date' | 'source' | 'score'; lab
 @Component({
   selector: 'app-jobs-list',
   standalone: true,
-  imports: [RouterLink, JobOfferModalComponent],
+  imports: [RouterLink, JobOfferModalComponent, ApplyDialogComponent],
   templateUrl: './jobs-list.component.html',
   styleUrl: './jobs-list.component.scss',
 })
@@ -96,6 +101,7 @@ export class JobsListComponent implements OnInit {
   private franceTravailService = inject(FranceTravailService);
   private matchingService = inject(MatchingService);
   private recommendationService = inject(RecommendationService);
+  private applyService = inject(ApplyService);
   private destroyRef = inject(DestroyRef);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
@@ -143,6 +149,12 @@ export class JobsListComponent implements OnInit {
   selectedOffer = signal<JobOffer | null>(null);
   /** Onglet affiché à l'ouverture : score, CV adapté ou lettre */
   modalTab = signal<ModalTab>('score');
+  // ── Candidature directe (offres JobRadar) ─────────────────
+  /** Offres auxquelles le candidat a déjà postulé */
+  appliedIds = signal<Set<number>>(new Set());
+  /** Offre dont le formulaire de candidature est ouvert (null = fermé) */
+  applyOffer = signal<JobOffer | null>(null);
+
   /** Ids déjà demandés : évite de redemander le même score */
   private requestedScoreIds = new Set<number>();
 
@@ -385,6 +397,7 @@ export class JobsListComponent implements OnInit {
   ngOnInit(): void {
     this.readFiltersFromUrl();
     this.loadJobsOnInit();
+    this.loadAppliedIds();
   }
 
   private readFiltersFromUrl(): void {
@@ -578,6 +591,12 @@ export class JobsListComponent implements OnInit {
         );
         break;
       }
+      case 'JOBRADAR':
+        // Offres publiées par les recruteurs JobRadar (déjà en base, aucun import)
+        request$ = this.jobService.getJobRadarOffers().pipe(
+          map(offers => ({ offers: sector ? offers.filter(o => o.sector === sector) : offers })),
+        );
+        break;
       case 'ADZUNA':
         request$ = this.adzunaService.search({ what: query, sector, resultsPerPage: 30 });
         break;
@@ -599,7 +618,15 @@ export class JobsListComponent implements OnInit {
           const n = fresh.length;
           const label = this.sourceLabel(source);
           let text: string;
-          if (result.imported !== undefined) {
+          if (source === 'JOBRADAR') {
+            // Affiche uniquement les offres des entreprises JobRadar
+            const total = result.offers.length;
+            if (total) this.sourceFilter.set('JOBRADAR');
+            text = total
+              ? `${total} offre${total > 1 ? 's' : ''} publiée${total > 1 ? 's' : ''} par des entreprises sur JobRadar`
+                + (n ? `, dont ${n} nouvelle${n > 1 ? 's' : ''} dans cette liste.` : '.')
+              : 'Aucune entreprise n\'a encore publié d\'offre pour ces critères.';
+          } else if (result.imported !== undefined) {
             // France Travail : nombre importé côté backend + nouvelles offres visibles ici
             text = result.imported
               ? `${result.imported} offre${result.imported > 1 ? 's' : ''} ${label} importée${result.imported > 1 ? 's' : ''}`
@@ -747,6 +774,54 @@ export class JobsListComponent implements OnInit {
 
   closeOffer(): void {
     this.selectedOffer.set(null);
+    // Le candidat a peut-être postulé depuis la fenêtre : on met les cartes à jour
+    this.loadAppliedIds();
+  }
+
+  // ── Postuler (offres publiées par une entreprise sur JobRadar) ─
+  /** Charge les offres auxquelles le candidat a déjà postulé (liste vide en cas d'erreur) */
+  private loadAppliedIds(): void {
+    if (!this.isBrowser) return;
+    this.applyService.appliedOfferIds()
+      .pipe(catchError(() => of([] as number[])), takeUntilDestroyed(this.destroyRef))
+      .subscribe(ids => this.appliedIds.set(new Set(ids)));
+  }
+
+  /** Seules les offres JobRadar ouvertes se postulent directement ici */
+  canApply(job: JobOffer): boolean {
+    return this.sourceKey(job) === 'JOBRADAR' && job.isActive !== false;
+  }
+
+  hasApplied(job: JobOffer): boolean {
+    return this.appliedIds().has(job.id);
+  }
+
+  /** Bouton « Postuler » de la carte : ouvre le formulaire de candidature (CV + lettre à choisir) */
+  applyTo(job: JobOffer, event?: Event): void {
+    event?.stopPropagation();
+    if (!this.canApply(job) || this.hasApplied(job)) return;
+    this.externalMessage.set(null);
+    this.applyOffer.set(job);
+  }
+
+  /** Candidature confirmée dans le formulaire */
+  onApplied(result: ApplyDialogResult): void {
+    this.markApplied(result.jobOfferId);
+    if (result.alreadyApplied) return;
+    const job = this.jobs().find(j => j.id === result.jobOfferId);
+    const score = result.matchScore != null ? ` Votre score : ${result.matchScore}/100.` : '';
+    this.externalMessage.set({
+      source: 'JOBRADAR', type: 'success',
+      text: `Candidature envoyée${job ? ` pour « ${job.title} »` : ''}.${score} Suivez-la dans « Mes candidatures ».`,
+    });
+  }
+
+  closeApply(): void {
+    this.applyOffer.set(null);
+  }
+
+  private markApplied(id: number): void {
+    this.appliedIds.update(set => new Set(set).add(id));
   }
 
   /** Score recalculé dans la fenêtre : la carte affiche la nouvelle valeur */
@@ -855,7 +930,7 @@ export class JobsListComponent implements OnInit {
   /** « / » place le curseur dans la recherche */
   @HostListener('document:keydown', ['$event'])
   onKeydown(e: KeyboardEvent): void {
-    if (this.selectedOffer()) return; // fenêtre ouverte : elle gère le clavier
+    if (this.selectedOffer() || this.applyOffer()) return; // fenêtre ouverte : elle gère le clavier
     const target = e.target as HTMLElement;
     const typing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(target?.tagName) || target?.isContentEditable;
     if (e.key === '/' && !typing) {

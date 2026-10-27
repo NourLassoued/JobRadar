@@ -2,16 +2,35 @@ import { Component, computed, DestroyRef, HostListener, inject, OnInit, signal }
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
-import { AuthService } from '../../core/services/auth.service';
-import { CandidateService } from '../../core/services/candidate.service';
-import { CandidateResponse } from '../../core/models/candidate';
-import { sectorIcon, sectorLabel } from '../../core/models/sector.utils';
+import { AuthService } from '../../../core/services/auth.service';
+import { CandidateService } from '../../../core/services/candidate.service';
+import { CandidateResponse } from '../../../core/models/candidate';
+import { Company, RecruiterService } from '../../../core/services/recruiter.service';
+import { sectorIcon, sectorLabel } from '../../../core/models/sector.utils';
 
 interface NavItem {
   path: string;
   label: string;
   icon: string;
+  /** Actif seulement sur ce chemin exact (sinon aussi sur ses sous-pages) */
+  exact?: boolean;
 }
+
+/** Menu de l'espace candidat */
+const CANDIDATE_NAV: NavItem[] = [
+  { path: '/app/dashboard', label: 'Tableau de bord', icon: 'ti-layout-dashboard' },
+  { path: '/app/offres', label: 'Offres', icon: 'ti-briefcase' },
+  { path: '/app/candidatures', label: 'Candidatures', icon: 'ti-layout-kanban' },
+  { path: '/app/lettres', label: 'Lettres', icon: 'ti-mail' },
+  { path: '/app/analytics', label: 'Analytics', icon: 'ti-chart-bar' },
+];
+
+/** Menu de l'espace recruteur */
+const RECRUITER_NAV: NavItem[] = [
+  { path: '/app/recruteur', label: 'Mes offres', icon: 'ti-briefcase', exact: true },
+  { path: '/app/recruteur/offres/nouvelle', label: 'Publier une offre', icon: 'ti-square-rounded-plus', exact: true },
+  { path: '/app/recruteur/entreprise', label: 'Mon entreprise', icon: 'ti-building', exact: true },
+];
 
 @Component({
   selector: 'jr-main-layout',
@@ -27,7 +46,7 @@ interface NavItem {
                 [attr.aria-label]="menuOpen() ? 'Fermer le menu' : 'Ouvrir le menu'">
           <i class="ti" [class.ti-menu-2]="!menuOpen()" [class.ti-x]="menuOpen()" aria-hidden="true"></i>
         </button>
-        <a routerLink="/app/dashboard" class="brand brand--compact">
+        <a [routerLink]="homePath()" class="brand brand--compact">
           <span class="brand__mark" aria-hidden="true"><i class="ti ti-radar-2"></i></span>
           <span class="brand__name">JobRadar</span>
         </a>
@@ -35,16 +54,18 @@ interface NavItem {
 
       <!-- ── Barre latérale ────────────────────────────────── -->
       <aside id="sidebar" class="sidebar" aria-label="Navigation principale">
-        <a routerLink="/app/dashboard" class="brand">
+        <a [routerLink]="homePath()" class="brand">
           <span class="brand__mark" aria-hidden="true"><i class="ti ti-radar-2"></i></span>
           <span class="brand__name">JobRadar</span>
+          @if (isRecruiter()) { <span class="brand__tag">Recruteur</span> }
         </a>
 
         <nav class="nav">
-          <p class="nav__heading">Menu</p>
-          @for (item of navItems; track item.path) {
+          <p class="nav__heading">{{ isRecruiter() ? 'Espace recruteur' : 'Menu' }}</p>
+          @for (item of navItems(); track item.path) {
             <a class="nav__link" [routerLink]="item.path"
                routerLinkActive="is-active" #rla="routerLinkActive"
+               [routerLinkActiveOptions]="{ exact: !!item.exact }"
                [attr.aria-current]="rla.isActive ? 'page' : null">
               <i class="ti {{ item.icon }}" aria-hidden="true"></i>
               <span>{{ item.label }}</span>
@@ -62,6 +83,27 @@ interface NavItem {
                 <span class="skeleton skeleton--line w-50"></span>
               </span>
             </div>
+          } @else if (isRecruiter()) {
+            <!-- Recruteur : carte entreprise -->
+            <a class="user" routerLink="/app/recruteur/entreprise" routerLinkActive="is-active"
+               #rlaCompany="routerLinkActive" [attr.aria-current]="rlaCompany.isActive ? 'page' : null"
+               aria-label="Voir mon entreprise">
+              <span class="user__avatar">
+                @if (company()?.logoUrl) {
+                  <img [src]="company()!.logoUrl" alt="" />
+                } @else {
+                  {{ companyInitials() }}
+                }
+              </span>
+              <span class="user__text">
+                <span class="user__name">{{ company()?.name || 'Mon entreprise' }}</span>
+                <span class="user__sector">
+                  <i class="ti ti-user" aria-hidden="true"></i>
+                  {{ recruiterName() || (company() ? 'Recruteur' : 'Profil à créer') }}
+                </span>
+              </span>
+              <i class="ti ti-chevron-right user__chevron" aria-hidden="true"></i>
+            </a>
           } @else if (currentUser()) {
             <a class="user" routerLink="/app/profil" routerLinkActive="is-active"
                #rlaProfile="routerLinkActive" [attr.aria-current]="rlaProfile.isActive ? 'page' : null"
@@ -213,6 +255,7 @@ interface NavItem {
     }
 
     .brand__mark {
+      flex-shrink: 0;
       display: grid;
       place-items: center;
       width: 32px;
@@ -227,6 +270,22 @@ interface NavItem {
       font-size: 17px;
       font-weight: 700;
       letter-spacing: -0.02em;
+    }
+
+    .brand__tag {
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .brand--compact .brand__tag { display: none; }
+
+    .user__sector .ti {
+      font-size: 13px;
     }
 
     .nav {
@@ -528,19 +587,20 @@ interface NavItem {
 export class MainLayoutComponent implements OnInit {
   private authService = inject(AuthService);
   private candidateService = inject(CandidateService);
+  private recruiterService = inject(RecruiterService);
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
 
-  readonly navItems: NavItem[] = [
-    { path: '/app/dashboard', label: 'Tableau de bord', icon: 'ti-layout-dashboard' },
-    { path: '/app/offres', label: 'Offres', icon: 'ti-briefcase' },
-    { path: '/app/candidatures', label: 'Candidatures', icon: 'ti-layout-kanban' },
-    { path: '/app/lettres', label: 'Lettres', icon: 'ti-mail' },
-    { path: '/app/analytics', label: 'Analytics', icon: 'ti-chart-bar' },
-  ];
+  // ── Rôle : change le menu, le logo et la carte du bas ─────
+  /** USER, RECRUITER ou ADMIN (lu dans le JWT, relu à chaque navigation) */
+  role = signal<string | null>(this.authService.getRole());
+  isRecruiter = computed(() => this.role() === 'RECRUITER');
+  navItems = computed(() => (this.isRecruiter() ? RECRUITER_NAV : CANDIDATE_NAV));
+  homePath = computed(() => (this.isRecruiter() ? '/app/recruteur' : '/app/dashboard'));
 
   // ── État ───────────────────────────────────────────────────
   currentUser = signal<CandidateResponse | null>(null);
+  company = signal<Company | null>(null);
   isLoadingUser = signal(true);
   menuOpen = signal(false);
 
@@ -560,15 +620,65 @@ export class MainLayoutComponent implements OnInit {
   userAvatar = computed(() => this.currentUser()?.profileImageUrl || '');
   userSectorIcon = computed(() => sectorIcon(this.currentUser()?.sector));
 
+  /** Nom du recruteur (enregistré à la connexion) */
+  recruiterName = computed(() => {
+    this.company(); // relu quand le profil entreprise change
+    const u = this.authService.getCurrentUser();
+    return u ? [u.firstName, u.lastName].filter(Boolean).join(' ') : '';
+  });
+
+  companyInitials = computed(() => {
+    const name = this.company()?.name?.trim();
+    if (!name) return '?';
+    return name.split(/\s+/).slice(0, 2).map(w => w.charAt(0)).join('').toUpperCase();
+  });
+
   // ── Cycle de vie ───────────────────────────────────────────
   ngOnInit(): void {
-    this.loadCurrentUserProfile();
+    this.loadProfile();
 
-    // Ferme le menu mobile après chaque navigation
     this.router.events.pipe(
       filter(e => e instanceof NavigationEnd),
       takeUntilDestroyed(this.destroyRef)
-    ).subscribe(() => this.menuOpen.set(false));
+    ).subscribe(e => {
+      // Ferme le menu mobile après chaque navigation
+      this.menuOpen.set(false);
+
+      // Le rôle peut changer (passage en recruteur) : on le relit
+      const role = this.authService.getRole();
+      if (role !== this.role()) {
+        this.role.set(role);
+        this.loadProfile();
+      } else if (this.isRecruiter() && (e as NavigationEnd).urlAfterRedirects.startsWith('/app/recruteur')) {
+        // Nom / logo de l'entreprise à jour après une modification
+        this.loadCompany();
+      }
+    });
+  }
+
+  /** Recruteur : profil entreprise. Candidat : profil candidat. */
+  private loadProfile(): void {
+    this.isLoadingUser.set(true);
+    if (this.isRecruiter()) {
+      this.loadCompany();
+    } else {
+      this.loadCurrentUserProfile();
+    }
+  }
+
+  private loadCompany(): void {
+    this.recruiterService.getCompany()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: company => {
+          this.company.set(company);
+          this.isLoadingUser.set(false);
+        },
+        error: err => {
+          console.error('Erreur chargement entreprise:', err);
+          this.isLoadingUser.set(false);
+        },
+      });
   }
 
   private loadCurrentUserProfile(): void {
@@ -606,4 +716,6 @@ export class MainLayoutComponent implements OnInit {
     this.authService.logout();
     this.router.navigate(['/auth/login']);
   }
+    
+ 
 }

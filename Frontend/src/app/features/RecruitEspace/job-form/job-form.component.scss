@@ -1,0 +1,687 @@
+﻿@use '../recruiter';
+
+// Page « Publier une offre » : formulaire en étapes à gauche,
+// aperçu de l'offre côté candidat et qualité de l'offre à droite.
+
+.jf {
+  --jf-deep: color-mix(in srgb, var(--r-primary) 55%, #06181b);
+  --jf-shadow: 0 18px 40px -26px rgba(10, 45, 50, 0.45);
+  --jf-ok: var(--r-success);
+
+  display: grid;
+  gap: 18px;
+
+  .r-back { margin-bottom: -6px; }
+}
+
+// ═══ En-tête ═══════════════════════════════════════════
+
+.hero {
+  overflow: hidden;
+  border: 1px solid var(--r-border);
+  border-radius: 20px;
+  background: var(--r-surface);
+  box-shadow: var(--jf-shadow);
+
+  &__banner {
+    position: relative;
+    height: 56px;
+    overflow: hidden;
+    background:
+      repeating-radial-gradient(circle at 90% 50%, transparent 0 24px, rgba(255, 255, 255, 0.09) 24px 25px),
+      linear-gradient(120deg, var(--jf-deep), var(--r-primary) 75%);
+  }
+
+  &__sweep {
+    position: absolute;
+    top: 50%;
+    left: 90%;
+    width: 300px;
+    height: 300px;
+    margin: -150px 0 0 -150px;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, rgba(255, 255, 255, 0.22), transparent 18%, transparent);
+    animation: spin 7s linear infinite;
+  }
+
+  &__body {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 24px 20px;
+
+    h1 { margin: 10px 0 0; font-size: clamp(1.35rem, 2.6vw, 1.75rem); letter-spacing: -0.02em; }
+    p { margin: 4px 0 0; color: var(--r-muted); font-size: 0.9rem; }
+  }
+
+  &__icon {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 64px;
+    height: 64px;
+    margin-top: -28px;
+    border: 4px solid var(--r-surface);
+    border-radius: 18px;
+    background: var(--r-primary);
+    color: #fff;
+    font-size: 1.6rem;
+    box-shadow: 0 10px 22px -12px rgba(10, 45, 50, 0.6);
+  }
+}
+
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 56px 16px;
+  border: 1px dashed var(--r-border);
+  border-radius: 20px;
+  background: var(--r-surface);
+  text-align: center;
+
+  h2 { margin: 4px 0 0; font-size: 1.15rem; }
+  p { margin: 0 0 6px; max-width: 440px; color: var(--r-muted); }
+
+  &__icon {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    background: var(--r-primary-soft);
+    color: var(--r-primary);
+    font-size: 1.8rem;
+  }
+}
+
+// ═══ Colonnes ═════════════════════════════════════════
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 20px;
+  align-items: start;
+
+  @media (max-width: 1000px) { grid-template-columns: 1fr; }
+}
+
+// ═══ Formulaire en étapes ═════════════════════════════
+
+.sheet {
+  display: grid;
+  border: 1px solid var(--r-border);
+  border-radius: 18px;
+  background: var(--r-surface);
+  box-shadow: var(--jf-shadow);
+
+  > .r-alert { margin: 20px 24px 0; }
+}
+
+.step {
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+
+  & + & { border-top: 1px dashed var(--r-border); }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    strong { display: block; font-size: 1.02rem; }
+    small { display: block; margin-top: 1px; color: var(--r-muted); font-size: 0.82rem; }
+  }
+
+  &__num {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border: 1.5px solid var(--r-border);
+    border-radius: 50%;
+    color: var(--r-muted);
+    font-size: 0.88rem;
+    font-weight: 700;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+
+    &.is-done { border-color: var(--jf-ok); background: var(--jf-ok); color: #fff; }
+  }
+}
+
+.duo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+
+  @media (max-width: 600px) { grid-template-columns: 1fr; }
+}
+
+.r-field .input-lg {
+  padding: 12px 14px;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.input-icon {
+  position: relative;
+
+  > i {
+    position: absolute;
+    top: 50%;
+    left: 12px;
+    transform: translateY(-50%);
+    color: var(--r-muted);
+    pointer-events: none;
+  }
+
+  input { padding-left: 38px; }
+  &:focus-within > i { color: var(--r-primary); }
+}
+
+// Champ avec unité à droite (€ / an)
+.input-suffix {
+  position: relative;
+
+  input { padding-right: 64px; font-variant-numeric: tabular-nums; }
+
+  span {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    color: var(--r-muted);
+    font-size: 0.84rem;
+    pointer-events: none;
+  }
+}
+
+// Pastilles de contrat
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pill {
+  padding: 8px 16px;
+  border: 1px solid var(--r-border);
+  border-radius: 999px;
+  background: var(--r-surface);
+  color: var(--r-text);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+
+  &:hover { border-color: var(--r-primary); color: var(--r-primary); }
+  &:focus-visible { outline: 2px solid var(--r-primary); outline-offset: 2px; }
+
+  &.is-on {
+    border-color: var(--r-primary);
+    background: var(--r-primary);
+    color: #fff;
+  }
+}
+
+// Interrupteur télétravail
+.switch {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--r-border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+
+  input { position: absolute; opacity: 0; pointer-events: none; }
+
+  &__track {
+    position: relative;
+    flex: none;
+    width: 42px;
+    height: 24px;
+    border-radius: 999px;
+    background: var(--r-border);
+    transition: background 0.2s;
+  }
+
+  &__thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    transition: transform 0.2s;
+  }
+
+  &__text {
+    display: grid;
+
+    strong { font-size: 0.92rem; }
+    small { color: var(--r-muted); font-size: 0.8rem; }
+  }
+
+  &:has(input:checked) {
+    border-color: var(--r-primary);
+    background: var(--r-primary-soft);
+
+    .switch__track { background: var(--r-primary); }
+    .switch__thumb { transform: translateX(18px); }
+  }
+
+  &:has(input:focus-visible) { outline: 2px solid var(--r-primary); outline-offset: 2px; }
+}
+
+// Jauge de la description
+.meter {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--r-bg);
+
+  &__bar {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--r-danger);
+    transition: width 0.25s ease, background 0.25s;
+
+    &.is-min { background: var(--r-warning); }
+    &.is-good { background: var(--jf-ok); }
+  }
+}
+
+.counter { flex: none; font-variant-numeric: tabular-nums; }
+
+kbd {
+  padding: 0 5px;
+  border: 1px solid var(--r-border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--r-surface);
+  font: inherit;
+  font-size: 0.74rem;
+}
+
+// Compétences en puces
+.skills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 50px;
+  padding: 7px 8px;
+  border: 1px solid var(--r-border);
+  border-radius: 12px;
+  background: var(--r-surface);
+  cursor: text;
+  transition: border-color 0.15s, box-shadow 0.15s;
+
+  &:focus-within { border-color: var(--r-primary); box-shadow: 0 0 0 3px var(--r-primary-soft); }
+
+  // Le champ hérite du style .r-field input : on l'efface ici
+  input {
+    flex: 1 1 160px;
+    width: auto;
+    min-width: 120px;
+    padding: 6px 4px;
+    border: 0;
+    box-shadow: none;
+
+    &:focus { box-shadow: none; }
+  }
+}
+
+.skill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px 4px 12px;
+  border-radius: 999px;
+  background: var(--r-primary-soft);
+  color: var(--r-primary);
+  font-size: 0.84rem;
+  font-weight: 600;
+  animation: pop 0.18s ease-out;
+
+  &__remove {
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+
+    &:hover, &:focus-visible { background: var(--r-danger-soft); color: var(--r-danger); }
+  }
+}
+
+@keyframes pop { from { transform: scale(0.85); opacity: 0; } }
+
+// Expérience : − valeur +
+.stepper {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--r-border);
+  border-radius: 12px;
+  background: var(--r-surface);
+  overflow: hidden;
+
+  &:focus-within { border-color: var(--r-primary); box-shadow: 0 0 0 3px var(--r-primary-soft); }
+
+  button {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    background: var(--r-bg);
+    color: var(--r-text);
+    cursor: pointer;
+
+    &:hover { background: var(--r-primary-soft); color: var(--r-primary); }
+  }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    border: 0 !important;
+    box-shadow: none !important;
+    text-align: right;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    -moz-appearance: textfield;
+
+    &::-webkit-outer-spin-button, &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  }
+
+  &__unit { padding: 0 12px 0 4px; color: var(--r-muted); font-size: 0.88rem; }
+}
+
+// Barre d'actions
+.actions-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 24px;
+  border-top: 1px solid var(--r-border);
+  border-radius: 0 0 18px 18px;
+  background: color-mix(in srgb, var(--r-surface) 90%, transparent);
+  backdrop-filter: blur(8px);
+
+  &__state {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: auto;
+    color: var(--r-muted);
+    font-size: 0.84rem;
+  }
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+
+  &--warn { background: var(--r-warning); box-shadow: 0 0 0 4px var(--r-warning-soft); }
+}
+
+// ═══ Colonne de droite ════════════════════════════════
+
+.side {
+  position: sticky;
+  top: 16px;
+  display: grid;
+  gap: 16px;
+
+  @media (max-width: 1000px) { position: static; }
+}
+
+.panel {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--r-border);
+  border-radius: 18px;
+  background: var(--r-surface);
+
+  &__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    color: var(--r-muted);
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  &__hint { margin: 0; color: var(--r-muted); font-size: 0.78rem; }
+}
+
+// Carte de l'offre telle que la voit un candidat
+.offer {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--r-border);
+  border-radius: 14px;
+  background: var(--r-bg);
+
+  &__top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  &__logo {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 36px;
+    height: 36px;
+    overflow: hidden;
+    border-radius: 10px;
+    background: var(--r-primary);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+
+    img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+  }
+
+  &__company {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--r-muted);
+    font-size: 0.84rem;
+    font-weight: 600;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  &__score {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--r-success-soft);
+    color: var(--jf-ok);
+    font-size: 0.74rem;
+    font-weight: 700;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+
+    &.is-placeholder { color: var(--r-muted); }
+  }
+
+  &__tags, &__skills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__tags li {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border: 1px solid var(--r-border);
+    border-radius: 999px;
+    background: var(--r-surface);
+    color: var(--r-muted);
+    font-size: 0.76rem;
+
+    &.is-strong { border-color: var(--r-primary); color: var(--r-primary); font-weight: 700; }
+    &.is-remote { border-color: transparent; background: var(--r-primary-soft); color: var(--r-primary); }
+    &.is-salary { border-color: transparent; background: var(--r-success-soft); color: var(--jf-ok); font-weight: 600; }
+  }
+
+  &__skills li {
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: var(--r-surface);
+    color: var(--r-text);
+    font-size: 0.74rem;
+    font-weight: 600;
+
+    &.more { color: var(--r-muted); }
+  }
+
+  &__desc {
+    display: -webkit-box;
+    margin: 0;
+    overflow: hidden;
+    color: var(--r-text);
+    font-size: 0.82rem;
+    line-height: 1.55;
+    white-space: pre-line;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+
+    &.is-placeholder { color: var(--r-muted); font-style: italic; }
+  }
+
+  &__foot {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    color: var(--r-muted);
+    font-size: 0.76rem;
+
+    &:empty { display: none; }
+  }
+}
+
+// Qualité de l'offre
+.quality {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+
+  h2 { margin: 0; font-size: 1rem; }
+  p { margin: 2px 0 0; color: var(--r-muted); font-size: 0.82rem; line-height: 1.4; }
+
+  &__ring {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+
+    svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+
+    span {
+      position: relative;
+      display: flex;
+      align-items: baseline;
+      gap: 1px;
+      color: var(--r-muted);
+      font-size: 0.72rem;
+
+      strong { color: var(--r-text); font-size: 1.15rem; }
+    }
+  }
+}
+
+.ring {
+  &__track, &__value { fill: none; stroke-width: 6; }
+  &__track { stroke: var(--r-bg); }
+  &__value { stroke: var(--jf-ok); stroke-linecap: round; transition: stroke-dashoffset 0.45s ease; }
+}
+
+.checklist {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 8px;
+    border-radius: 9px;
+    font-size: 0.86rem;
+    cursor: pointer;
+    transition: background 0.15s;
+
+    &:hover { background: var(--r-bg); }
+    > .ti:first-child { color: var(--r-muted); font-size: 1.1rem; }
+    span { flex: 1; }
+    .go { color: var(--r-primary); font-size: 0.9rem; opacity: 0; transition: opacity 0.15s; }
+    &:hover .go { opacity: 1; }
+  }
+
+  .is-done label {
+    color: var(--r-muted);
+    cursor: default;
+
+    > .ti:first-child { color: var(--jf-ok); }
+    span { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--r-muted) 50%, transparent); }
+  }
+}
+
+.spin { animation: spin 0.9s linear infinite; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__sweep, .spin, .skill { animation: none; }
+  .meter__bar, .ring__value, .switch__thumb { transition: none; }
+}

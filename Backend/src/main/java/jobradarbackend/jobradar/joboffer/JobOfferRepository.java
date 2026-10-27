@@ -26,4 +26,9 @@ public interface JobOfferRepository extends JpaRepository<JobOffer, Long> {
 
     List<JobOffer> findByRemoteTrue();
     List<JobOffer> findBySectorAndIsActiveTrue(String sector);
+    /** Offres publiées par une entreprise, les plus récentes d'abord */
+    List<JobOffer> findByPublisherIdOrderByCreatedAtDesc(Long companyId);
+
+    /** Nombre d'offres encore ouvertes d'une entreprise */
+    long countByPublisherIdAndIsActiveTrue(Long companyId);
 }

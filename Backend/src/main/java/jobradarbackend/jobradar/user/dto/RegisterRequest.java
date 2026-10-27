@@ -3,6 +3,7 @@ package jobradarbackend.jobradar.user.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import jobradarbackend.jobradar.user.Role;
 import lombok.Data;
 
 @Data
@@ -19,7 +20,7 @@ public class RegisterRequest {
     @NotBlank(message = "Le pr\u00e9nom est obligatoire")
     @Size(max = 100)
     private String firstName;
-
+    private Role role;
     @NotBlank(message = "Le nom est obligatoire")
     @Size(max = 100)
     private String lastName;

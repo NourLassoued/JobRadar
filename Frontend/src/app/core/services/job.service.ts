@@ -16,7 +16,8 @@ export interface JobOffer {
   remote: boolean;
   isActive: boolean;
   createdAt: string;
-  url?: string; 
+  url?: string;
+  /** FRANCE_TRAVAIL, ADZUNA, JOOBLE ou JOBRADAR (offre publiée par une entreprise) */
   source?: string;
   /** Identifiant d'origine : 'ADZUNA-FR-5910877270' */
   externalId?: string;
@@ -27,7 +28,7 @@ export interface JobOffer {
 })
 export class JobService {
   private http = inject(HttpClient);
-  private apiUrl = `${environment.apiUrl}/job-offers`; 
+  private apiUrl = `${environment.apiUrl}/job-offers`;
 
   getAllOffers(): Observable<JobOffer[]> {
     return this.http.get<JobOffer[]>(this.apiUrl);
@@ -41,10 +42,16 @@ export class JobService {
     return this.http.get<JobOffer[]>(`${this.apiUrl}/remote`);
   }
 
+  /** Offres publiées par les entreprises sur JobRadar (GET /api/job-offers/jobradar) */
+  getJobRadarOffers(): Observable<JobOffer[]> {
+    return this.http.get<JobOffer[]>(`${this.apiUrl}/jobradar`);
+  }
+
   getOfferById(id: number): Observable<JobOffer> {
     return this.http.get<JobOffer>(`${this.apiUrl}/${id}`);
   }
-   getRecommendedOffers(): Observable<JobOffer[]> {
+
+  getRecommendedOffers(): Observable<JobOffer[]> {
     return this.http.get<JobOffer[]>(`${this.apiUrl}/recommended`).pipe(
       catchError((err) => {
         console.error('Erreur offres recommandées, fallback getAllOffers:', err);
@@ -52,8 +59,8 @@ export class JobService {
       })
     );
   }
-   getOffersBySector(sector: string): Observable<JobOffer[]> {
+
+  getOffersBySector(sector: string): Observable<JobOffer[]> {
     return this.http.get<JobOffer[]>(`${this.apiUrl}?sector=${sector}`);
   }
-  
 }

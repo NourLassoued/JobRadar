@@ -160,7 +160,18 @@
       <div class="results__tools">
         <div class="external" role="group" aria-label="Chercher sur d'autres sites">
           <span class="external__label">Chercher aussi sur</span>
-          <button type="button" class="btn btn--secondary btn--sm adzuna-btn" (click)="searchExternal('FRANCE_TRAVAIL')"
+          <button type="button" class="btn btn--secondary btn--sm adzuna-btn ext-btn--jobradar" (click)="searchExternal('JOBRADAR')"
+                  [disabled]="externalLoading() !== null" [attr.aria-busy]="externalLoading() === 'JOBRADAR'"
+                  [class.is-on]="sourceFilter() === 'JOBRADAR'"
+                  title="Voir les offres publiées directement par les entreprises sur JobRadar">
+            @if (externalLoading() === 'JOBRADAR') {
+              <span class="spinner-dot" aria-hidden="true"></span>
+            } @else {
+              <i class="ti ti-building-skyscraper" aria-hidden="true"></i>
+            }
+            Entreprises
+          </button>
+          <button type="button" class="btn btn--secondary btn--sm adzuna-btn ext-btn--ft" (click)="searchExternal('FRANCE_TRAVAIL')"
                   [disabled]="externalLoading() !== null" [attr.aria-busy]="externalLoading() === 'FRANCE_TRAVAIL'"
                   title="Rechercher d'autres offres France Travail avec vos critères actuels">
             @if (externalLoading() === 'FRANCE_TRAVAIL') {
@@ -170,7 +181,7 @@
             }
             France Travail
           </button>
-          <button type="button" class="btn btn--secondary btn--sm adzuna-btn" (click)="searchExternal('ADZUNA')"
+          <button type="button" class="btn btn--secondary btn--sm adzuna-btn ext-btn--adzuna" (click)="searchExternal('ADZUNA')"
                   [disabled]="externalLoading() !== null" [attr.aria-busy]="externalLoading() === 'ADZUNA'"
                   title="Rechercher des offres supplémentaires sur Adzuna avec vos critères actuels">
             @if (externalLoading() === 'ADZUNA') {
@@ -180,7 +191,7 @@
             }
             Adzuna
           </button>
-          <button type="button" class="btn btn--secondary btn--sm adzuna-btn" (click)="searchExternal('JOOBLE')"
+          <button type="button" class="btn btn--secondary btn--sm adzuna-btn ext-btn--jooble" (click)="searchExternal('JOOBLE')"
                   [disabled]="externalLoading() !== null" [attr.aria-busy]="externalLoading() === 'JOOBLE'"
                   title="Rechercher des offres supplémentaires sur Jooble avec vos critères actuels">
             @if (externalLoading() === 'JOOBLE') {
@@ -315,7 +326,7 @@
       <ul class="grid" [class.grid--list]="viewMode() === 'list'"
           [class.is-refreshing]="sectorLoading()" [attr.aria-busy]="sectorLoading()">
         @for (job of group.jobs; track job.id; let i = $index) {
-          <li class="card" [class.card--top]="isTopMatch(job)" [attr.data-tone]="sectorTone(job.sector)"
+          <li class="card" [class.card--top]="isTopMatch(job)" [class.card--jobradar]="canApply(job)" [attr.data-tone]="sectorTone(job.sector)"
               [style.animation-delay.ms]="(i % 24) * 25">
             <!-- En-tête : secteur, entreprise, source -->
             <div class="card__top">
@@ -430,9 +441,23 @@
                   · via {{ sourceLabel(sourceKey(job)) }}
                 </p>
               </div>
-              <span class="card__cta" aria-hidden="true">
-                Voir le détail <i class="ti ti-arrow-right"></i>
-              </span>
+              @if (canApply(job)) {
+                <!-- Offre publiée par une entreprise sur JobRadar : candidature directe -->
+                @if (hasApplied(job)) {
+                  <span class="apply-btn apply-btn--done" role="status">
+                    <i class="ti ti-circle-check" aria-hidden="true"></i> Candidature envoyée
+                  </span>
+                } @else {
+                  <button type="button" class="apply-btn" (click)="applyTo(job, $event)" aria-haspopup="dialog"
+                          [attr.aria-label]="'Postuler à ' + job.title">
+                    <i class="ti ti-send" aria-hidden="true"></i> Postuler
+                  </button>
+                }
+              } @else {
+                <span class="card__cta" aria-hidden="true">
+                  Voir le détail <i class="ti ti-arrow-right"></i>
+                </span>
+              }
             </div>
           </li>
         }
@@ -467,6 +492,9 @@
           @for (s of suggestions(); track s.label) {
             <button type="button" class="btn btn--secondary btn--sm" (click)="s.action()">{{ s.label }}</button>
           }
+          <button type="button" class="btn btn--secondary btn--sm" (click)="searchExternal('JOBRADAR')" [disabled]="externalLoading() !== null">
+            <i class="ti ti-building-skyscraper" aria-hidden="true"></i> Offres des entreprises
+          </button>
           <button type="button" class="btn btn--secondary btn--sm" (click)="searchExternal('FRANCE_TRAVAIL')" [disabled]="externalLoading() !== null">
             <i class="ti ti-building-community" aria-hidden="true"></i> Chercher sur France Travail
           </button>
@@ -483,6 +511,9 @@
         <p>Les nouvelles offres apparaîtront ici dès leur import.</p>
         <div class="empty__actions">
           <button type="button" class="btn btn--secondary" (click)="loadJobsOnInit()">Actualiser</button>
+          <button type="button" class="btn btn--primary" (click)="searchExternal('JOBRADAR')" [disabled]="externalLoading() !== null">
+            <i class="ti ti-building-skyscraper" aria-hidden="true"></i> Offres des entreprises
+          </button>
           <button type="button" class="btn btn--primary" (click)="searchExternal('FRANCE_TRAVAIL')" [disabled]="externalLoading() !== null">
             <i class="ti ti-building-community" aria-hidden="true"></i> Chercher sur France Travail
           </button>
@@ -505,6 +536,11 @@
       [initialTab]="modalTab()"
       (matchChange)="onModalMatch($event)"
       (closed)="closeOffer()" />
+  }
+
+  <!-- ── Formulaire de candidature : CV + lettre à choisir ── -->
+  @if (applyOffer(); as a) {
+    <app-apply-dialog [offer]="a" (applied)="onApplied($event)" (closed)="closeApply()" />
   }
 
   @if (showBackToTop()) {

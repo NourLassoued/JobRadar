@@ -1745,15 +1745,29 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round
 }
 
 // ── Boutons de recherche externe : couleur de chaque source ─
-.adzuna-btn {
-  &:nth-child(2) .ti { color: #1d4f91; }       // France Travail
-  &:nth-child(3) .ti { color: var(--signal); } // Adzuna
-  &:nth-child(4) .ti { color: #6b3fa0; }       // Jooble
+// (classes plutôt que :nth-child, pour pouvoir ajouter/réordonner les boutons)
+.ext-btn--ft .ti { color: #1d4f91; }
+.ext-btn--adzuna .ti { color: var(--signal); }
+.ext-btn--jooble .ti { color: #6b3fa0; }
+.ext-btn--jobradar .ti { color: var(--accent); }
+
+// Bouton « Entreprises » actif : la liste n'affiche que les offres JobRadar
+.ext-btn--jobradar.is-on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 @media (prefers-color-scheme: dark) {
-  .adzuna-btn:nth-child(2) .ti { color: #9cc0f0; }
-  .adzuna-btn:nth-child(4) .ti { color: #c9a8f0; }
+  .ext-btn--ft .ti { color: #9cc0f0; }
+  .ext-btn--jooble .ti { color: #c9a8f0; }
+}
+
+// Badge de source JobRadar (offre publiée par un recruteur)
+.source--jobradar {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 // ── Filtres actifs et barre « Afficher plus » ──────────────
@@ -1804,3 +1818,62 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round
 }
 
 .card:hover .card__cta .ti { transform: translateX(2px); }
+// ═══════════════════════════════════════════════════════════
+//  Candidature directe : offres publiées par une entreprise sur JobRadar
+// ═══════════════════════════════════════════════════════════
+
+// Carte JobRadar : liseré sarcelle à gauche
+.card--jobradar {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 5%, var(--surface)), var(--surface) 45%);
+}
+
+// Bouton « Postuler » : au-dessus du lien qui couvre toute la carte
+.apply-btn {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #fff;
+  background: var(--accent);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--accent) 70%, transparent);
+  transition: background-color 0.15s ease, translate 0.15s ease, box-shadow 0.15s ease;
+
+  .ti { font-size: 15px; }
+
+  &:hover:not(:disabled) { background: var(--accent-hover); translate: 0 -1px; }
+  &:focus-visible { outline: none; box-shadow: var(--focus); }
+  &:disabled { opacity: 0.6; cursor: progress; }
+
+  // Déjà postulé : pastille verte, non cliquable
+  &--done {
+    color: var(--green);
+    background: var(--green-soft);
+    border-color: color-mix(in srgb, var(--green) 30%, transparent);
+    box-shadow: none;
+    cursor: default;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .apply-btn:not(.apply-btn--done) { color: #0f1519; }
+}
+
+.spinner-dot--light {
+  border-color: rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+}
+
+@media (max-width: 600px) {
+  .apply-btn { padding: 8px 12px; }
+}

@@ -1,0 +1,232 @@
+<dialog #dialog class="ad" aria-labelledby="ad-title" (cancel)="onCancel($event)" (click)="onBackdrop($event)">
+  <div class="ad__panel">
+
+    <!-- ═══ En-tête ═══ -->
+    <header class="ad__head">
+      <span class="ad__mark" aria-hidden="true"><i class="ti ti-send"></i></span>
+      <div class="ad__heading">
+        <p class="ad__eyebrow">Candidature</p>
+        <h2 id="ad-title">{{ offer().title }}</h2>
+        @if (offer().company) { <p class="ad__company">{{ offer().company }}</p> }
+      </div>
+      <button type="button" class="ad__close" (click)="close()" [disabled]="sending()" aria-label="Fermer">
+        <i class="ti ti-x" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    @if (done()) {
+      <!-- ═══ Candidature envoyée ═══ -->
+      <div class="ad__done" role="status">
+        <span class="ad__done-icon" aria-hidden="true"><i class="ti ti-circle-check"></i></span>
+        <h3>Candidature envoyée</h3>
+        <p>
+          Votre candidature a été transmise à {{ offer().company || 'l\'entreprise' }}.
+          @if (score() !== null) { Votre score de compatibilité : <strong>{{ score() }}/100</strong>. }
+        </p>
+        <ul class="ad__sent">
+          <li><i class="ti ti-file-cv" aria-hidden="true"></i> CV : <strong>{{ selectedCv()?.name }}</strong></li>
+          <li><i class="ti ti-mail-opened" aria-hidden="true"></i> Lettre : <strong>{{ selectedLetter()?.name }}</strong></li>
+        </ul>
+        <p class="ad__hint">Suivez-la dans « Mes candidatures », colonne « Postulé ».</p>
+        <button type="button" class="ad-btn ad-btn--primary" (click)="close()">Fermer</button>
+      </div>
+    } @else {
+      <div class="ad__body">
+        <p class="ad__intro">Choisissez les deux documents à envoyer au recruteur. Aucun n'est sélectionné d'avance.</p>
+
+        @if (loadingDocs()) {
+          <div class="ad__skeleton" aria-busy="true" aria-label="Chargement de vos documents">
+            <span></span><span></span><span></span>
+          </div>
+        } @else if (loadError()) {
+          <div class="ad__alert" role="alert">
+            <i class="ti ti-alert-circle" aria-hidden="true"></i>
+            <p>{{ loadError() }}</p>
+            <button type="button" class="ad-btn ad-btn--ghost" (click)="loadDocuments()">Réessayer</button>
+          </div>
+        } @else {
+
+          <!-- ═══ 1. CV ═══ -->
+          <section #cvSection class="step" [class.step--ok]="selectedCv()" aria-labelledby="ad-cv-title">
+            <div class="step__head">
+              <span class="step__num" aria-hidden="true">
+                @if (selectedCv()) { <i class="ti ti-check"></i> } @else { 1 }
+              </span>
+              <h3 id="ad-cv-title">Votre CV <span class="step__req">obligatoire</span></h3>
+              <span class="step__state">{{ selectedCv() ? 'Choisi' : 'À choisir' }}</span>
+            </div>
+
+            @if (selectedCv() && !editingCv()) {
+              <div class="picked">
+                <span class="picked__icon" aria-hidden="true"><i [class]="'ti ' + fileIcon(selectedCv()!)"></i></span>
+                <div class="picked__text">
+                  <strong>{{ selectedCv()!.name }}</strong>
+                  <small>{{ fileMeta(selectedCv()!) }}</small>
+                </div>
+                <a class="picked__link" [href]="selectedCv()!.fileUrl" target="_blank" rel="noopener">Aperçu</a>
+                <button type="button" class="ad-btn ad-btn--ghost" (click)="change('cv')">
+                  <i class="ti ti-replace" aria-hidden="true"></i> Changer
+                </button>
+              </div>
+            } @else {
+              @if (cvs().length) {
+                <div class="docs" role="radiogroup" aria-labelledby="ad-cv-title">
+                  @for (cv of cvs(); track cv.id) {
+                    <label class="doc" [class.is-picked]="selectedCvId() === cv.id">
+                      <input type="radio" name="ad-cv" class="doc__radio"
+                             [checked]="selectedCvId() === cv.id" (change)="pick('cv', cv.id)" />
+                      <span class="doc__icon" aria-hidden="true"><i [class]="'ti ' + fileIcon(cv)"></i></span>
+                      <span class="doc__text">
+                        <span class="doc__name">{{ cv.name }}</span>
+                        <span class="doc__meta">{{ fileMeta(cv) }}</span>
+                      </span>
+                      @if (cv.isDefault) { <span class="doc__tag" title="CV par défaut du profil (non sélectionné automatiquement)">Par défaut</span> }
+                      <a class="doc__link" [href]="cv.fileUrl" target="_blank" rel="noopener"
+                         (click)="$event.stopPropagation()" [attr.aria-label]="'Ouvrir ' + cv.name">
+                        <i class="ti ti-external-link" aria-hidden="true"></i>
+                      </a>
+                    </label>
+                  }
+                </div>
+              } @else {
+                <p class="docs__empty">Aucun CV enregistré pour l'instant. Téléversez-en un ci-dessous.</p>
+              }
+
+              <label class="upload" [class.is-busy]="uploading() === 'cv'" [class.is-disabled]="uploading() !== null">
+                <input type="file" class="ad-sr-only" [accept]="accept" (change)="onFile('cv', $event)"
+                       [disabled]="uploading() !== null" />
+                @if (uploading() === 'cv') {
+                  <span class="spinner" aria-hidden="true"></span>
+                  <span class="upload__text"><strong>Envoi du CV…</strong></span>
+                } @else {
+                  <i class="ti ti-upload" aria-hidden="true"></i>
+                  <span class="upload__text">
+                    <strong>Téléverser un nouveau CV</strong>
+                    <small>PDF ou Word, 5 Mo maximum</small>
+                  </span>
+                }
+              </label>
+              @if (uploadError()?.kind === 'cv') {
+                <p class="ad__error" role="alert"><i class="ti ti-alert-circle" aria-hidden="true"></i> {{ uploadError()!.text }}</p>
+              }
+              @if (selectedCv()) {
+                <button type="button" class="link" (click)="editingCv.set(false)">Garder « {{ selectedCv()!.name }} »</button>
+              }
+            }
+          </section>
+
+          <!-- ═══ 2. Lettre de motivation ═══ -->
+          <section #letterSection class="step" [class.step--ok]="selectedLetter()" aria-labelledby="ad-letter-title">
+            <div class="step__head">
+              <span class="step__num" aria-hidden="true">
+                @if (selectedLetter()) { <i class="ti ti-check"></i> } @else { 2 }
+              </span>
+              <h3 id="ad-letter-title">Lettre de motivation <span class="step__req">obligatoire</span></h3>
+              <span class="step__state">{{ selectedLetter() ? 'Choisie' : 'À choisir' }}</span>
+            </div>
+
+            @if (selectedLetter() && !editingLetter()) {
+              <div class="picked">
+                <span class="picked__icon" aria-hidden="true"><i [class]="'ti ' + fileIcon(selectedLetter()!)"></i></span>
+                <div class="picked__text">
+                  <strong>{{ selectedLetter()!.name }}</strong>
+                  <small>{{ fileMeta(selectedLetter()!) }}</small>
+                </div>
+                <a class="picked__link" [href]="selectedLetter()!.fileUrl" target="_blank" rel="noopener">Aperçu</a>
+                <button type="button" class="ad-btn ad-btn--ghost" (click)="change('letter')">
+                  <i class="ti ti-replace" aria-hidden="true"></i> Changer
+                </button>
+              </div>
+            } @else {
+              @if (letters().length) {
+                <div class="docs" role="radiogroup" aria-labelledby="ad-letter-title">
+                  @for (letter of letters(); track letter.id) {
+                    <label class="doc" [class.is-picked]="selectedLetterId() === letter.id">
+                      <input type="radio" name="ad-letter" class="doc__radio"
+                             [checked]="selectedLetterId() === letter.id" (change)="pick('letter', letter.id)" />
+                      <span class="doc__icon" aria-hidden="true"><i [class]="'ti ' + fileIcon(letter)"></i></span>
+                      <span class="doc__text">
+                        <span class="doc__name">{{ letter.name }}</span>
+                        <span class="doc__meta">{{ fileMeta(letter) }}</span>
+                      </span>
+                      <a class="doc__link" [href]="letter.fileUrl" target="_blank" rel="noopener"
+                         (click)="$event.stopPropagation()" [attr.aria-label]="'Ouvrir ' + letter.name">
+                        <i class="ti ti-external-link" aria-hidden="true"></i>
+                      </a>
+                    </label>
+                  }
+                </div>
+              } @else {
+                <p class="docs__empty">Aucune lettre enregistrée pour l'instant. Téléversez-en une ci-dessous.</p>
+              }
+
+              <label class="upload" [class.is-busy]="uploading() === 'letter'" [class.is-disabled]="uploading() !== null">
+                <input type="file" class="ad-sr-only" [accept]="accept" (change)="onFile('letter', $event)"
+                       [disabled]="uploading() !== null" />
+                @if (uploading() === 'letter') {
+                  <span class="spinner" aria-hidden="true"></span>
+                  <span class="upload__text"><strong>Envoi de la lettre…</strong></span>
+                } @else {
+                  <i class="ti ti-upload" aria-hidden="true"></i>
+                  <span class="upload__text">
+                    <strong>Téléverser une nouvelle lettre</strong>
+                    <small>PDF ou Word, 5 Mo maximum</small>
+                  </span>
+                }
+              </label>
+              @if (uploadError()?.kind === 'letter') {
+                <p class="ad__error" role="alert"><i class="ti ti-alert-circle" aria-hidden="true"></i> {{ uploadError()!.text }}</p>
+              }
+              @if (selectedLetter()) {
+                <button type="button" class="link" (click)="editingLetter.set(false)">Garder « {{ selectedLetter()!.name }} »</button>
+              }
+            }
+          </section>
+        }
+      </div>
+
+      <!-- ═══ Récapitulatif + confirmation ═══ -->
+      <footer class="ad__foot">
+        <dl class="recap">
+          <div [class.is-ok]="selectedCv()">
+            <dt>CV</dt>
+            <dd>
+              @if (selectedCv(); as cv) {
+                <span class="recap__name" [title]="cv.name">{{ cv.name }}</span>
+                <button type="button" class="recap__action" (click)="clear('cv')" [attr.aria-label]="'Retirer le CV ' + cv.name">Retirer</button>
+              } @else { <span class="recap__none">Aucun CV sélectionné</span> }
+            </dd>
+          </div>
+          <div [class.is-ok]="selectedLetter()">
+            <dt>Lettre</dt>
+            <dd>
+              @if (selectedLetter(); as l) {
+                <span class="recap__name" [title]="l.name">{{ l.name }}</span>
+                <button type="button" class="recap__action" (click)="clear('letter')" [attr.aria-label]="'Retirer la lettre ' + l.name">Retirer</button>
+              } @else { <span class="recap__none">Aucune lettre sélectionnée</span> }
+            </dd>
+          </div>
+        </dl>
+
+        @if (submitError(); as e) {
+          <p class="ad__error" role="alert"><i class="ti ti-alert-circle" aria-hidden="true"></i> {{ e }}</p>
+        }
+
+        <div class="ad__actions">
+          @if (missing().length && !loadingDocs() && !loadError()) {
+            <p class="ad__hint" id="ad-missing">Choisissez encore {{ missing().join(' et ') }}.</p>
+          }
+          <button type="button" class="ad-btn ad-btn--ghost" (click)="close()" [disabled]="sending()">Annuler</button>
+          <button type="button" class="ad-btn ad-btn--primary" (click)="confirm()" [disabled]="!canConfirm()"
+                  [attr.aria-describedby]="missing().length ? 'ad-missing' : null" [attr.aria-busy]="sending()">
+            @if (sending()) {
+              <span class="spinner spinner--light" aria-hidden="true"></span> Envoi…
+            } @else {
+              <i class="ti ti-send" aria-hidden="true"></i> Confirmer ma candidature
+            }
+          </button>
+        </div>
+      </footer>
+    }
+  </div>
+</dialog>
