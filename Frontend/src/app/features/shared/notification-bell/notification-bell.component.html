@@ -1,0 +1,46 @@
+<div class="nb" [class.nb--start]="align() === 'start'" [class.nb--up]="up()">
+  <button type="button" class="nb__btn" (click)="toggle()" aria-haspopup="true" [attr.aria-expanded]="open()"
+          [attr.aria-label]="store.unread() ? 'Notifications, ' + store.unread() + ' non lues' : 'Notifications'">
+    <i class="ti ti-bell" aria-hidden="true"></i>
+    @if (store.unread()) {
+      <span class="nb__badge" aria-hidden="true">{{ store.unread() > 9 ? '9+' : store.unread() }}</span>
+    }
+  </button>
+
+  @if (open()) {
+    <div class="nb__panel" role="dialog" aria-label="Notifications">
+      <header class="nb__head">
+        <strong>Notifications</strong>
+        @if (store.unread()) {
+          <button type="button" class="nb__all" (click)="store.markAllRead()">Tout marquer comme lu</button>
+        }
+      </header>
+
+      @if (store.items().length) {
+        <ul class="nb__list">
+          @for (n of store.items(); track n.id) {
+            <li>
+              <button type="button" class="nb__item" [class.is-unread]="!n.read" (click)="select(n)">
+                <span class="nb__icon" aria-hidden="true"><i [class]="'ti ' + icon(n)"></i></span>
+                <span class="nb__text">
+                  <span class="nb__title">{{ n.title }}</span>
+                  @if (n.body) { <span class="nb__body">{{ n.body }}</span> }
+                  <span class="nb__time">{{ ago(n.createdAt) }}</span>
+                </span>
+                @if (!n.read) { <span class="nb__dot" aria-label="Non lue"></span> }
+              </button>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="nb__empty">
+          <i class="ti ti-bell-off" aria-hidden="true"></i>
+          {{ store.loaded() ? 'Aucune notification pour le moment.' : 'Chargement…' }}
+        </p>
+      }
+
+      <!-- Notifications push sur cet appareil -->
+      <footer class="nb__foot"><app-push-toggle /></footer>
+    </div>
+  }
+</div>

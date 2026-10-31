@@ -1,13 +1,13 @@
 package jobradarbackend.jobradar.user;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jobradarbackend.jobradar.push.PushSubscription;
+import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -59,7 +59,11 @@ public class User {
 
     @Column
     private LocalDateTime lastLoginAt;
-
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<PushSubscription> pushSubscriptions = new ArrayList<>();
     @PrePersist
     public void onCreate() {
         this.createdAt = LocalDateTime.now();

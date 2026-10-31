@@ -85,7 +85,7 @@ public class RecruiterController {
     public ApplicantResponse updateApplicantStatus(@PathVariable Long id,
                                                    @Valid @RequestBody ApplicantStatusRequest request,
                                                    Principal principal) {
-        return service.updateApplicantStatus(principal, id, request.status());
+        return service.updateApplicantStatus(principal, id, request.status(), request.message());
     }
 
     // ── Erreurs en JSON lisible par le front : { status, message, fields? } ──
@@ -111,5 +111,16 @@ public class RecruiterController {
     @PostMapping(path = "/company/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Map<String, String> uploadLogo(@RequestParam("file") MultipartFile file, Principal principal) {
         return Map.of("url", logoService.upload(service.currentUserId(principal), file));
+    }
+
+    @GetMapping("/applications/{id}/events")
+    public List<RecruiterDtos.ApplicationEventResponse> applicantHistory(@PathVariable Long id, Principal principal) {
+        return service.applicantHistory(principal, id);
+    }
+
+    @PostMapping("/jobs/{id}/close")
+    public RecruiterJobResponse closeJob(@PathVariable Long id, @Valid @RequestBody RecruiterDtos.CloseJobRequest request,
+                                         Principal principal) {
+        return service.closeJob(principal, id, request.rejectRemaining(), request.message());
     }
 }

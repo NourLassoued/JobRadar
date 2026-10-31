@@ -13,5 +13,6 @@ public enum ApplicationStatus {
     /** Refus de l'entreprise */
     REJECTED,
     /** Le candidat a abandonné */
-    WITHDRAWN
+    WITHDRAWN,
+    HIRED
 }

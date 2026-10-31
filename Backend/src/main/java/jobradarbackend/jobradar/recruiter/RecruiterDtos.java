@@ -17,7 +17,22 @@ public final class RecruiterDtos {
 
     private RecruiterDtos() {
     }
+    public record ApplicantStatusRequest(
+            @NotNull ApplicationStatus status,
+            @Size(max = 2000) String message) {}
+    public record ApplicationEventResponse(
+            Long id,
+            ApplicationStatus fromStatus,
+            ApplicationStatus toStatus,
+            String message,
+            /** CANDIDATE, RECRUITER, ADMIN ou SYSTEM */
+            String actorRole,
+            String actorName,
+            LocalDateTime createdAt) {}
 
+    public record CloseJobRequest(
+            boolean rejectRemaining,
+            @Size(max = 2000) String message) {}
 
     public record CompanyRequest(
             @NotBlank @Size(max = 150) String name,
@@ -91,5 +106,4 @@ public final class RecruiterDtos {
             String coverLetterName) {}
 
     /** PATCH /api/recruiter/applications/{id}/status : décision du recruteur */
-    public record ApplicantStatusRequest(@NotNull ApplicationStatus status) {}
 }

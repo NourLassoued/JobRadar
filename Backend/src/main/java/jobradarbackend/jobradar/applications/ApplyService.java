@@ -11,6 +11,7 @@ import jobradarbackend.jobradar.documents.CoverLetterDocumentRepository;
 import jobradarbackend.jobradar.joboffer.JobOffer;
 import jobradarbackend.jobradar.joboffer.JobOfferRepository;
 import jobradarbackend.jobradar.matching.MatchingService;
+import jobradarbackend.jobradar.notifications.NotificationService;
 import jobradarbackend.jobradar.user.User;
 import jobradarbackend.jobradar.user.UserRepository;
 import org.slf4j.Logger;
@@ -27,7 +28,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-
+/**
+ * Le candidat postule à une offre publiée par un recruteur JobRadar.
+ *
+ * Si l'offre est déjà dans son Kanban (« à postuler »), la carte passe à APPLIED ;
+ * sinon une nouvelle carte est créée directement à APPLIED. C'est ce statut qui la rend
+ * visible dans l'espace recruteur. Le recruteur est notifié (cloche + Web Push).
+ */
 @Service
 public class ApplyService {
 
@@ -35,7 +42,8 @@ public class ApplyService {
 
     /** Déjà envoyée : on ne postule pas deux fois */
     static final Set<ApplicationStatus> ALREADY_SENT = EnumSet.of(
-            ApplicationStatus.APPLIED, ApplicationStatus.INTERVIEW, ApplicationStatus.OFFER, ApplicationStatus.REJECTED);
+            ApplicationStatus.APPLIED, ApplicationStatus.INTERVIEW, ApplicationStatus.OFFER,
+            ApplicationStatus.HIRED, ApplicationStatus.REJECTED);
 
     private final UserRepository userRepository;
     private final CandidateRepository candidateRepository;
@@ -44,15 +52,19 @@ public class ApplyService {
     private final CandidateCvRepository candidateCvRepository;
     private final MatchingService matchingService;
     private final CoverLetterDocumentRepository coverLetterRepository;
+    private final ApplicationEventService events;
+    private final NotificationService notifications;
 
-    /** Injection par constructeur : Spring fournit les 7 dépendances (aucune ne peut rester null) */
+    /** Injection par constructeur : Spring fournit les 9 dépendances (aucune ne peut rester null) */
     public ApplyService(UserRepository userRepository,
                         CandidateRepository candidateRepository,
                         JobOfferRepository jobOfferRepository,
                         ApplicationRepository applicationRepository,
                         CandidateCvRepository candidateCvRepository,
                         MatchingService matchingService,
-                        CoverLetterDocumentRepository coverLetterRepository) {
+                        CoverLetterDocumentRepository coverLetterRepository,
+                        ApplicationEventService events,
+                        NotificationService notifications) {
         this.userRepository = userRepository;
         this.candidateRepository = candidateRepository;
         this.jobOfferRepository = jobOfferRepository;
@@ -60,6 +72,8 @@ public class ApplyService {
         this.candidateCvRepository = candidateCvRepository;
         this.matchingService = matchingService;
         this.coverLetterRepository = coverLetterRepository;
+        this.events = events;
+        this.notifications = notifications;
     }
 
     @Transactional
@@ -110,17 +124,34 @@ public class ApplyService {
         application.setCv(cv);
         application.setCoverLetterDocument(letter);
         application.setMatchScore(score);
+        ApplicationStatus from = application.getStatus();
         application.moveTo(ApplicationStatus.APPLIED);
         if (application.getAppliedAt() == null) application.setAppliedAt(LocalDate.now());
 
         Application saved = applicationRepository.save(application);
+
+        // Historique : première étape de la candidature
+        events.record(saved, from, ApplicationStatus.APPLIED, null, candidate.getUser(), "CANDIDATE");
+
+        // Le recruteur est prévenu dans sa cloche (et en Web Push s'il l'a activé)
+        if (offer.getPublisher() != null && offer.getPublisher().getOwner() != null) {
+            String name = (nullToEmpty(candidate.getFirstName()) + " " + nullToEmpty(candidate.getLastName())).strip();
+            notifications.notify(offer.getPublisher().getOwner(), "NEW_APPLICATION",
+                    "Nouvelle candidature",
+                    (name.isEmpty() ? "Un candidat" : name) + " a postulé à « " + offer.getTitle() + " »"
+                            + " (compatibilité " + score + " %).",
+                    "/app/recruteur/offres/" + offer.getId() + "/candidats");
+        }
         log.info("Candidature {} : candidat {} → offre {}", saved.getId(), candidate.getId(), offer.getId());
 
         return new ApplyResponse(saved.getId(), offer.getId(), saved.getJobTitle(), saved.getCompany(),
                 saved.getStatus(), saved.getMatchScore(), saved.getAppliedAt());
     }
 
-
+    /**
+     * Ids des offres auxquelles le candidat a déjà postulé : le front affiche
+     * « Candidature envoyée » au lieu de « Postuler » sur ces offres.
+     */
     @Transactional(readOnly = true)
     public List<Long> appliedOfferIds(Principal principal) {
         if (principal == null) return List.of();
@@ -133,6 +164,10 @@ public class ApplyService {
                         .distinct()
                         .toList())
                 .orElse(List.of());
+    }
+
+    private static String nullToEmpty(String value) {
+        return value == null ? "" : value;
     }
 
     private Candidate currentCandidate(Principal principal) {

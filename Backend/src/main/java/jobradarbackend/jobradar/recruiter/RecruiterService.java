@@ -1,6 +1,9 @@
 package jobradarbackend.jobradar.recruiter;
 
 import jobradarbackend.jobradar.applications.Application;
+import jobradarbackend.jobradar.applications.ApplicationEvent;
+import jobradarbackend.jobradar.applications.ApplicationEventService;
+import jobradarbackend.jobradar.applications.DecisionMailer;
 import jobradarbackend.jobradar.applications.ApplicationRepository;
 import jobradarbackend.jobradar.applications.ApplicationStatus;
 import jobradarbackend.jobradar.candidate.Candidate;
@@ -10,7 +13,9 @@ import jobradarbackend.jobradar.joboffer.JobOffer;
 import jobradarbackend.jobradar.joboffer.JobOfferRepository;
 import jobradarbackend.jobradar.matching.MatchResult;
 import jobradarbackend.jobradar.matching.MatchingService;
+import jobradarbackend.jobradar.notifications.NotificationService;
 import jobradarbackend.jobradar.recruiter.RecruiterDtos.ApplicantResponse;
+import jobradarbackend.jobradar.recruiter.RecruiterDtos.ApplicationEventResponse;
 import jobradarbackend.jobradar.recruiter.RecruiterDtos.CompanyRequest;
 import jobradarbackend.jobradar.recruiter.RecruiterDtos.CompanyResponse;
 import jobradarbackend.jobradar.recruiter.RecruiterDtos.JobPostRequest;
@@ -46,11 +51,18 @@ public class RecruiterService {
 
     /** Candidatures visibles par le recruteur : celles réellement envoyées (pas les offres « sauvegardées ») */
     static final Set<ApplicationStatus> VISIBLE = EnumSet.of(
-            ApplicationStatus.APPLIED, ApplicationStatus.INTERVIEW, ApplicationStatus.OFFER, ApplicationStatus.REJECTED);
+            ApplicationStatus.APPLIED, ApplicationStatus.INTERVIEW, ApplicationStatus.OFFER,
+            ApplicationStatus.HIRED, ApplicationStatus.REJECTED);
 
     /** Décisions que le recruteur peut prendre sur une candidature */
     static final Set<ApplicationStatus> RECRUITER_DECISIONS = EnumSet.of(
-            ApplicationStatus.INTERVIEW, ApplicationStatus.OFFER, ApplicationStatus.REJECTED);
+            ApplicationStatus.INTERVIEW, ApplicationStatus.OFFER, ApplicationStatus.HIRED, ApplicationStatus.REJECTED);
+
+    /** Statuts définitifs : plus aucune décision possible ensuite */
+    static final Set<ApplicationStatus> FINAL = EnumSet.of(ApplicationStatus.HIRED, ApplicationStatus.WITHDRAWN);
+
+    /** Candidatures encore en attente d'une réponse (refusées en une fois à la fermeture de l'offre) */
+    static final Set<ApplicationStatus> PENDING = EnumSet.of(ApplicationStatus.APPLIED, ApplicationStatus.INTERVIEW);
 
     private final UserRepository userRepository;
     private final CompanyRepository companyRepository;
@@ -58,6 +70,9 @@ public class RecruiterService {
     private final ApplicationRepository applicationRepository;
     private final MatchingService matchingService;
     private final RecruiterJobMapper mapper;
+    private final ApplicationEventService events;
+    private final NotificationService notifications;
+    private final DecisionMailer mailer;
 
     // ── Profil entreprise ────────────────────────────────────
 
@@ -143,6 +158,29 @@ public class RecruiterService {
         return mapper.toResponse(jobOfferRepository.save(offer), applicantsCount(offer));
     }
 
+    /**
+     * Ferme l'offre et, si demandé, répond en une fois aux candidatures encore en attente
+     * (Nouvelle, Entretien) : elles passent à « Refusée » avec le message donné.
+     */
+    @Transactional
+    public RecruiterJobResponse closeJob(Principal principal, Long jobId, boolean rejectRemaining, String message) {
+        Company company = requireCompany(principal);
+        User recruiter = currentUser(principal);
+        JobOffer offer = ownedOffer(company, jobId);
+        offer.setIsActive(false);
+        jobOfferRepository.save(offer);
+
+        if (rejectRemaining) {
+            List<Application> pending = applicationRepository
+                    .findByJobOfferIdAndStatusInOrderByCreatedAtDesc(offer.getId(), PENDING);
+            for (Application a : pending) {
+                applyDecision(a, ApplicationStatus.REJECTED, message, recruiter, company);
+            }
+            log.info("Offre {} fermée : {} candidature(s) refusée(s) en une fois", offer.getId(), pending.size());
+        }
+        return mapper.toResponse(offer, applicantsCount(offer));
+    }
+
     // ── Candidats ────────────────────────────────────────────
 
     /** Candidatures reçues pour une offre, de la plus compatible à la moins compatible */
@@ -155,26 +193,102 @@ public class RecruiterService {
                 .toList();
     }
 
-    /** Entretien, proposition ou refus : la carte du candidat change de colonne dans son Kanban */
+    /**
+     * Entretien, proposition, embauche ou refus. La carte du candidat change de colonne dans son Kanban,
+     * l'étape est ajoutée à l'historique et le candidat est prévenu (cloche + e-mail).
+     */
     @Transactional
-    public ApplicantResponse updateApplicantStatus(Principal principal, Long applicationId, ApplicationStatus status) {
+    public ApplicantResponse updateApplicantStatus(Principal principal, Long applicationId,
+                                                   ApplicationStatus status, String message) {
         if (!RECRUITER_DECISIONS.contains(status)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Statut non autorisé. Valeurs possibles : INTERVIEW, OFFER, REJECTED.");
+                    "Statut non autorisé. Valeurs possibles : INTERVIEW, OFFER, HIRED, REJECTED.");
         }
         Company company = requireCompany(principal);
-        Application application = applicationRepository.findById(applicationId)
-                .filter(a -> a.getJobOffer() != null && isOwnedBy(a.getJobOffer(), company))
-                .filter(a -> VISIBLE.contains(a.getStatus()))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Candidature introuvable."));
+        Application application = ownedApplication(company, applicationId);
 
-        application.moveTo(status);
-        Application saved = applicationRepository.save(application);
+        if (application.getStatus() == status) {
+            return toApplicant(application, application.getJobOffer());
+        }
+        if (FINAL.contains(application.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Cette candidature est close : sa décision ne peut plus être modifiée.");
+        }
+        if (status == ApplicationStatus.HIRED && application.getStatus() != ApplicationStatus.OFFER) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Faites d'abord une proposition au candidat avant de le marquer comme embauché.");
+        }
+
+        applyDecision(application, status, message, currentUser(principal), company);
         log.info("Candidature {} : {} par {}", applicationId, status, company.getName());
-        return toApplicant(saved, saved.getJobOffer());
+        return toApplicant(application, application.getJobOffer());
+    }
+
+    /** Historique d'une candidature reçue par l'entreprise */
+    @Transactional(readOnly = true)
+    public List<ApplicationEventResponse> applicantHistory(Principal principal, Long applicationId) {
+        Application application = ownedApplication(requireCompany(principal), applicationId);
+        return events.history(application.getId()).stream().map(RecruiterService::toEventResponse).toList();
     }
 
     // ── Outils internes ──────────────────────────────────────
+
+    /** Change le statut, l'ajoute à l'historique et prévient le candidat */
+    /** Change le statut, l'ajoute à l'historique et prévient le candidat */
+    private void applyDecision(Application application, ApplicationStatus status, String message,
+                               User recruiter, Company company) {
+        ApplicationStatus from = application.getStatus();
+        application.moveTo(status);
+        applicationRepository.save(application);
+        events.record(application, from, status, message, recruiter, "RECRUITER");
+
+        Candidate candidate = application.getCandidate();
+        String job = application.getJobOffer() != null ? application.getJobOffer().getTitle() : application.getJobTitle();
+        Decision d = Decision.of(status, company.getName(), job);
+
+        // Cloche + temps réel + Web Push
+        notifications.notify(candidate.getUser(), "APPLICATION_DECISION", d.title(),
+                message == null || message.isBlank() ? d.body() : d.body() + "\n\n« " + message.strip() + " »",
+                "/app/candidatures");
+
+        // E-mail HTML (couleur, textes et bouton choisis dans DecisionMailer selon la décision)
+        mailer.send(candidate.getEmail(), candidate.getFirstName(), status, company.getName(), job, message);
+    }
+
+    /** Textes de la notification et de l'e-mail selon la décision */
+    private record Decision(String title, String body) {
+        static Decision of(ApplicationStatus status, String company, String job) {
+            return switch (status) {
+                case INTERVIEW -> new Decision("Entretien proposé",
+                        company + " souhaite vous rencontrer pour « " + job + " ».");
+                case OFFER -> new Decision("Proposition d'embauche",
+                        company + " vous fait une proposition pour « " + job + " ».");
+                case HIRED -> new Decision("Félicitations, vous êtes embauché(e)",
+                        company + " confirme votre embauche pour « " + job + " ».");
+                case REJECTED -> new Decision("Réponse à votre candidature",
+                        company + " n'a pas retenu votre candidature pour « " + job + " ».");
+                default -> new Decision("Mise à jour de votre candidature",
+                        "Le statut de votre candidature pour « " + job + " » a changé.");
+            };
+        }
+    }
+
+    /** Candidature envoyée à une offre de l'entreprise ; sinon 404 */
+    private Application ownedApplication(Company company, Long applicationId) {
+        return applicationRepository.findById(applicationId)
+                .filter(a -> a.getJobOffer() != null && isOwnedBy(a.getJobOffer(), company))
+                .filter(a -> VISIBLE.contains(a.getStatus()))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Candidature introuvable."));
+    }
+
+    private static ApplicationEventResponse toEventResponse(ApplicationEvent e) {
+        User actor = e.getActor();
+        String name = actor == null ? null
+                : String.join(" ", java.util.stream.Stream.of(actor.getFirstName(), actor.getLastName())
+                .filter(v -> v != null && !v.isBlank()).toList());
+        return new ApplicationEventResponse(e.getId(), e.getFromStatus(), e.getToStatus(), e.getMessage(),
+                e.getActorRole(), name == null || name.isBlank() ? null : name, e.getCreatedAt());
+    }
 
     /** Identifiant du compte connecté (sert à nommer le fichier du logo) */
     public Long currentUserId(Principal principal) {

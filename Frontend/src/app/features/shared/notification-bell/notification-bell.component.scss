@@ -1,0 +1,194 @@
+:host {
+  --nb-surface: #ffffff;
+  --nb-sunk: #f7f8f8;
+  --nb-ink: #17202a;
+  --nb-muted: #66727e;
+  --nb-line: #dde2e5;
+  --nb-accent: #155e63;
+  --nb-accent-soft: #e2efee;
+  --nb-badge: #b42318;
+  display: inline-block;
+  font-family: 'Schibsted Grotesk', 'Segoe UI', system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :host {
+    --nb-surface: #161e23;
+    --nb-sunk: #12191d;
+    --nb-ink: #e6ebee;
+    --nb-muted: #8d9aa4;
+    --nb-line: #253038;
+    --nb-accent: #5fb3b3;
+    --nb-accent-soft: #19302f;
+    --nb-badge: #f07a6e;
+  }
+}
+
+.nb { position: relative; }
+
+.nb__btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--nb-line);
+  border-radius: 12px;
+  background: var(--nb-surface);
+  color: var(--nb-ink);
+  font-size: 20px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+
+  &:hover { border-color: var(--nb-accent); color: var(--nb-accent); }
+  &:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: 2px; }
+}
+
+.nb__badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border: 2px solid var(--nb-surface);
+  border-radius: 999px;
+  background: var(--nb-badge);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
+.nb__panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  width: min(360px, calc(100vw - 32px));
+  max-height: min(480px, 70vh);
+  overflow: hidden;
+  border: 1px solid var(--nb-line);
+  border-radius: 14px;
+  background: var(--nb-surface);
+  color: var(--nb-ink);
+  box-shadow: 0 20px 44px -20px rgba(10, 30, 35, 0.45);
+  animation: nb-in 0.16s ease-out;
+
+  .nb--start & { right: auto; left: 0; }
+  .nb--up & { top: auto; bottom: calc(100% + 8px); }
+}
+
+@keyframes nb-in { from { opacity: 0; transform: translateY(-4px); } }
+
+.nb__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--nb-line);
+  font-size: 14px;
+}
+
+.nb__all {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--nb-accent);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover { text-decoration: underline; text-underline-offset: 3px; }
+}
+
+.nb__list {
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.nb__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover { background: var(--nb-sunk); }
+  &:focus-visible { outline: 2px solid var(--nb-accent); outline-offset: -2px; }
+  &.is-unread { background: color-mix(in srgb, var(--nb-accent-soft) 60%, transparent); }
+  &.is-unread:hover { background: var(--nb-accent-soft); }
+}
+
+.nb__icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--nb-accent-soft);
+  color: var(--nb-accent);
+  font-size: 17px;
+}
+
+.nb__text { display: grid; gap: 2px; flex: 1; min-width: 0; }
+.nb__title { font-size: 13.5px; font-weight: 600; }
+
+.nb__body {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--nb-muted);
+  font-size: 12.5px;
+  line-height: 1.4;
+  white-space: pre-line;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.nb__time { color: var(--nb-muted); font-size: 11.5px; }
+
+.nb__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--nb-accent);
+}
+
+.nb__empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 24px 16px;
+  color: var(--nb-muted);
+  font-size: 13px;
+}
+
+// Pied de la liste : activation des notifications push
+.nb__foot {
+  padding: 10px 12px;
+  border-top: 1px solid var(--nb-line);
+  background: var(--nb-sunk);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nb__panel { animation: none; }
+}

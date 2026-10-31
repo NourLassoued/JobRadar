@@ -1,0 +1,38 @@
+<div class="pt" [attr.data-state]="push.state()">
+  @switch (push.state()) {
+    @case ('off') {
+      <span class="pt__icon" aria-hidden="true"><i class="ti ti-device-desktop-bolt"></i></span>
+      <span class="pt__text"><strong>Notifications sur cet appareil</strong><small>Même quand JobRadar est fermé</small></span>
+      <button type="button" class="pt__btn pt__btn--main" (click)="push.enable()" [disabled]="push.busy()">
+        {{ push.busy() ? 'Activation…' : 'Activer' }}
+      </button>
+    }
+    @case ('on') {
+      <span class="pt__icon" aria-hidden="true"><i class="ti ti-bell-ringing"></i></span>
+      <span class="pt__text"><strong>Activées sur cet appareil</strong><small>Bureau ou téléphone, en direct</small></span>
+      <button type="button" class="pt__btn" (click)="push.test()" [disabled]="push.busy()">Tester</button>
+      <button type="button" class="pt__btn pt__btn--ghost" (click)="push.disable()" [disabled]="push.busy()" aria-label="Désactiver sur cet appareil">
+        <i class="ti ti-bell-off" aria-hidden="true"></i>
+      </button>
+    }
+    @case ('denied') {
+      <span class="pt__icon" aria-hidden="true"><i class="ti ti-bell-x"></i></span>
+      <span class="pt__text"><strong>Bloquées par le navigateur</strong><small>Autorisez-les dans les réglages du site (cadenas de la barre d'adresse)</small></span>
+    }
+    @case ('ios-install') {
+      <span class="pt__icon" aria-hidden="true"><i class="ti ti-device-mobile"></i></span>
+      <span class="pt__text"><strong>Sur iPhone</strong><small>Partager → « Sur l'écran d'accueil », puis ouvrez JobRadar depuis l'icône</small></span>
+    }
+    @case ('server-off') {
+      <span class="pt__icon" aria-hidden="true"><i class="ti ti-plug-off"></i></span>
+      <span class="pt__text"><strong>Non disponible</strong><small>Les notifications push ne sont pas configurées sur le serveur</small></span>
+    }
+    @default {
+      <span class="pt__icon" aria-hidden="true"><i class="ti ti-browser-x"></i></span>
+      <span class="pt__text"><strong>Non pris en charge</strong><small>Ce navigateur ne gère pas les notifications push</small></span>
+    }
+  }
+</div>
+@if (push.message(); as m) {
+  <p class="pt__msg" role="status">{{ m }}</p>
+}

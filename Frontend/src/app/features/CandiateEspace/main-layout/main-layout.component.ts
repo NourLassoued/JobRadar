@@ -7,6 +7,8 @@ import { CandidateService } from '../../../core/services/candidate.service';
 import { CandidateResponse } from '../../../core/models/candidate';
 import { Company, RecruiterService } from '../../../core/services/recruiter.service';
 import { sectorIcon, sectorLabel } from '../../../core/models/sector.utils';
+import { NotificationService } from '../../../core/services/notification.service';
+import { NotificationBellComponent } from '../../shared/notification-bell/notification-bell.component';
 
 interface NavItem {
   path: string;
@@ -35,7 +37,7 @@ const RECRUITER_NAV: NavItem[] = [
 @Component({
   selector: 'jr-main-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, NotificationBellComponent],
   template: `
     <div class="shell" [class.is-menu-open]="menuOpen()">
 
@@ -50,6 +52,8 @@ const RECRUITER_NAV: NavItem[] = [
           <span class="brand__mark" aria-hidden="true"><i class="ti ti-radar-2"></i></span>
           <span class="brand__name">JobRadar</span>
         </a>
+        <!-- Cloche (mobile) : en haut à droite -->
+        <app-notification-bell class="topbar__bell" />
       </header>
 
       <!-- ── Barre latérale ────────────────────────────────── -->
@@ -130,10 +134,14 @@ const RECRUITER_NAV: NavItem[] = [
             </a>
           }
 
-          <button type="button" class="logout" (click)="logout()">
-            <i class="ti ti-logout" aria-hidden="true"></i>
-            <span>Déconnexion</span>
-          </button>
+          <div class="foot-actions">
+            <button type="button" class="logout" (click)="logout()">
+              <i class="ti ti-logout" aria-hidden="true"></i>
+              <span>Déconnexion</span>
+            </button>
+            <!-- Cloche (ordinateur) : la liste s'ouvre vers le haut, à droite de la barre -->
+            <app-notification-bell class="foot-bell" align="start" [up]="true" />
+          </div>
         </div>
       </aside>
 
@@ -238,7 +246,8 @@ const RECRUITER_NAV: NavItem[] = [
       padding: 20px 14px 14px;
       background: var(--surface);
       border-right: 1px solid var(--line);
-      overflow-y: auto;
+      /* visible : la liste de la cloche peut déborder sur le contenu */
+      overflow: visible;
     }
 
     .brand {
@@ -293,6 +302,9 @@ const RECRUITER_NAV: NavItem[] = [
       flex-direction: column;
       gap: 2px;
       flex: 1;
+      /* C'est le menu qui défile si l'écran est petit, plus toute la barre */
+      min-height: 0;
+      overflow-y: auto;
     }
 
     .nav__heading {
@@ -463,6 +475,16 @@ const RECRUITER_NAV: NavItem[] = [
       text-align: left;
       transition: background-color 0.15s ease, color 0.15s ease;
     }
+    .foot-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .foot-actions .logout {
+      flex: 1;
+      width: auto;
+    }
+
     .logout .ti {
       font-size: 19px;
     }
@@ -551,6 +573,16 @@ const RECRUITER_NAV: NavItem[] = [
       .sidebar .brand:not(.brand--compact) {
         display: none;
       }
+      /* Mobile : la barre redevient défilable et la cloche passe dans la barre du haut */
+      .sidebar {
+        overflow-y: auto;
+      }
+      .foot-bell {
+        display: none;
+      }
+      .topbar__bell {
+        margin-left: auto;
+      }
       .is-menu-open .sidebar {
         transform: translateX(0);
         visibility: visible;
@@ -590,6 +622,7 @@ export class MainLayoutComponent implements OnInit {
   private recruiterService = inject(RecruiterService);
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
+  private notifications = inject(NotificationService);
 
   // ── Rôle : change le menu, le logo et la carte du bas ─────
   /** USER, RECRUITER ou ADMIN (lu dans le JWT, relu à chaque navigation) */
@@ -713,9 +746,9 @@ export class MainLayoutComponent implements OnInit {
   }
 
   logout(): void {
+    // Vide la cloche et arrête la vérification avant de changer de compte
+    this.notifications.stop();
     this.authService.logout();
     this.router.navigate(['/auth/login']);
   }
-    
- 
 }
