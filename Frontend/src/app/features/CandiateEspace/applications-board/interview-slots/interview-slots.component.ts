@@ -1,5 +1,6 @@
 import { Component, DestroyRef, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ApplicationStatus } from '../../../../core/models/application-status';
 import { ApplicationTrackingService } from '../../../../core/services/application-tracking.service';
@@ -23,6 +24,7 @@ import {
 @Component({
   selector: 'jr-interview-slots',
   standalone: true,
+  imports: [RouterLink],
   templateUrl: './interview-slots.component.html',
   styleUrl: './interview-slots.component.scss',
 })
@@ -33,6 +35,8 @@ export class InterviewSlotsComponent {
 
   readonly applicationId = input.required<number>();
   readonly status = input.required<ApplicationStatus>();
+  /** Offre JobRadar : sert au lien « S'entraîner » vers la simulation d'entretien */
+  readonly jobOfferId = input<number | null>(null);
   /** Un créneau a été accepté ou proposé : le détail (événements, carte) doit être rechargé */
   readonly changed = output<string>();
 
@@ -47,6 +51,23 @@ export class InterviewSlotsComponent {
   readonly counterMessage = signal('');
 
   readonly minDate = signal(localInputValue(60));
+
+  /** « Votre entretien est dans 2 jours » : uniquement pour un entretien confirmé à venir */
+  readonly countdown = computed(() => {
+    const c = this.data()?.state === 'CONFIRMED' ? this.data()?.confirmed : null;
+    if (!c) return null;
+    const start = new Date(c.startsAt);
+    const ms = start.getTime() - Date.now();
+    if (ms <= 0) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const day = new Date(start);
+    day.setHours(0, 0, 0, 0);
+    const days = Math.round((day.getTime() - today.getTime()) / 86_400_000);
+    if (days === 0) return 'aujourd\'hui';
+    if (days === 1) return 'demain';
+    return `dans ${days} jours`;
+  });
   readonly selected = computed(() => this.data()?.proposals.find(s => s.id === this.selectedId()) ?? null);
   /** Rien à afficher : pas d'entretien en cours ni fixé */
   readonly hidden = computed(() => {

@@ -34,6 +34,16 @@
               @if (c.location && !link(c.location)) {
                 <p class="confirmed__place"><i class="ti ti-map-pin" aria-hidden="true"></i>{{ c.location }}</p>
               }
+              @if (countdown(); as when) {
+                <div class="train">
+                  <p class="train__text"><i class="ti ti-alarm" aria-hidden="true"></i>Votre entretien est <strong>{{ when }}</strong>. Entraînez-vous !</p>
+                  @if (jobOfferId(); as offerId) {
+                    <a class="train__link" routerLink="/app/offres" [queryParams]="{ offre: offerId, onglet: 'entretien' }">
+                      <i class="ti ti-microphone-2" aria-hidden="true"></i>Simulation d'entretien
+                    </a>
+                  }
+                </div>
+              }
               <div class="confirmed__actions">
                 @if (link(c.location); as url) {
                   <a class="btn btn--primary btn--small" [href]="url" target="_blank" rel="noopener noreferrer">

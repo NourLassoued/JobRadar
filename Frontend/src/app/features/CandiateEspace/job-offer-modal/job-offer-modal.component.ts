@@ -13,6 +13,7 @@ import {
 } from '../../../core/services/ai.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ScoreExplanationComponent } from './score-explanation/score-explanation.component';
+import { InterviewPracticeComponent } from './interview-practice/interview-practice.component';
 import { CandidateService } from '../../../core/services/candidate.service';
 import { JobOffer } from '../../../core/services/job.service';
 import { sectorIcon, sectorLabel } from '../../../core/models/sector.utils';
@@ -34,7 +35,7 @@ const SOURCE_ALIASES: Record<string, string> = {
 @Component({
   selector: 'app-job-offer-modal',
   standalone: true,
-  imports: [NgTemplateOutlet, RouterLink, ScoreExplanationComponent],
+  imports: [NgTemplateOutlet, RouterLink, ScoreExplanationComponent, InterviewPracticeComponent],
   templateUrl: './job-offer-modal.component.html',
   styleUrl: './job-offer-modal.component.scss',
 })

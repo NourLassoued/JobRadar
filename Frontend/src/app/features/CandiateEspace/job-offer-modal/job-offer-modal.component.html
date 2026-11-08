@@ -532,6 +532,9 @@
                 </div>
               </div>
 
+              <!-- Simulation : répondre aux questions, l'IA note chaque réponse (méthode STAR) -->
+              <app-interview-practice [jobOfferId]="offer().id" [questions]="p.questions" [language]="interviewLanguage()" />
+
               @for (g of interviewGroups(); track g.key) {
                 <div [class]="'qa-group qa-group--' + g.key.toLowerCase()">
                   <h3 class="section-title">

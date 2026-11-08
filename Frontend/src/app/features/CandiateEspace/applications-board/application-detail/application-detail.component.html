@@ -234,7 +234,8 @@
       @if (tab() === 'tracking') {
         <!-- Créneaux d'entretien proposés par le recruteur -->
         @if (d.card.managedByRecruiter && d.card.status !== 'TO_APPLY') {
-          <jr-interview-slots [applicationId]="d.card.id" [status]="d.card.status" (changed)="onSlotsChanged($event)" />
+          <jr-interview-slots [applicationId]="d.card.id" [status]="d.card.status" [jobOfferId]="d.card.jobOfferId"
+                              (changed)="onSlotsChanged($event)" />
         }
 
         <section class="sec">

@@ -140,6 +140,38 @@ export interface ScoreExplanation {
   remainingQuota: number | null;
 }
 
+// ── Simulation d'entretien : InterviewPracticeDtos ─────────
+
+export interface AnswerRequest {
+  jobOfferId: number;
+  category: InterviewCategory | null;
+  question: string;
+  answer: string;
+  language: LetterLanguage;
+  /** true si la réponse a été dictée au micro */
+  spoken: boolean;
+}
+
+/** Une étape de la méthode STAR */
+export interface StarStep {
+  present: boolean;
+  comment: string;
+}
+
+/** Réponse de POST /api/ai/interview-answers */
+export interface AnswerFeedback {
+  /** Note de 0 à 10 */
+  score: number;
+  verdict: string;
+  star: { situation: StarStep; task: StarStep; action: StarStep; result: StarStep };
+  strengths: string[];
+  improvements: string[];
+  /** La réponse du candidat, mieux structurée (sans fait inventé) */
+  improvedAnswer: string;
+  aiModel: string;
+  remainingQuota: number | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AiService {
   private http = inject(HttpClient);
@@ -210,5 +242,12 @@ export class AiService {
   /** POST /api/ai/score-explanations — « Pourquoi ce score ? » expliqué par l'IA */
   explainScore(jobOfferId: number): Observable<ScoreExplanation> {
     return this.http.post<ScoreExplanation>(`${this.api}/ai/score-explanations`, { jobOfferId });
+  }
+
+  // ── Simulation d'entretien : /api/ai/interview-answers ────
+
+  /** POST /api/ai/interview-answers — note la réponse (méthode STAR) et propose une version améliorée */
+  evaluateAnswer(request: AnswerRequest): Observable<AnswerFeedback> {
+    return this.http.post<AnswerFeedback>(`${this.api}/ai/interview-answers`, request);
   }
 }

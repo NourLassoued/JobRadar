@@ -108,3 +108,21 @@
 @keyframes spin { to { transform: rotate(360deg); } }
 
 @media (prefers-reduced-motion: reduce) { .spin { animation: none; } .choice { transition: none; } }
+
+// Rappel « Votre entretien est dans 2 jours » + lien vers la simulation
+.train {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
+  width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 10px;
+  background: var(--surface); border: 1px solid color-mix(in srgb, var(--success) 35%, transparent);
+
+  &__text {
+    display: flex; align-items: center; gap: 6px; margin: 0; font-size: 0.87rem; color: var(--ink);
+    i { color: var(--success); }
+  }
+  &__link {
+    display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 10px;
+    background: var(--accent); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none;
+    &:hover { background: var(--accent-hover); }
+    &:focus-visible { outline: none; box-shadow: var(--focus); }
+  }
+}

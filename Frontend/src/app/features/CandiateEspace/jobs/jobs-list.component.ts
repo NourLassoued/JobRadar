@@ -398,6 +398,33 @@ export class JobsListComponent implements OnInit {
     this.readFiltersFromUrl();
     this.loadJobsOnInit();
     this.loadAppliedIds();
+    this.openOfferFromUrl();
+  }
+
+  /**
+   * Lien direct vers une offre : /app/offres?offre=123&onglet=entretien
+   * (utilisé par le suivi des candidatures : « Entraînez-vous pour votre entretien »)
+   */
+  private openOfferFromUrl(): void {
+    const p = this.route.snapshot.queryParamMap;
+    const id = Number(p.get('offre'));
+    if (!Number.isInteger(id) || id <= 0) return;
+    const tabs: Record<string, ModalTab> = { score: 'score', cv: 'cv', lettre: 'letter', entretien: 'interview' };
+    const tab = tabs[p.get('onglet') ?? ''] ?? 'score';
+    this.jobService.getOfferById(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: offer => this.openOffer(offer, tab),
+        error: () => this.clearOfferFromUrl(),
+      });
+  }
+
+  /** Retire ?offre= et ?onglet= de l'adresse (la fenêtre ne se rouvre pas au rechargement) */
+  private clearOfferFromUrl(): void {
+    if (!this.isBrowser || !this.route.snapshot.queryParamMap.has('offre')) return;
+    this.router.navigate([], {
+      relativeTo: this.route, queryParams: { offre: null, onglet: null }, queryParamsHandling: 'merge', replaceUrl: true,
+    });
   }
 
   private readFiltersFromUrl(): void {
@@ -774,6 +801,7 @@ export class JobsListComponent implements OnInit {
 
   closeOffer(): void {
     this.selectedOffer.set(null);
+    this.clearOfferFromUrl();
     // Le candidat a peut-être postulé depuis la fenêtre : on met les cartes à jour
     this.loadAppliedIds();
   }
