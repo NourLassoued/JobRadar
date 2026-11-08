@@ -2,16 +2,13 @@
 
 # 🎯 JobRadar
 
-### Agrégateur d'offres d'emploi multi-sources avec scoring adaptatif par secteur et assistant IA
+**Plateforme de recrutement Full Stack avec IA générative, scoring adaptatif et temps réel**
 
-[![Java](https://img.shields.io/badge/Java-17-orange.svg)](https://www.java.com/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://www.java.com/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Angular](https://img.shields.io/badge/Angular-18-red.svg)](https://angular.dev/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791.svg)](https://www.postgresql.org/)
-[![Supabase](https://img.shields.io/badge/Supabase-Storage-3ECF8E.svg)](https://supabase.com/)
-[![Groq](https://img.shields.io/badge/IA-Groq%20API-F55036.svg)](https://console.groq.com/)
-[![Docker](https://img.shields.io/badge/Docker-ready-2496ED.svg)](https://www.docker.com/)
-
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791.svg)](https://www.postgresql.org/)
+[![IA](https://img.shields.io/badge/IA-Groq%20LLM-F55036.svg)](https://console.groq.com/)
 
 </div>
 
@@ -19,56 +16,75 @@
 
 ## ⚡ En bref
 
-**JobRadar** est une application Full Stack qui centralise les offres d'emploi issues de plusieurs API (**France Travail, Adzuna, Jooble, The Muse**).
+JobRadar **agrège les offres de 3 API** (France Travail, Adzuna, Jooble), **élimine les doublons**, **calcule la compatibilité** candidat / offre selon le secteur métier et intègre **7 fonctionnalités d'IA générative** pour les candidats et les recruteurs.
 
-Elle élimine les doublons, ramène les offres à un format standardisé et les classe grâce à un moteur de scoring personnalisé selon le secteur métier. L'application intègre également un **assistant IA** pour adapter les CV et générer des lettres de motivation sur mesure.
-
----
-
-## 🔑 Fonctionnalités clés
-
-- 🔐 **Auth & Sécurité** : JWT, OAuth2 (Google, LinkedIn), réinitialisation sécurisée du mot de passe par email.
-- 🌐 **Agrégation multi-API** : normalisation et dédoublonnage automatiques des offres multi-sources (`@Scheduled`).
-- 🎯 **Scoring adaptatif** *(Strategy Pattern)* : pondération sur mesure selon 14 secteurs métiers (ex. : focus technique pour la Tech, diplômes pour la Santé).
-- 🤖 **Assistant IA** *(Groq API)* :
-  - adaptation de CV avec garde-fous anti-invention ;
-  - génération personnalisée de lettres de motivation (ton, langue, format).
-- ☁️ **Stockage cloud** : gestion sécurisée des CV et photos via Supabase Storage et règles RLS.
-- 📋 **Suivi des candidatures** : tableau Kanban dynamique pour suivre chaque postulation.
+Projet conçu et développé **de A à Z** : architecture, base de données, API REST, interface et sécurité.
 
 ---
 
-## 🛠️ Stack technique
+## 🚀 Fonctionnalités clés
 
-| Couche | Technologies |
+**Candidat**
+- 🎯 **Score de compatibilité** par secteur (14 métiers), expliqué par l'IA.
+- 🤖 **CV et lettre de motivation** adaptés à chaque offre par l'IA, sans aucune invention.
+- 🎤 **Simulation d'entretien** à l'écrit ou à la voix, notée par l'IA avec la **méthode STAR**.
+- 📋 **Kanban** des candidatures en glisser-déposer, avec relances, notes et statistiques.
+
+**Recruteur**
+- ✍️ **Rédaction d'offre assistée par l'IA** à partir de 3 lignes.
+- 🧠 **Résumé IA de chaque candidat** : points forts, points à vérifier, questions d'entretien.
+- 📅 **Prise de rendez-vous** : créneaux proposés, choix du candidat, export **Google Agenda**.
+
+**Plateforme**
+- 🔔 **Notifications en temps réel** (SSE), **Web Push** et **e-mails HTML**.
+- 🧹 **Détection des doublons et des offres frauduleuses**, automatisée toutes les 6 h.
+- 🔐 **JWT, OAuth2 Google et LinkedIn**, accès par rôle (Candidat, Recruteur, Admin).
+
+---
+
+## 🛠️ Stack
+
+| | |
 | :--- | :--- |
-| **Frontend** | Angular 18 (Standalone, Signals, Reactive Forms, SSR), SCSS |
-| **Backend** | Spring Boot 3.4, Java 17, Spring Security 6, JWT, OAuth2, Thymeleaf |
-| **Données & Cloud** | PostgreSQL 16, Spring Data JPA, Supabase Storage (RLS) |
-| **IA & API** | Groq API (`openai/gpt-oss-120b`), France Travail, Adzuna, Jooble, The Muse |
-| **DevOps** | Docker, GitHub Actions, Maven |
+| **Frontend** | Angular 18 · Signals · Standalone Components · Angular CDK · SSR · SCSS |
+| **Backend** | Java 21 · Spring Boot 3 · Spring Security 6 · JPA / Hibernate · Thymeleaf |
+| **Données** | PostgreSQL · Supabase Storage (RLS) |
+| **IA** | LLM via Groq API, derrière une abstraction `AiProvider` |
+| **Intégrations** | France Travail · Adzuna · Jooble · Google / LinkedIn OAuth2 · Web Push (VAPID) |
 
 ---
 
-## 🏛️ Points forts de l'architecture
+## 🏛️ Ce que ce projet démontre
 
-**Clean Architecture & Design Patterns**
+| Compétence | Mise en œuvre |
+| :--- | :--- |
+| **Architecture logicielle** | Modules métier découplés, **Strategy Pattern** (scoring, fournisseur IA), **Adapter Pattern** (sources d'offres) |
+| **IA générative en production** | Prompts structurés en JSON, garde-fous anti-hallucination, protection contre le *prompt injection*, quotas et cache |
+| **Sécurité** | JWT + OAuth2, contrôle d'accès côté serveur, secrets hors du dépôt, IA de recrutement sans données discriminantes |
+| **Temps réel et fiabilité** | Server-Sent Events, Web Push, e-mails envoyés **après le commit** de la transaction |
+| **Intégration d'API tierces** | 3 API d'emploi normalisées, imports planifiés (`@Scheduled`) |
+| **Front moderne** | Angular Signals, mise à jour optimiste avec retour arrière, interface responsive et accessible |
 
-- **Adapter Pattern** : intégration modulaire et indépendante de chaque source d'emploi.
-- **Strategy Pattern** : découplage de la logique de scoring métier et isolation du fournisseur IA (`AiProvider`).
+---
 
-**Performance & Robustesse**
+## ⚙️ Lancer en local
 
-- Gestion stricte des quotas API et IA (quota journalier par utilisateur, remboursé en cas d'échec).
-- Angular Signals pour une gestion d'état réactive et performante.
+```bash
+# Backend : créer src/main/resources/application.properties (non versionné) avec vos clés
+cd Backend && mvn spring-boot:run
 
-```text
- France Travail ─┐
- Adzuna ─────────┤     ┌─────────────┐    ┌───────────────┐    ┌──────────────┐    ┌────────────┐
- Jooble ─────────┼───► │ Adaptateurs │──► │ Normalisation │──► │ Dédoublonnage│──► │ PostgreSQL │
- The Muse ───────┘     └─────────────┘    └───────────────┘    └──────────────┘    └─────┬──────┘
-                                                                                         │
-                         Angular 18 ◄── REST + JWT ── Spring Boot ◄── Score par secteur ◄┘
-                                                          │
-                                                          └──► AiProvider ──► Groq API
+# Frontend
+cd Frontend && npm install && ng serve
 ```
+
+**Prochaines étapes :** Docker, CI/CD GitHub Actions, matching sémantique (embeddings), espace admin.
+
+---
+
+<div align="center">
+
+**Nour El Houda Lassoued** · Développeuse Full Stack & DevOps
+
+[Portfolio](https://nourstack.netlify.app) · [GitHub](https://github.com/NourLassoued) · [LinkedIn](https://www.linkedin.com/in/lassouednourelhouda)
+
+</div>
