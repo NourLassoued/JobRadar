@@ -70,6 +70,11 @@
                     <p>{{ c.location }}</p>
                   }
                 }
+                @if (calendarLink(d.calendarUrl); as cal) {
+                  <a class="btn btn--calendar" [href]="cal" target="_blank" rel="noopener noreferrer">
+                    <i class="ti ti-brand-google" aria-hidden="true"></i> Ajouter à Google Agenda
+                  </a>
+                }
               </div>
             }
           }

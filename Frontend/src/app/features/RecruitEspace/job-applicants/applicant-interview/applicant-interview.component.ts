@@ -11,6 +11,7 @@ import {
   checkDrafts,
   slotDay,
   slotHours,
+  googleCalendarLink,
   slotLink,
   slotModeIcon,
   slotModeLabel,
@@ -60,6 +61,7 @@ export class ApplicantInterviewComponent {
   readonly modeLabel = slotModeLabel;
   readonly modeIcon = slotModeIcon;
   readonly link = slotLink;
+  readonly calendarLink = googleCalendarLink;
 
   readonly closed = computed(() => this.status() === 'HIRED' || this.status() === 'WITHDRAWN');
   /** Le bloc n'apparaît qu'à l'étape Entretien, ou si un entretien a été fixé */

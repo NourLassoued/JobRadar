@@ -63,8 +63,11 @@ public final class InterviewSlotDtos {
      */
     public enum State { NONE, WAITING_CANDIDATE, WAITING_RECRUITER, CONFIRMED }
 
-    /** proposals : créneaux en attente de réponse ; confirmed : l'entretien fixé (ou null) */
-    public record InterviewSlots(State state, List<SlotItem> proposals, SlotItem confirmed) {}
+    /**
+     * proposals : créneaux en attente de réponse ; confirmed : l'entretien fixé (ou null) ;
+     * calendarUrl : lien « Ajouter à Google Agenda » de l'entretien fixé (titre adapté à qui le lit)
+     */
+    public record InterviewSlots(State state, List<SlotItem> proposals, SlotItem confirmed, String calendarUrl) {}
 
     /** applicant est rempli quand la candidature vient de passer à « Entretien » */
     public record ProposeResult(ApplicantResponse applicant, InterviewSlots slots) {}

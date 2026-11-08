@@ -3,7 +3,10 @@ package jobradarbackend.jobradar.Mail;
 import java.util.ArrayList;
 import java.util.List;
 
-
+/**
+ * Contenu d'un e-mail JobRadar (modèle templates/emails/jobradar.html).
+ * Se remplit en chaîne : new HtmlMail().to(…).subject(…).headline(…)…
+ */
 public final class HtmlMail {
 
     String to;
@@ -30,6 +33,9 @@ public final class HtmlMail {
     String ctaLabel;
     /** Chemin dans l'application, par exemple /app/candidatures */
     String ctaPath;
+    /** Lien secondaire sous le bouton (adresse complète, ex. Google Agenda) */
+    String secondaryLabel;
+    String secondaryUrl;
     /** Phrase du pied de page : pourquoi la personne reçoit cet e-mail */
     String footer;
 
@@ -47,6 +53,7 @@ public final class HtmlMail {
     public HtmlMail quote(String label, String text) { quoteLabel = label; quote = text; return this; }
     public HtmlMail steps(String... v) { steps = List.of(v); return this; }
     public HtmlMail cta(String label, String path) { ctaLabel = label; ctaPath = path; return this; }
+    public HtmlMail secondary(String label, String url) { secondaryLabel = label; secondaryUrl = url; return this; }
     public HtmlMail footer(String v) { footer = v; return this; }
 
     public String to() { return to; }

@@ -32,6 +32,8 @@ export interface InterviewSlots {
   proposals: SlotItem[];
   /** Entretien fixé */
   confirmed: SlotItem | null;
+  /** Lien « Ajouter à Google Agenda » de l'entretien fixé */
+  calendarUrl: string | null;
 }
 
 /** Créneau saisi par le recruteur */
@@ -79,6 +81,11 @@ export function slotHours(slot: Pick<SlotItem, 'startsAt' | 'endsAt'>): string {
 /** Lien http(s) uniquement (jamais javascript:…) */
 export function slotLink(location: string | null): string | null {
   return location && /^https?:\/\/\S+$/i.test(location.trim()) ? location.trim() : null;
+}
+
+/** Lien Google Agenda : seulement une adresse calendar.google.com (jamais un lien quelconque) */
+export function googleCalendarLink(url: string | null | undefined): string | null {
+  return url && url.startsWith('https://calendar.google.com/') ? url : null;
 }
 
 /** Valeur datetime-local minimale : maintenant + n minutes */

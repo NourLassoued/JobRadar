@@ -61,6 +61,7 @@
   &__day { margin: 0; font-weight: 700; text-transform: capitalize; color: var(--ink); }
   &__meta, &__place { margin: 0; color: var(--ink-soft); font-size: 0.87rem; overflow-wrap: anywhere; }
   &__place { display: flex; gap: 6px; align-items: flex-start; }
+  &__actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
 }
 
 .mine {
@@ -89,6 +90,10 @@
   font: inherit; font-weight: 600; font-size: 0.87rem; cursor: pointer; text-decoration: none;
   &--primary { background: var(--accent); color: #fff; &:hover:not(:disabled) { background: var(--accent-hover); } }
   &--small { padding: 8px 12px; }
+  &--calendar {
+    border-color: var(--line-strong); background: var(--surface); color: var(--ink);
+    &:hover { border-color: var(--accent); color: var(--accent); }
+  }
   &:disabled { opacity: .55; cursor: default; }
   &:focus-visible { outline: none; box-shadow: var(--focus); }
 }

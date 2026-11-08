@@ -13,7 +13,8 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.thymeleaf.ITemplateEngine;
 import org.thymeleaf.context.Context;
-
+import jobradarbackend.jobradar.Mail.HtmlMail.*;
+import jobradarbackend.jobradar.Mail.HtmlMailer.*;
 import java.time.Year;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
@@ -108,13 +109,17 @@ public class HtmlMailer {
         ctx.setVariable("steps", m.steps);
         ctx.setVariable("ctaLabel", m.ctaLabel);
         ctx.setVariable("ctaUrl", m.ctaPath == null ? null : frontendUrl + m.ctaPath);
+        // Seulement des liens https (jamais javascript:…)
+        boolean secondary = m.secondaryUrl != null && m.secondaryUrl.startsWith("https://");
+        ctx.setVariable("secondaryLabel", m.secondaryLabel);
+        ctx.setVariable("secondaryUrl", secondary ? m.secondaryUrl : null);
         ctx.setVariable("footer", m.footer);
         ctx.setVariable("appUrl", frontendUrl + "/app");
         ctx.setVariable("year", Year.now().getValue());
         return templates.process("emails/jobradar", ctx);
     }
 
-    private String renderText(HtmlMail m) {
+    private String renderText(jobradarbackend.jobradar.Mail.HtmlMail m) {
         StringBuilder s = new StringBuilder();
         s.append(m.headline).append("\n\n").append(greeting(m.greetingName)).append("\n\n");
         if (m.intro != null) s.append(m.intro).append("\n\n");
@@ -128,6 +133,9 @@ public class HtmlMailer {
         for (int i = 0; i < m.steps.size(); i++) s.append(i + 1).append(". ").append(m.steps.get(i)).append("\n");
         if (!m.steps.isEmpty()) s.append("\n");
         if (m.ctaPath != null) s.append(m.ctaLabel).append(" : ").append(frontendUrl).append(m.ctaPath).append("\n\n");
+        if (m.secondaryUrl != null && m.secondaryUrl.startsWith("https://")) {
+            s.append(m.secondaryLabel).append(" : ").append(m.secondaryUrl).append("\n\n");
+        }
         return s.append("— JobRadar").toString();
     }
 

@@ -1,7 +1,5 @@
 package jobradarbackend.jobradar.interviews;
 
-import jobradarbackend.jobradar.Mail.HtmlMail;
-import jobradarbackend.jobradar.Mail.HtmlMailer;
 import jobradarbackend.jobradar.applications.ActivityType;
 import jobradarbackend.jobradar.applications.Application;
 import jobradarbackend.jobradar.applications.ApplicationActivity;
@@ -14,6 +12,8 @@ import jobradarbackend.jobradar.interviews.InterviewSlot.Author;
 import jobradarbackend.jobradar.interviews.InterviewSlot.Mode;
 import jobradarbackend.jobradar.interviews.InterviewSlot.Status;
 import jobradarbackend.jobradar.interviews.InterviewSlotDtos.*;
+import jobradarbackend.jobradar.Mail.*;
+import jobradarbackend.jobradar.Mail.HtmlMailer;
 import jobradarbackend.jobradar.notifications.NotificationService;
 import jobradarbackend.jobradar.recruiter.Company;
 import jobradarbackend.jobradar.recruiter.CompanyRepository;
@@ -39,6 +39,18 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 
+/**
+ * Prise de rendez-vous pour l'entretien.
+ *
+ *  1. Le recruteur propose 1 à 3 créneaux (la candidature passe à « Entretien » si besoin).
+ *  2. Le candidat en choisit un… ou propose un autre moment.
+ *  3. Si le candidat a proposé un moment, le recruteur l'accepte ou propose d'autres créneaux.
+ *  4. Le créneau accepté devient un événement « Entretien » dans le suivi du candidat,
+ *     et l'autre partie est prévenue (cloche + e-mail).
+ *
+ * Sécurité : le recruteur n'agit que sur les candidatures envoyées aux offres de SON entreprise,
+ * le candidat que sur SES candidatures ; sinon 404.
+ */
 @Service
 public class InterviewSlotService {
 
@@ -61,11 +73,15 @@ public class InterviewSlotService {
     private final RecruiterService recruiterService;
     private final NotificationService notifications;
     private final HtmlMailer mailer;
+    private final InterviewCalendar calendar;
+
+    /** Qui lit la réponse : le titre de l'événement Google Agenda change */
+    private enum Audience { RECRUITER, CANDIDATE }
 
     public InterviewSlotService(InterviewSlotRepository slots, ApplicationRepository applications,
                                 ApplicationActivityRepository activities, CandidateRepository candidates,
                                 CompanyRepository companies, UserRepository users, RecruiterService recruiterService,
-                                NotificationService notifications, HtmlMailer mailer) {
+                                NotificationService notifications, HtmlMailer mailer, InterviewCalendar calendar) {
         this.slots = slots;
         this.applications = applications;
         this.activities = activities;
@@ -75,16 +91,20 @@ public class InterviewSlotService {
         this.recruiterService = recruiterService;
         this.notifications = notifications;
         this.mailer = mailer;
+        this.calendar = calendar;
     }
 
     // ══ Recruteur ═══════════════════════════════════════════
 
     @Transactional(readOnly = true)
     public InterviewSlots forRecruiter(Principal principal, Long applicationId) {
-        return view(recruiterApplication(principal, applicationId));
+        return view(recruiterApplication(principal, applicationId), Audience.RECRUITER);
     }
 
-
+    /**
+     * Propose 1 à 3 créneaux. Remplace les créneaux encore en attente ; si un entretien était déjà fixé,
+     * il est annulé (reprogrammation) et retiré du suivi du candidat.
+     */
     @Transactional
     public ProposeResult propose(Principal principal, Long applicationId, ProposeRequest req) {
         Application app = recruiterApplication(principal, applicationId);
@@ -127,7 +147,7 @@ public class InterviewSlotService {
             notifyCandidateOfSlots(app, created, message, rescheduled);
         }
         log.info("Candidature {} : {} créneau(x) d'entretien proposé(s)", app.getId(), created.size());
-        return new ProposeResult(applicant, view(app));
+        return new ProposeResult(applicant, view(app, Audience.RECRUITER));
     }
 
     /** Le recruteur accepte le moment proposé par le candidat */
@@ -145,15 +165,15 @@ public class InterviewSlotService {
                 company(app).getName() + " confirme votre entretien " + when + " (" + modeLabel(slot.getMode()) + ").",
                 "/app/candidatures");
         mailConfirmation(candidateEmail(candidate), candidate.getFirstName(), app, slot,
-                company(app).getName() + " a accepté le moment que vous avez proposé.");
-        return view(app);
+                company(app).getName() + " a accepté le moment que vous avez proposé.", Audience.CANDIDATE);
+        return view(app, Audience.RECRUITER);
     }
 
     // ══ Candidat ════════════════════════════════════════════
 
     @Transactional(readOnly = true)
     public InterviewSlots forCandidate(Principal principal, Long applicationId) {
-        return view(candidateApplication(principal, applicationId));
+        return view(candidateApplication(principal, applicationId), Audience.CANDIDATE);
     }
 
     /** Le candidat choisit un des créneaux du recruteur */
@@ -171,10 +191,10 @@ public class InterviewSlotService {
         notifications.notify(owner, "INTERVIEW_CONFIRMED", "Créneau choisi",
                 name + " a choisi le créneau du " + when + " pour « " + jobTitle(app) + " ».", recruiterLink(app));
         mailConfirmation(recruiterEmail(app), owner != null ? owner.getFirstName() : null, app, slot,
-                name + " a choisi ce créneau pour l'entretien.");
+                name + " a choisi ce créneau pour l'entretien.", Audience.RECRUITER);
         mailConfirmation(candidateEmail(candidate), candidate.getFirstName(), app, slot,
-                "Votre entretien avec " + company(app).getName() + " est confirmé.");
-        return view(app);
+                "Votre entretien avec " + company(app).getName() + " est confirmé.", Audience.CANDIDATE);
+        return view(app, Audience.CANDIDATE);
     }
 
     /** Aucun créneau ne convient : le candidat propose un autre moment */
@@ -229,7 +249,7 @@ public class InterviewSlotService {
                         "ou proposez-lui d'autres créneaux.")
                 .cta("Répondre", recruiterLink(app))
                 .footer("Vous recevez cet e-mail car vous avez proposé un entretien sur JobRadar."));
-        return view(app);
+        return view(app, Audience.CANDIDATE);
     }
 
     // ══ Règles communes ═════════════════════════════════════
@@ -260,10 +280,10 @@ public class InterviewSlotService {
         slot.setActivityId(activity.getId());
     }
 
-    private InterviewSlots view(Application app) {
+    private InterviewSlots view(Application app, Audience audience) {
         List<InterviewSlot> open = slots.findByApplicationIdAndStatusInOrderByStartsAtAsc(app.getId(), OPEN);
-        SlotItem confirmed = open.stream().filter(s -> s.getStatus() == Status.ACCEPTED)
-                .reduce((a, b) -> b).map(SlotItem::from).orElse(null);
+        InterviewSlot accepted = open.stream().filter(s -> s.getStatus() == Status.ACCEPTED).reduce((a, b) -> b).orElse(null);
+        SlotItem confirmed = accepted == null ? null : SlotItem.from(accepted);
         // Les propositions ne comptent que tant que la candidature est à l'étape « Entretien »
         List<SlotItem> proposals = app.getStatus() != ApplicationStatus.INTERVIEW ? List.of()
                 : open.stream().filter(s -> s.getStatus() == Status.PROPOSED).map(SlotItem::from).toList();
@@ -273,7 +293,18 @@ public class InterviewSlotService {
         else if (!proposals.isEmpty()) state = State.WAITING_CANDIDATE;
         else if (confirmed != null) state = State.CONFIRMED;
         else state = State.NONE;
-        return new InterviewSlots(state, proposals, confirmed);
+        return new InterviewSlots(state, proposals, confirmed,
+                accepted == null ? null : calendarUrl(app, accepted, audience));
+    }
+
+    /** Lien Google Agenda : le candidat voit l'entreprise, le recruteur voit le nom du candidat */
+    private String calendarUrl(Application app, InterviewSlot slot, Audience audience) {
+        boolean recruiter = audience == Audience.RECRUITER;
+        String who = recruiter ? fullName(app.getCandidate()) : company(app).getName();
+        return calendar.googleUrl(
+                truncate("Entretien — " + who + " · " + jobTitle(app), 200),
+                slot.getStartsAt(), slot.endsAt(), modeLabel(slot.getMode()), slot.getLocation(),
+                recruiter ? recruiterLink(app) : "/app/candidatures");
     }
 
     private void validate(List<SlotRequest> requested) {
@@ -367,8 +398,9 @@ public class InterviewSlotService {
                 .footer("Vous recevez cet e-mail car vous avez postulé via JobRadar."));
     }
 
-    private void mailConfirmation(String to, String firstName, Application app, InterviewSlot slot, String intro) {
-        boolean toRecruiter = Objects.equals(to, recruiterEmail(app));
+    private void mailConfirmation(String to, String firstName, Application app, InterviewSlot slot, String intro,
+                                  Audience audience) {
+        boolean toRecruiter = audience == Audience.RECRUITER;
         mailer.send(new HtmlMail()
                 .to(to)
                 .subject("Entretien confirmé — " + jobTitle(app))
@@ -388,6 +420,7 @@ public class InterviewSlotService {
                                        "Relisez l'offre et préparez quelques exemples concrets."})
                 .cta(toRecruiter ? "Voir la candidature" : "Voir ma candidature",
                         toRecruiter ? recruiterLink(app) : "/app/candidatures")
+                .secondary("Ajouter à Google Agenda", calendarUrl(app, slot, audience))
                 .footer("E-mail envoyé par JobRadar."));
     }
 

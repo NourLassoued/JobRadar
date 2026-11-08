@@ -10,6 +10,7 @@ import {
   localInputValue,
   slotDay,
   slotHours,
+  googleCalendarLink,
   slotLink,
   slotModeIcon,
   slotModeLabel,
@@ -58,6 +59,7 @@ export class InterviewSlotsComponent {
   readonly modeLabel = slotModeLabel;
   readonly modeIcon = slotModeIcon;
   readonly link = slotLink;
+  readonly calendarLink = googleCalendarLink;
 
   constructor() {
     // Recharge quand on change de candidature ou quand l'étape change (décision du recruteur)

@@ -107,6 +107,14 @@
                                             </td>
                                         </tr>
                                     </table>
+                                    <!-- Lien secondaire (ex. Ajouter à Google Agenda) -->
+                                    <p th:if="${secondaryUrl != null}" style="margin:14px 0 0; font-size:14px;">
+                                        <a th:href="${secondaryUrl}" href="#" target="_blank"
+                                           th:style="'color:' + ${accent} + '; font-weight:700; text-decoration:underline;'"
+                                           style="color:#155e63; font-weight:700; text-decoration:underline;">
+                                            &#128197; <span th:text="${secondaryLabel}">Ajouter à Google Agenda</span>
+                                        </a>
+                                    </p>
                                 </td>
                             </tr>
                             <tr th:if="${ctaUrl == null}"><td style="height:24px;"></td></tr>

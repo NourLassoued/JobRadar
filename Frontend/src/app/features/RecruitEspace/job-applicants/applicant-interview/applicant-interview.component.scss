@@ -82,4 +82,11 @@
   &--ok { border-color: var(--r-success, #059669); background: var(--r-success, #059669); color: #fff;
     &:hover:not(:disabled) { color: #fff; border-color: var(--r-success, #059669); filter: brightness(1.08); } }
   &--ghost { border-color: transparent; background: none; }
+
+}
+
+// Bouton Google Agenda dans l'entretien confirmé
+.confirmed .btn--calendar {
+  margin-top: 6px; color: var(--r-text, #111827); text-decoration: none; overflow-wrap: normal;
+  &:hover { color: var(--r-primary, #4f46e5); }
 }

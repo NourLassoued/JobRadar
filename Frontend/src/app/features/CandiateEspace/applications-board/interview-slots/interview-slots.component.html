@@ -31,15 +31,21 @@
               <p class="confirmed__meta">
                 {{ hours(c) }} · <i [class]="'ti ' + modeIcon(c.mode)" aria-hidden="true"></i> {{ modeLabel(c.mode) }}
               </p>
-              @if (c.location) {
+              @if (c.location && !link(c.location)) {
+                <p class="confirmed__place"><i class="ti ti-map-pin" aria-hidden="true"></i>{{ c.location }}</p>
+              }
+              <div class="confirmed__actions">
                 @if (link(c.location); as url) {
                   <a class="btn btn--primary btn--small" [href]="url" target="_blank" rel="noopener noreferrer">
                     <i class="ti ti-video" aria-hidden="true"></i>Rejoindre la visio
                   </a>
-                } @else {
-                  <p class="confirmed__place"><i class="ti ti-map-pin" aria-hidden="true"></i>{{ c.location }}</p>
                 }
-              }
+                @if (calendarLink(d.calendarUrl); as cal) {
+                  <a class="btn btn--calendar btn--small" [href]="cal" target="_blank" rel="noopener noreferrer">
+                    <i class="ti ti-brand-google" aria-hidden="true"></i>Ajouter à Google Agenda
+                  </a>
+                }
+              </div>
             </div>
           </div>
         }
