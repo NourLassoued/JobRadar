@@ -67,17 +67,7 @@ Projet conçu et développé **de A à Z** : architecture, base de données, API
 
 ---
 
-## ⚙️ Lancer en local
 
-```bash
-# Backend : créer src/main/resources/application.properties (non versionné) avec vos clés
-cd Backend && mvn spring-boot:run
-
-# Frontend
-cd Frontend && npm install && ng serve
-```
-
-**Prochaines étapes :** Docker, CI/CD GitHub Actions, matching sémantique (embeddings), espace admin.
 
 ---
 
