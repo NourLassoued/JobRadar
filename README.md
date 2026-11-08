@@ -73,7 +73,6 @@ Projet conçu et développé **de A à Z** : architecture, base de données, API
 
 <div align="center">
 
-**Nour El Houda Lassoued** · Développeuse Full Stack & DevOps
 
 [Portfolio](https://nourstack.netlify.app) · [GitHub](https://github.com/NourLassoued) · [LinkedIn](https://www.linkedin.com/in/lassouednourelhouda)
 
