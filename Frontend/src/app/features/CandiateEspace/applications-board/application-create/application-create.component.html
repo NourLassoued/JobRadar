@@ -1,0 +1,71 @@
+<dialog #dialog class="dlg" aria-labelledby="ac-title" (close)="onClose()" (click)="onBackdropClick($event)">
+  <form class="dlg__panel" [formGroup]="form" (ngSubmit)="submit()">
+    <header class="dlg__head">
+      <div>
+        <h2 id="ac-title" class="dlg__title">Ajouter une candidature</h2>
+        <p class="dlg__sub">Pour suivre une candidature faite en dehors de JobRadar (LinkedIn, site de l'entreprise…).</p>
+      </div>
+      <button type="button" class="icon-btn" (click)="cancel()" aria-label="Fermer">
+        <i class="ti ti-x" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <div class="dlg__body">
+      <label class="field field--full">
+        <span>Intitulé du poste *</span>
+        <input type="text" formControlName="jobTitle" placeholder="Développeur Java / Angular" autocomplete="off"
+               [class.is-invalid]="invalid('jobTitle')" />
+        @if (invalid('jobTitle')) { <small class="err">Indiquez l'intitulé du poste.</small> }
+      </label>
+
+      <label class="field">
+        <span>Entreprise</span>
+        <input type="text" formControlName="company" autocomplete="organization" />
+      </label>
+
+      <label class="field">
+        <span>Localisation</span>
+        <input type="text" formControlName="location" placeholder="Paris, Télétravail…" />
+      </label>
+
+      <label class="field">
+        <span>Type de contrat</span>
+        <select formControlName="contractType">
+          <option value="">Non précisé</option>
+          @for (c of contracts; track c.value) { <option [value]="c.value">{{ c.label }}</option> }
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Étape actuelle</span>
+        <select formControlName="status">
+          @for (s of statuses; track s.status) { <option [value]="s.status">{{ s.label }}</option> }
+        </select>
+      </label>
+
+      @if (needsDate) {
+        <label class="field">
+          <span>Date d'envoi</span>
+          <input type="date" formControlName="appliedAt" />
+        </label>
+      }
+
+      <label class="field field--full">
+        <span>Lien vers l'offre</span>
+        <input type="url" formControlName="jobUrl" placeholder="https://…" [class.is-invalid]="invalid('jobUrl')" />
+        @if (invalid('jobUrl')) { <small class="err">Le lien doit commencer par http:// ou https://</small> }
+      </label>
+
+      @if (error(); as message) {
+        <p class="alert" role="alert"><i class="ti ti-alert-circle" aria-hidden="true"></i>{{ message }}</p>
+      }
+    </div>
+
+    <footer class="dlg__foot">
+      <button type="button" class="btn" (click)="cancel()">Annuler</button>
+      <button type="submit" class="btn btn--primary" [disabled]="saving()">
+        {{ saving() ? 'Ajout…' : 'Ajouter au suivi' }}
+      </button>
+    </footer>
+  </form>
+</dialog>

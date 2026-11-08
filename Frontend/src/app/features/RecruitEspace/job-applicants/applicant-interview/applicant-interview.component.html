@@ -1,0 +1,108 @@
+@if (visible()) {
+  <section class="iv" [attr.data-state]="data()?.state ?? 'NONE'" aria-labelledby="iv-title">
+    <header class="iv__head">
+      <h3 id="iv-title"><i class="ti ti-calendar-event" aria-hidden="true"></i> Rendez-vous d'entretien</h3>
+      @switch (data()?.state) {
+        @case ('WAITING_CANDIDATE') { <span class="pill pill--wait">En attente du candidat</span> }
+        @case ('WAITING_RECRUITER') { <span class="pill pill--action">À vous de répondre</span> }
+        @case ('CONFIRMED') { <span class="pill pill--ok">Confirmé</span> }
+      }
+    </header>
+
+    @if (error(); as e) { <p class="iv__error" role="alert"><i class="ti ti-alert-circle" aria-hidden="true"></i> {{ e }}</p> }
+    @if (success(); as s) { <p class="iv__success" role="status"><i class="ti ti-circle-check" aria-hidden="true"></i> {{ s }}</p> }
+
+    @if (loading() && !data()) {
+      <p class="iv__muted"><i class="ti ti-loader-2" aria-hidden="true"></i> Chargement…</p>
+    } @else {
+    @if (data(); as d) {
+      @if (!editing()) {
+        @switch (d.state) {
+          @case ('NONE') {
+            <p class="iv__muted">Aucun créneau proposé pour l'instant.</p>
+          }
+
+          @case ('WAITING_CANDIDATE') {
+            <ul class="slots">
+              @for (s of d.proposals; track s.id) {
+                <li>
+                  <strong>{{ day(s.startsAt) }}</strong>
+                  <span>{{ hours(s) }} · <i [class]="'ti ' + modeIcon(s.mode)" aria-hidden="true"></i> {{ modeLabel(s.mode) }}</span>
+                </li>
+              }
+            </ul>
+          }
+
+          @case ('WAITING_RECRUITER') {
+            @if (candidateProposal(); as p) {
+              <div class="counter">
+                <p class="counter__label">Aucun créneau ne convenait au candidat. Il propose :</p>
+                <p class="counter__day">{{ day(p.startsAt) }} · {{ hours(p) }}</p>
+                @if (p.message) { <p class="counter__msg">« {{ p.message }} »</p> }
+
+                <div class="modes" role="radiogroup" aria-label="Format de l'entretien">
+                  @for (m of modes; track m.value) {
+                    <button type="button" class="mode" role="radio" [class.is-on]="confirmMode() === m.value"
+                            [attr.aria-checked]="confirmMode() === m.value" (click)="confirmMode.set(m.value)">
+                      <i [class]="'ti ' + m.icon" aria-hidden="true"></i>{{ m.label }}
+                    </button>
+                  }
+                </div>
+                <input class="input" type="text" maxlength="300" [placeholder]="placeholder(confirmMode())"
+                       [value]="confirmLocation()" (input)="onConfirmLocation($event)" aria-label="Lien, adresse ou téléphone" />
+
+                <button type="button" class="btn btn--ok" (click)="acceptCandidateProposal()" [disabled]="busy()">
+                  <i class="ti ti-check" aria-hidden="true"></i> Accepter ce moment
+                </button>
+              </div>
+            }
+          }
+
+          @case ('CONFIRMED') {
+            @if (d.confirmed; as c) {
+              <div class="confirmed">
+                <p class="confirmed__day">{{ day(c.startsAt) }}</p>
+                <p>{{ hours(c) }} · <i [class]="'ti ' + modeIcon(c.mode)" aria-hidden="true"></i> {{ modeLabel(c.mode) }}</p>
+                @if (c.location) {
+                  @if (link(c.location); as url) {
+                    <a [href]="url" target="_blank" rel="noopener noreferrer">{{ c.location }}</a>
+                  } @else {
+                    <p>{{ c.location }}</p>
+                  }
+                }
+              </div>
+            }
+          }
+        }
+
+        @if (!closed() && status() === 'INTERVIEW') {
+          <button type="button" class="btn" (click)="startEditing()" [disabled]="busy()">
+            @switch (d.state) {
+              @case ('NONE') { <i class="ti ti-calendar-plus" aria-hidden="true"></i> Proposer des créneaux }
+              @case ('CONFIRMED') { <i class="ti ti-calendar-repeat" aria-hidden="true"></i> Reprogrammer }
+              @default { <i class="ti ti-calendar-plus" aria-hidden="true"></i> Proposer d'autres créneaux }
+            }
+          </button>
+        }
+      } @else {
+        <!-- Saisie de nouveaux créneaux -->
+        <form class="edit" (submit)="$event.preventDefault(); send()">
+          <jr-slot-editor [(slots)]="drafts" />
+          <label class="edit__label" for="iv-message">Message au candidat <small>facultatif</small></label>
+          <textarea id="iv-message" rows="3" maxlength="2000" [value]="message()" (input)="onMessage($event)"
+                    placeholder="Ex. : l'entretien se fera avec la responsable technique."></textarea>
+          @if (d.state === 'CONFIRMED') {
+            <p class="iv__muted"><i class="ti ti-info-circle" aria-hidden="true"></i> L'entretien déjà fixé sera annulé et le candidat prévenu.</p>
+          }
+          <div class="edit__actions">
+            <button type="button" class="btn btn--ghost" (click)="editing.set(false)" [disabled]="busy()">Annuler</button>
+            <button type="submit" class="btn btn--primary" [disabled]="busy()">
+              <i class="ti ti-send" aria-hidden="true"></i> Envoyer les créneaux
+            </button>
+          </div>
+        </form>
+      }
+    }
+    }
+  </section>
+}

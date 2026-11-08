@@ -4,15 +4,20 @@ package jobradarbackend.jobradar.applications;
 public enum ApplicationStatus {
     /** Offre sauvegardée, pas encore envoyée */
     TO_APPLY,
-    /** Candidature envoyée */
+    /** Applied : candidature envoyée */
     APPLIED,
-    /** Entretien prévu ou passé */
+    /** Under review : candidature en cours d'examen */
+    UNDER_REVIEW,
+    /** Interview : entretien prévu ou passé */
     INTERVIEW,
-    /** Proposition reçue */
+    /** Assessment : test technique ou évaluation */
+    ASSESSMENT,
+    /** Offer : proposition reçue */
     OFFER,
-    /** Refus de l'entreprise */
+    /** Embauche confirmée par le recruteur (affichée dans la colonne Offer) */
+    HIRED,
+    /** Rejected : refus de l'entreprise */
     REJECTED,
-    /** Le candidat a abandonné */
-    WITHDRAWN,
-    HIRED
+    /** Withdrawn : le candidat a retiré sa candidature */
+    WITHDRAWN
 }

@@ -1,4 +1,4 @@
-﻿@use '../recruiter';
+@use '../recruiter';
 
 // Page « Mes offres » : en-tête entreprise avec chiffres clés,
 // filtres, puis une carte par offre avec la popularité (candidats) à droite.
@@ -654,4 +654,102 @@
 @media (prefers-reduced-motion: reduce) {
   .hero__sweep, .empty__radar span, .state__dot, .spin { animation: none; }
   .job, .applicants__bar span { transition: none; }
+}
+
+
+// ═══ Fenêtre « Fermer l'offre » ═════════════════════════
+
+.close-dlg {
+  width: min(500px, calc(100vw - 32px));
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  background: transparent;
+  color: var(--r-text);
+
+  &::backdrop { background: rgba(10, 22, 26, 0.55); backdrop-filter: blur(2px); }
+
+  &__panel {
+    display: grid;
+    gap: 14px;
+    padding: 20px;
+    border: 1px solid var(--r-border);
+    border-radius: 18px;
+    background: var(--r-surface);
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    h2 { margin: 0; font-size: 1.1rem; }
+    p { margin: 2px 0 0; color: var(--r-muted); font-size: 0.86rem; }
+  }
+
+  &__icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: var(--r-danger-soft);
+    color: var(--r-danger);
+    font-size: 1.3rem;
+  }
+
+  &__text { margin: 0; color: var(--r-muted); font-size: 0.88rem; }
+
+  &__check {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--r-border);
+    border-radius: 12px;
+    background: var(--r-bg);
+    cursor: pointer;
+
+    input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--r-primary); }
+    span { display: grid; gap: 2px; }
+    strong { font-size: 0.9rem; }
+    small { color: var(--r-muted); font-size: 0.8rem; line-height: 1.45; }
+  }
+
+  &__label { font-size: 0.86rem; font-weight: 700; }
+
+  textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border: 1px solid var(--r-border);
+    border-radius: 12px;
+    background: var(--r-surface);
+    color: inherit;
+    font: inherit;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    resize: vertical;
+
+    &:focus { outline: none; border-color: var(--r-primary); box-shadow: 0 0 0 3px var(--r-primary-soft); }
+  }
+
+  &__actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+  &__confirm {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 16px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--r-danger);
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+
+    &:hover { filter: brightness(1.08); }
+  }
 }

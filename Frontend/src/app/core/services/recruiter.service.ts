@@ -102,18 +102,44 @@ export interface JobPostRequest {
 
 // ── Candidats ─────────────────────────────────────────────
 
-/** Statuts visibles par le recruteur (les cartes « à postuler » du candidat restent privées) */
-export type ApplicantStatus = 'APPLIED' | 'INTERVIEW' | 'OFFER' | 'REJECTED';
+/** Statuts visibles par le recruteur (les offres seulement « enregistrées » par le candidat restent privées) */
+export type ApplicantStatus =
+  | 'APPLIED'
+  | 'UNDER_REVIEW'
+  | 'INTERVIEW'
+  | 'ASSESSMENT'
+  | 'OFFER'
+  | 'HIRED'
+  | 'REJECTED'
+  | 'WITHDRAWN';
 
-/** Ce que le recruteur peut décider */
-export type RecruiterDecision = Exclude<ApplicantStatus, 'APPLIED'>;
+/** Ce que le recruteur peut décider (« Nouvelle » est le point de départ, « Retirée » vient du candidat) */
+export type RecruiterDecision = Exclude<ApplicantStatus, 'APPLIED' | 'WITHDRAWN'>;
 
 export const APPLICANT_STATUS_LABELS: Record<ApplicantStatus, string> = {
   APPLIED: 'Nouvelle',
+  UNDER_REVIEW: 'En examen',
   INTERVIEW: 'Entretien',
+  ASSESSMENT: 'Évaluation',
   OFFER: 'Proposition',
+  HIRED: 'Embauché',
   REJECTED: 'Refusée',
+  WITHDRAWN: 'Retirée',
 };
+
+/** Tous les statuts possibles d'une candidature (enum Java ApplicationStatus) */
+export type ApplicationStatusCode = ApplicantStatus | 'TO_APPLY';
+
+/** RecruiterDtos.ApplicationEventResponse : une étape de l'historique */
+export interface ApplicationEvent {
+  id: number;
+  fromStatus: ApplicationStatusCode | null;
+  toStatus: ApplicationStatusCode;
+  message: string | null;
+  actorRole: 'CANDIDATE' | 'RECRUITER' | 'ADMIN' | 'SYSTEM';
+  actorName: string | null;
+  createdAt: string;
+}
 
 /** RecruiterDtos.ApplicantResponse */
 /** RecruiterDtos.ApplicantResponse */
@@ -233,7 +259,21 @@ export class RecruiterService {
     return this.http.get<Applicant[]>(`${this.base}/jobs/${jobId}/applicants`);
   }
 
-  decide(applicationId: number, status: RecruiterDecision): Observable<Applicant> {
-    return this.http.patch<Applicant>(`${this.base}/applications/${applicationId}/status`, { status });
+  /** Entretien, proposition, embauche ou refus, avec un message facultatif pour le candidat */
+  decide(applicationId: number, status: RecruiterDecision, message?: string | null): Observable<Applicant> {
+    return this.http.patch<Applicant>(`${this.base}/applications/${applicationId}/status`, {
+      status,
+      message: message?.trim() || null,
+    });
+  }
+
+  /** Historique d'une candidature (dans l'ordre chronologique) */
+  history(applicationId: number): Observable<ApplicationEvent[]> {
+    return this.http.get<ApplicationEvent[]>(`${this.base}/applications/${applicationId}/events`);
+  }
+
+  /** Fermer une offre et, si demandé, refuser en une fois les candidatures en attente */
+  closeJob(id: number, body: { rejectRemaining: boolean; message: string | null }): Observable<RecruiterJob> {
+    return this.http.post<RecruiterJob>(`${this.base}/jobs/${id}/close`, body);
   }
 }

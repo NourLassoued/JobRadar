@@ -115,6 +115,18 @@ public class DecisionMailer {
 
         static Theme of(ApplicationStatus status, String company, String job) {
             return switch (status) {
+                case UNDER_REVIEW -> new Theme("En examen", "#2563eb", "#eff6ff",
+                        "Votre candidature est en cours d'examen",
+                        company + " étudie votre candidature pour le poste «\u00a0" + job + "\u00a0».",
+                        List.of("Le recruteur examine votre profil : aucune action n'est nécessaire pour l'instant.",
+                                "Vous serez prévenu(e) dès qu'une décision sera prise."),
+                        "Voir ma candidature", "/app/candidatures");
+                case ASSESSMENT -> new Theme("Évaluation", "#7c3aed", "#f5f3ff",
+                        "Une évaluation vous est proposée",
+                        company + " vous propose un test ou un cas pratique pour le poste «\u00a0" + job + "\u00a0».",
+                        List.of("Lisez le message du recruteur : il précise comment accéder à l'évaluation et le délai.",
+                                "Ajoutez la date limite dans le suivi de votre candidature."),
+                        "Voir ma candidature", "/app/candidatures");
                 case INTERVIEW -> new Theme("Entretien", "#155e63", "#e2efee",
                         "Entretien proposé",
                         company + " a retenu votre candidature et souhaite vous rencontrer pour le poste «\u00a0" + job + "\u00a0».",

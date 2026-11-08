@@ -1,0 +1,183 @@
+:host {
+  --surface: #ffffff;
+  --sunk: #f7f8f8;
+  --ink: #17202a;
+  --ink-soft: #3a4652;
+  --muted: #66727e;
+  --line: #dde2e5;
+  --line-strong: #c5ccd2;
+  --accent: #155e63;
+  --accent-hover: #0f4a4e;
+  --danger: #b42318;
+  --danger-soft: #fdecea;
+  --focus: 0 0 0 3px rgba(21, 94, 99, 0.28);
+}
+
+@media (prefers-color-scheme: dark) {
+  :host {
+    --surface: #161e23;
+    --sunk: #12191d;
+    --ink: #e6ebee;
+    --ink-soft: #c3ccd2;
+    --muted: #8d9aa4;
+    --line: #253038;
+    --line-strong: #34424c;
+    --accent: #5fb3b3;
+    --accent-hover: #7cc6c5;
+    --danger: #f07a6e;
+    --danger-soft: #2d1a19;
+    --focus: 0 0 0 3px rgba(95, 179, 179, 0.35);
+  }
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+.dlg {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: 'Schibsted Grotesk', 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+  box-shadow: 0 30px 70px -30px rgba(10, 20, 25, 0.55);
+
+  &::backdrop { background: rgba(10, 20, 25, 0.42); }
+  &[open] { animation: pop 0.18s ease-out; }
+
+  &__panel { display: flex; flex-direction: column; max-height: inherit; }
+
+  &__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 20px 22px 14px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  &__title { margin: 0; font-size: 19px; font-weight: 700; }
+  &__sub { margin: 4px 0 0; color: var(--muted); font-size: 13.5px; line-height: 1.45; }
+
+  &__body {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    padding: 18px 22px;
+    overflow-y: auto;
+  }
+
+  &__foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 22px;
+    border-top: 1px solid var(--line);
+    background: var(--sunk);
+    border-radius: 0 0 16px 16px;
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+
+  &--full { grid-column: 1 / -1; }
+  > span { color: var(--ink-soft); font-size: 12.5px; font-weight: 600; }
+
+  input,
+  select {
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    font-size: 14px;
+    color-scheme: light dark;
+
+    &:focus { outline: none; border-color: var(--accent); box-shadow: var(--focus); }
+    &.is-invalid { border-color: var(--danger); }
+  }
+}
+
+.err { color: var(--danger); font-size: 12px; }
+
+.alert {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not(:disabled) { border-color: var(--line-strong); }
+  &:focus-visible { outline: none; box-shadow: var(--focus); }
+  &:disabled { opacity: 0.6; cursor: progress; }
+
+  &--primary {
+    border-color: transparent;
+    background: var(--accent);
+    color: #fff;
+    &:hover:not(:disabled) { background: var(--accent-hover); border-color: transparent; }
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .btn--primary { color: #0f1519; }
+}
+
+.icon-btn {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 18px;
+  cursor: pointer;
+  &:hover { background: var(--sunk); color: var(--ink); }
+  &:focus-visible { outline: none; box-shadow: var(--focus); }
+}
+
+@keyframes pop { from { opacity: 0; transform: translateY(8px) scale(0.98); } }
+
+@media (max-width: 560px) {
+  .dlg__body { grid-template-columns: 1fr; }
+  .dlg__foot .btn { flex: 1; justify-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dlg[open] { animation: none; }
+}

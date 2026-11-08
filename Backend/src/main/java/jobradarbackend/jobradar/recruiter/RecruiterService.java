@@ -12,6 +12,7 @@ import jobradarbackend.jobradar.documents.CoverLetterDocument;
 import jobradarbackend.jobradar.joboffer.JobOffer;
 import jobradarbackend.jobradar.joboffer.JobOfferRepository;
 import jobradarbackend.jobradar.matching.MatchResult;
+import jobradarbackend.jobradar.matching.JobMatchAlertService;
 import jobradarbackend.jobradar.matching.MatchingService;
 import jobradarbackend.jobradar.notifications.NotificationService;
 import jobradarbackend.jobradar.recruiter.RecruiterDtos.ApplicantResponse;
@@ -36,14 +37,6 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-
-/**
- * Espace recruteur : profil entreprise, offres publiées et candidatures reçues.
- *
- * Règle de sécurité : un recruteur ne voit et ne modifie QUE les offres de son entreprise,
- * et seulement les candidatures envoyées à ces offres. Une offre d'une autre entreprise
- * répond 404 (on ne révèle pas qu'elle existe).
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -51,18 +44,26 @@ public class RecruiterService {
 
     /** Candidatures visibles par le recruteur : celles réellement envoyées (pas les offres « sauvegardées ») */
     static final Set<ApplicationStatus> VISIBLE = EnumSet.of(
-            ApplicationStatus.APPLIED, ApplicationStatus.INTERVIEW, ApplicationStatus.OFFER,
-            ApplicationStatus.HIRED, ApplicationStatus.REJECTED);
+            ApplicationStatus.APPLIED, ApplicationStatus.UNDER_REVIEW, ApplicationStatus.INTERVIEW,
+            ApplicationStatus.ASSESSMENT, ApplicationStatus.OFFER, ApplicationStatus.HIRED,
+            ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN);
+
+    /** Candidatures comptées dans « candidatures reçues » (une candidature retirée ne compte plus) */
+    static final Set<ApplicationStatus> RECEIVED = EnumSet.of(
+            ApplicationStatus.APPLIED, ApplicationStatus.UNDER_REVIEW, ApplicationStatus.INTERVIEW,
+            ApplicationStatus.ASSESSMENT, ApplicationStatus.OFFER, ApplicationStatus.HIRED, ApplicationStatus.REJECTED);
 
     /** Décisions que le recruteur peut prendre sur une candidature */
     static final Set<ApplicationStatus> RECRUITER_DECISIONS = EnumSet.of(
-            ApplicationStatus.INTERVIEW, ApplicationStatus.OFFER, ApplicationStatus.HIRED, ApplicationStatus.REJECTED);
+            ApplicationStatus.UNDER_REVIEW, ApplicationStatus.INTERVIEW, ApplicationStatus.ASSESSMENT,
+            ApplicationStatus.OFFER, ApplicationStatus.HIRED, ApplicationStatus.REJECTED);
 
     /** Statuts définitifs : plus aucune décision possible ensuite */
     static final Set<ApplicationStatus> FINAL = EnumSet.of(ApplicationStatus.HIRED, ApplicationStatus.WITHDRAWN);
 
     /** Candidatures encore en attente d'une réponse (refusées en une fois à la fermeture de l'offre) */
-    static final Set<ApplicationStatus> PENDING = EnumSet.of(ApplicationStatus.APPLIED, ApplicationStatus.INTERVIEW);
+    static final Set<ApplicationStatus> PENDING = EnumSet.of(
+            ApplicationStatus.APPLIED, ApplicationStatus.UNDER_REVIEW, ApplicationStatus.INTERVIEW, ApplicationStatus.ASSESSMENT);
 
     private final UserRepository userRepository;
     private final CompanyRepository companyRepository;
@@ -73,6 +74,7 @@ public class RecruiterService {
     private final ApplicationEventService events;
     private final NotificationService notifications;
     private final DecisionMailer mailer;
+    private final JobMatchAlertService matchAlerts;
 
     // ── Profil entreprise ────────────────────────────────────
 
@@ -124,6 +126,9 @@ public class RecruiterService {
         JobOffer saved = jobOfferRepository.save(offer);
 
         log.info("Offre publiée par {} : {} (id {})", company.getName(), saved.getTitle(), saved.getId());
+
+        // Candidats compatibles prévenus (notification + e-mail) une fois l'offre enregistrée
+        matchAlerts.offerPublished(saved.getId());
         return mapper.toResponse(saved, 0);
     }
 
@@ -202,7 +207,7 @@ public class RecruiterService {
                                                    ApplicationStatus status, String message) {
         if (!RECRUITER_DECISIONS.contains(status)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Statut non autorisé. Valeurs possibles : INTERVIEW, OFFER, HIRED, REJECTED.");
+                    "Statut non autorisé. Valeurs possibles : UNDER_REVIEW, INTERVIEW, ASSESSMENT, OFFER, HIRED, REJECTED.");
         }
         Company company = requireCompany(principal);
         Application application = ownedApplication(company, applicationId);
@@ -234,7 +239,6 @@ public class RecruiterService {
     // ── Outils internes ──────────────────────────────────────
 
     /** Change le statut, l'ajoute à l'historique et prévient le candidat */
-    /** Change le statut, l'ajoute à l'historique et prévient le candidat */
     private void applyDecision(Application application, ApplicationStatus status, String message,
                                User recruiter, Company company) {
         ApplicationStatus from = application.getStatus();
@@ -245,13 +249,9 @@ public class RecruiterService {
         Candidate candidate = application.getCandidate();
         String job = application.getJobOffer() != null ? application.getJobOffer().getTitle() : application.getJobTitle();
         Decision d = Decision.of(status, company.getName(), job);
-
-        // Cloche + temps réel + Web Push
         notifications.notify(candidate.getUser(), "APPLICATION_DECISION", d.title(),
                 message == null || message.isBlank() ? d.body() : d.body() + "\n\n« " + message.strip() + " »",
                 "/app/candidatures");
-
-        // E-mail HTML (couleur, textes et bouton choisis dans DecisionMailer selon la décision)
         mailer.send(candidate.getEmail(), candidate.getFirstName(), status, company.getName(), job, message);
     }
 
@@ -259,6 +259,10 @@ public class RecruiterService {
     private record Decision(String title, String body) {
         static Decision of(ApplicationStatus status, String company, String job) {
             return switch (status) {
+                case UNDER_REVIEW -> new Decision("Candidature en cours d'examen",
+                        company + " étudie votre candidature pour « " + job + " ».");
+                case ASSESSMENT -> new Decision("Évaluation demandée",
+                        company + " vous propose un test ou une évaluation pour « " + job + " ».");
                 case INTERVIEW -> new Decision("Entretien proposé",
                         company + " souhaite vous rencontrer pour « " + job + " ».");
                 case OFFER -> new Decision("Proposition d'embauche",
@@ -326,7 +330,7 @@ public class RecruiterService {
     }
 
     private long applicantsCount(JobOffer offer) {
-        return applicationRepository.countByJobOfferIdAndStatusIn(offer.getId(), VISIBLE);
+        return applicationRepository.countByJobOfferIdAndStatusIn(offer.getId(), RECEIVED);
     }
 
     private CompanyResponse toResponse(Company c) {

@@ -1,5 +1,5 @@
-﻿import { DatePipe } from '@angular/common';
-import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
+import { Component, DestroyRef, ElementRef, OnInit, computed, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { of, switchMap } from 'rxjs';
@@ -19,6 +19,10 @@ type JobSort = 'recent' | 'applicants' | 'title';
 /** € et – écrits en code Unicode : s'affichent correctement quel que soit l'encodage de l'éditeur */
 const EURO = '€';
 const DASH = '–';
+
+/** Message proposé aux candidats en attente quand l'offre est fermée */
+const DEFAULT_CLOSE_MESSAGE =
+  'Merci pour votre candidature. Ce poste est maintenant pourvu ; nous gardons votre profil pour de futures offres.';
 
 @Component({
   selector: 'app-recruiter-jobs',
@@ -43,6 +47,13 @@ export class RecruiterJobsComponent implements OnInit {
   readonly query = signal('');
   /** Offre en cours d'ouverture / fermeture */
   readonly busyId = signal<number | null>(null);
+
+  // ── Fermeture d'une offre qui a des candidats ──
+  private closeDialog = viewChild.required<ElementRef<HTMLDialogElement>>('closeDialog');
+  readonly closing = signal<RecruiterJob | null>(null);
+  /** Refuser en une fois les candidatures encore en attente (Nouvelle, Entretien) */
+  readonly rejectRemaining = signal(true);
+  readonly closeMessage = signal(DEFAULT_CLOSE_MESSAGE);
 
   readonly stats = computed(() => {
     const list = this.jobs();
@@ -114,9 +125,50 @@ export class RecruiterJobsComponent implements OnInit {
 
   /** Fermer une offre la retire des recherches ; les candidatures restent consultables */
   toggleActive(job: RecruiterJob): void {
+    // Fermer une offre qui a des candidats : on propose de leur répondre en une fois
+    if (job.active && job.applicantsCount > 0) {
+      this.closing.set(job);
+      this.rejectRemaining.set(true);
+      this.closeMessage.set(DEFAULT_CLOSE_MESSAGE);
+      this.closeDialog().nativeElement.showModal();
+      return;
+    }
     this.busyId.set(job.id);
     this.error.set(null);
     this.api.setJobActive(job.id, !job.active).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: updated => {
+        this.jobs.update(list => list.map(j => (j.id === updated.id ? updated : j)));
+        this.busyId.set(null);
+      },
+      error: err => {
+        this.error.set(toRecruiterError(err).message);
+        this.busyId.set(null);
+      },
+    });
+  }
+
+  cancelClose(): void {
+    const el = this.closeDialog().nativeElement;
+    if (el.open) el.close();
+    this.closing.set(null);
+  }
+
+  onRejectToggle(event: Event): void {
+    this.rejectRemaining.set((event.target as HTMLInputElement).checked);
+  }
+
+  onCloseMessage(event: Event): void {
+    this.closeMessage.set((event.target as HTMLTextAreaElement).value);
+  }
+
+  confirmClose(): void {
+    const job = this.closing();
+    if (!job) return;
+    const body = { rejectRemaining: this.rejectRemaining(), message: this.closeMessage().trim() || null };
+    this.cancelClose();
+    this.busyId.set(job.id);
+    this.error.set(null);
+    this.api.closeJob(job.id, body).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: updated => {
         this.jobs.update(list => list.map(j => (j.id === updated.id ? updated : j)));
         this.busyId.set(null);

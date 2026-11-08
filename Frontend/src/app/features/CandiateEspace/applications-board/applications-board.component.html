@@ -1,0 +1,261 @@
+<section class="ab">
+  <!-- ── En-tête ─────────────────────────────────────────── -->
+  <header class="ab__head">
+    <div>
+      <h1 class="ab__title">Mes candidatures</h1>
+      <p class="ab__sub">Faites glisser une carte pour changer son étape. Cliquez dessus pour le détail.</p>
+    </div>
+    <button type="button" class="btn btn--primary" (click)="createOpen.set(true)">
+      <i class="ti ti-plus" aria-hidden="true"></i>
+      <span>Ajouter une candidature</span>
+    </button>
+  </header>
+
+  <!-- ── Statistiques ───────────────────────────────────── -->
+  <section class="kpis" aria-label="Statistiques de vos candidatures">
+    @if (stats(); as s) {
+      <div class="kpi">
+        <span class="kpi__label">Total suivi</span>
+        <strong class="kpi__value">{{ s.total }}</strong>
+      </div>
+      <div class="kpi">
+        <span class="kpi__label">Envoyées</span>
+        <strong class="kpi__value">{{ s.sent }}</strong>
+      </div>
+      <div class="kpi">
+        <span class="kpi__label">Entretiens</span>
+        <strong class="kpi__value">{{ s.interviews }}</strong>
+      </div>
+      <div class="kpi">
+        <span class="kpi__label">Offres</span>
+        <strong class="kpi__value">{{ s.offers }}</strong>
+      </div>
+      <div class="kpi">
+        <span class="kpi__label">Refus</span>
+        <strong class="kpi__value">{{ s.rejected }}</strong>
+      </div>
+      <div class="kpi kpi--rate">
+        <span class="kpi__label">Candidature → entretien</span>
+        <strong class="kpi__value">{{ rate(s.applicationToInterviewRate) }}</strong>
+        <span class="kpi__bar" aria-hidden="true"><span [style.width.%]="rateWidth(s.applicationToInterviewRate)"></span></span>
+      </div>
+      <div class="kpi kpi--rate">
+        <span class="kpi__label">Entretien → offre</span>
+        <strong class="kpi__value">{{ rate(s.interviewToOfferRate) }}</strong>
+        <span class="kpi__bar" aria-hidden="true"><span [style.width.%]="rateWidth(s.interviewToOfferRate)"></span></span>
+      </div>
+    } @else {
+      @for (i of [1, 2, 3, 4, 5, 6, 7]; track i) {
+        <div class="kpi kpi--skeleton" aria-hidden="true"><span class="sk sk--line"></span><span class="sk sk--big"></span></div>
+      }
+    }
+  </section>
+
+  <!-- ── Recherche et filtres ───────────────────────────── -->
+  <section class="toolbar" aria-label="Recherche et filtres">
+    <div class="toolbar__row">
+      <label class="search">
+        <i class="ti ti-search" aria-hidden="true"></i>
+        <span class="visually-hidden">Rechercher une candidature</span>
+        <input type="search" placeholder="Rechercher un poste, une entreprise, une ville…"
+               [value]="search()" (input)="search.set($any($event.target).value)" />
+      </label>
+
+      <button type="button" class="btn btn--ghost toolbar__toggle" (click)="filtersOpen.set(!filtersOpen())"
+              [attr.aria-expanded]="filtersOpen()" aria-controls="ab-filters">
+        <i class="ti ti-adjustments-horizontal" aria-hidden="true"></i>
+        <span>Filtres</span>
+        @if (hasFilters()) { <span class="dot" aria-label="Filtres actifs"></span> }
+      </button>
+
+      <button type="button" class="btn btn--ghost" (click)="newestFirst.set(!newestFirst())"
+              [attr.aria-label]="newestFirst() ? 'Trier des plus anciennes aux plus récentes' : 'Trier des plus récentes aux plus anciennes'">
+        <i class="ti" [class.ti-sort-descending]="newestFirst()" [class.ti-sort-ascending]="!newestFirst()" aria-hidden="true"></i>
+        <span>{{ newestFirst() ? 'Plus récentes' : 'Plus anciennes' }}</span>
+      </button>
+    </div>
+
+    <div id="ab-filters" class="filters" [class.is-open]="filtersOpen()">
+      <label class="field">
+        <span class="field__label">Entreprise</span>
+        <select [value]="company()" (change)="company.set($any($event.target).value)">
+          <option value="">Toutes</option>
+          @for (c of companies(); track c) {
+            <option [value]="c">{{ c }}</option>
+          }
+        </select>
+      </label>
+      <label class="field">
+        <span class="field__label">Du</span>
+        <input type="date" [value]="dateFrom()" [max]="dateTo() || null" (change)="dateFrom.set($any($event.target).value)" />
+      </label>
+      <label class="field">
+        <span class="field__label">Au</span>
+        <input type="date" [value]="dateTo()" [min]="dateFrom() || null" (change)="dateTo.set($any($event.target).value)" />
+      </label>
+
+      <div class="field field--wide">
+        <span class="field__label" id="ab-status-label">Étapes affichées</span>
+        <div class="chips" role="group" aria-labelledby="ab-status-label">
+          @for (col of columns; track col.status) {
+            <button type="button" class="chip" [attr.data-status]="col.status"
+                    [class.is-on]="statusFilter().has(col.status)" [attr.aria-pressed]="statusFilter().has(col.status)"
+                    (click)="toggleStatus(col.status)">
+              <span class="chip__dot" aria-hidden="true"></span>{{ col.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      @if (hasFilters()) {
+        <button type="button" class="link-btn" (click)="resetFilters()">
+          <i class="ti ti-x" aria-hidden="true"></i> Réinitialiser les filtres
+        </button>
+      }
+    </div>
+
+    @if (hasFilters() && !loading()) {
+      <p class="toolbar__count" role="status">{{ shownCount() }} candidature{{ shownCount() > 1 ? 's' : '' }} affichée{{ shownCount() > 1 ? 's' : '' }}</p>
+    }
+  </section>
+
+  <!-- ── Kanban ─────────────────────────────────────────── -->
+  @if (error(); as message) {
+    <div class="state state--error" role="alert">
+      <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+      <div>
+        <strong>Chargement impossible</strong>
+        <p>{{ message }}</p>
+      </div>
+      <button type="button" class="btn btn--ghost" (click)="load()">Réessayer</button>
+    </div>
+  } @else if (loading()) {
+    <div class="board" aria-busy="true" aria-label="Chargement des candidatures">
+      @for (col of columns; track col.status) {
+        <div class="col" [attr.data-status]="col.status">
+          <div class="col__head"><span class="col__dot"></span><span class="sk sk--line"></span></div>
+          <div class="col__list">
+            <div class="card card--skeleton"><span class="sk sk--line"></span><span class="sk sk--line w-60"></span></div>
+          </div>
+        </div>
+      }
+    </div>
+  } @else if (!cards().length) {
+    <div class="state state--empty">
+      <i class="ti ti-layout-kanban" aria-hidden="true"></i>
+      <div>
+        <strong>Aucune candidature suivie pour l'instant</strong>
+        <p>Enregistrez une offre ou postulez depuis la page Offres, ou ajoutez une candidature faite ailleurs.</p>
+      </div>
+      <button type="button" class="btn btn--primary" (click)="createOpen.set(true)">Ajouter une candidature</button>
+    </div>
+  } @else {
+    <div class="board" cdkDropListGroup [class.is-dragging]="!!dragging()">
+      @for (col of visibleColumns(); track col.status) {
+        <section class="col" [attr.data-status]="col.status" [attr.aria-labelledby]="'col-' + col.status"
+                 [class.is-target]="isDropTarget(col.status)" [class.is-blocked]="isDropBlocked(col.status)">
+          <header class="col__head">
+            <span class="col__dot" aria-hidden="true"></span>
+            <h2 class="col__title" [id]="'col-' + col.status" [title]="col.english">{{ col.label }}</h2>
+            <span class="col__count" [attr.aria-label]="countOf(col.status) + ' candidature(s)'">
+              {{ countOf(col.status) }}@if (hasFilters() && countOf(col.status) !== totalOf(col.status)) {<span class="col__total">/{{ totalOf(col.status) }}</span>}
+            </span>
+          </header>
+
+          <div class="col__list" cdkDropList [cdkDropListData]="col.status" cdkDropListSortingDisabled
+               [cdkDropListEnterPredicate]="canEnter" (cdkDropListDropped)="drop($event)">
+            @for (card of byColumn().get(col.status); track card.id) {
+              <article class="card" cdkDrag [cdkDragData]="card" [cdkDragStartDelay]="{ touch: 250, mouse: 0 }"
+                       cdkDragPreviewContainer="parent"
+                       [cdkDragDisabled]="!card.allowedMoves.length || isSaving(card)"
+                       (cdkDragStarted)="onDragStart($event)" (cdkDragEnded)="onDragEnd()"
+                       [class.is-saving]="isSaving(card)" [class.is-locked]="!card.allowedMoves.length"
+                       tabindex="0" role="button" [attr.aria-label]="'Ouvrir ' + card.jobTitle"
+                       (click)="open(card)" (keydown.enter)="open(card)" (keydown.space)="$event.preventDefault(); open(card)">
+                <div class="card__top">
+                  <span class="logo" aria-hidden="true">
+                    @if (card.companyLogoUrl) {
+                      <img [src]="card.companyLogoUrl" alt="" loading="lazy" />
+                    } @else {
+                      {{ initials(card) }}
+                    }
+                  </span>
+                  <div class="card__heading">
+                    <h3 class="card__title">{{ card.jobTitle }}</h3>
+                    <p class="card__company">{{ card.company || 'Entreprise non renseignée' }}</p>
+                  </div>
+                  @if (offerLink(card); as link) {
+                    <a class="card__link" [href]="link" target="_blank" rel="noopener noreferrer"
+                       (click)="$event.stopPropagation()" (keydown.enter)="$event.stopPropagation()"
+                       aria-label="Ouvrir l'offre d'origine dans un nouvel onglet">
+                      <i class="ti ti-external-link" aria-hidden="true"></i>
+                    </a>
+                  }
+                </div>
+
+                <div class="card__meta">
+                  @if (card.location) {
+                    <span class="meta"><i class="ti ti-map-pin" aria-hidden="true"></i>{{ card.location }}</span>
+                  }
+                  @if (contract(card)) {
+                    <span class="tag">{{ contract(card) }}</span>
+                  }
+                  @if (card.status === 'HIRED') {
+                    <span class="tag tag--hired"><i class="ti ti-trophy" aria-hidden="true"></i>Embauché(e)</span>
+                  }
+                </div>
+
+                @if (card.nextEventAt) {
+                  <p class="card__event">
+                    <i class="ti" [class]="'ti ' + nextEventIcon(card)" aria-hidden="true"></i>{{ nextEventLabel(card) }}
+                  </p>
+                }
+
+                <footer class="card__foot">
+                  <span class="card__date">{{ dateLine(card) }}</span>
+                  @if (followUp(card); as f) {
+                    <span class="follow" [class.is-late]="f.late"><i class="ti ti-bell" aria-hidden="true"></i>{{ f.label }}</span>
+                  }
+                  @if (card.managedByRecruiter) {
+                    <span class="managed" title="Offre publiée sur JobRadar : le recruteur fait avancer la candidature">
+                      <i class="ti ti-building" aria-hidden="true"></i><span class="visually-hidden">Suivie par le recruteur</span>
+                    </span>
+                  }
+                  @if (isSaving(card)) {
+                    <span class="saving" aria-live="polite"><i class="ti ti-loader-2" aria-hidden="true"></i>Enregistrement…</span>
+                  }
+                </footer>
+
+                <div class="card__placeholder" *cdkDragPlaceholder></div>
+              </article>
+            } @empty {
+              <p class="col__empty">{{ col.hint }}</p>
+            }
+          </div>
+        </section>
+      }
+    </div>
+  }
+
+  <!-- ── Message (succès / erreur) ──────────────────────── -->
+  @if (toast(); as t) {
+    <div class="toast" [class.toast--error]="t.kind === 'error'" role="status" aria-live="polite">
+      <i class="ti" [class.ti-circle-check]="t.kind === 'success'" [class.ti-alert-circle]="t.kind === 'error'" aria-hidden="true"></i>
+      <span>{{ t.text }}</span>
+      <button type="button" class="toast__close" (click)="dismissToast()" aria-label="Fermer le message">
+        <i class="ti ti-x" aria-hidden="true"></i>
+      </button>
+    </div>
+  }
+</section>
+
+<!-- Panneau de détail -->
+@if (selectedId(); as id) {
+  <jr-application-detail [applicationId]="id" (closed)="closeDetail()" (cardChanged)="onCardChanged($event)"
+                         (removed)="onRemoved($event)" />
+}
+
+<!-- Ajout d'une candidature -->
+@if (createOpen()) {
+  <jr-application-create (closed)="createOpen.set(false)" (created)="onCreated($event)" />
+}

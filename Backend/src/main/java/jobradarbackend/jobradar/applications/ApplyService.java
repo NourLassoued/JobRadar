@@ -28,13 +28,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-/**
- * Le candidat postule à une offre publiée par un recruteur JobRadar.
- *
- * Si l'offre est déjà dans son Kanban (« à postuler »), la carte passe à APPLIED ;
- * sinon une nouvelle carte est créée directement à APPLIED. C'est ce statut qui la rend
- * visible dans l'espace recruteur. Le recruteur est notifié (cloche + Web Push).
- */
+
 @Service
 public class ApplyService {
 
@@ -42,8 +36,9 @@ public class ApplyService {
 
     /** Déjà envoyée : on ne postule pas deux fois */
     static final Set<ApplicationStatus> ALREADY_SENT = EnumSet.of(
-            ApplicationStatus.APPLIED, ApplicationStatus.INTERVIEW, ApplicationStatus.OFFER,
-            ApplicationStatus.HIRED, ApplicationStatus.REJECTED);
+            ApplicationStatus.APPLIED, ApplicationStatus.UNDER_REVIEW, ApplicationStatus.INTERVIEW,
+            ApplicationStatus.ASSESSMENT, ApplicationStatus.OFFER, ApplicationStatus.HIRED,
+            ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN);
 
     private final UserRepository userRepository;
     private final CandidateRepository candidateRepository;
@@ -54,8 +49,9 @@ public class ApplyService {
     private final CoverLetterDocumentRepository coverLetterRepository;
     private final ApplicationEventService events;
     private final NotificationService notifications;
+    private final ApplicationMailer mails;
 
-    /** Injection par constructeur : Spring fournit les 9 dépendances (aucune ne peut rester null) */
+    /** Injection par constructeur : Spring fournit les 10 dépendances (aucune ne peut rester null) */
     public ApplyService(UserRepository userRepository,
                         CandidateRepository candidateRepository,
                         JobOfferRepository jobOfferRepository,
@@ -64,7 +60,8 @@ public class ApplyService {
                         MatchingService matchingService,
                         CoverLetterDocumentRepository coverLetterRepository,
                         ApplicationEventService events,
-                        NotificationService notifications) {
+                        NotificationService notifications,
+                        ApplicationMailer mails) {
         this.userRepository = userRepository;
         this.candidateRepository = candidateRepository;
         this.jobOfferRepository = jobOfferRepository;
@@ -74,6 +71,7 @@ public class ApplyService {
         this.coverLetterRepository = coverLetterRepository;
         this.events = events;
         this.notifications = notifications;
+        this.mails = mails;
     }
 
     @Transactional
@@ -133,7 +131,7 @@ public class ApplyService {
         // Historique : première étape de la candidature
         events.record(saved, from, ApplicationStatus.APPLIED, null, candidate.getUser(), "CANDIDATE");
 
-        // Le recruteur est prévenu dans sa cloche (et en Web Push s'il l'a activé)
+        // Le recruteur est prévenu dans sa cloche
         if (offer.getPublisher() != null && offer.getPublisher().getOwner() != null) {
             String name = (nullToEmpty(candidate.getFirstName()) + " " + nullToEmpty(candidate.getLastName())).strip();
             notifications.notify(offer.getPublisher().getOwner(), "NEW_APPLICATION",
@@ -141,6 +139,10 @@ public class ApplyService {
                     (name.isEmpty() ? "Un candidat" : name) + " a postulé à « " + offer.getTitle() + " »"
                             + " (compatibilité " + score + " %).",
                     "/app/recruteur/offres/" + offer.getId() + "/candidats");
+
+            // E-mails : « Nouvelle candidature » au recruteur, confirmation au candidat
+            mails.applicationReceived(candidate, offer, score);
+            mails.applicationSent(candidate, offer, score);
         }
         log.info("Candidature {} : candidat {} → offre {}", saved.getId(), candidate.getId(), offer.getId());
 
@@ -148,10 +150,7 @@ public class ApplyService {
                 saved.getStatus(), saved.getMatchScore(), saved.getAppliedAt());
     }
 
-    /**
-     * Ids des offres auxquelles le candidat a déjà postulé : le front affiche
-     * « Candidature envoyée » au lieu de « Postuler » sur ces offres.
-     */
+
     @Transactional(readOnly = true)
     public List<Long> appliedOfferIds(Principal principal) {
         if (principal == null) return List.of();

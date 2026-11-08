@@ -1,0 +1,454 @@
+<div class="backdrop" (click)="close()" aria-hidden="true"></div>
+
+<aside class="panel" role="dialog" aria-modal="true" aria-labelledby="ad-title">
+  @if (loading() && !detail()) {
+    <div class="panel__state" aria-busy="true">
+      <span class="sk sk--title"></span>
+      <span class="sk sk--line"></span>
+      <span class="sk sk--block"></span>
+      <span class="sk sk--block"></span>
+    </div>
+  } @else if (error() && !detail()) {
+    <div class="panel__state panel__state--error" role="alert">
+      <button #closeBtn type="button" class="icon-btn panel__close" (click)="close()" aria-label="Fermer">
+        <i class="ti ti-x" aria-hidden="true"></i>
+      </button>
+      <i class="ti ti-alert-triangle big-icon" aria-hidden="true"></i>
+      <p>{{ error() }}</p>
+      <button type="button" class="btn" (click)="load(applicationId())">Réessayer</button>
+    </div>
+  } @else {
+  @if (detail(); as d) {
+    <!-- ── En-tête ───────────────────────────────────────── -->
+    <header class="panel__head" [attr.data-status]="d.card.status">
+      <div class="panel__top">
+        <span class="logo" aria-hidden="true">
+          @if (d.card.companyLogoUrl) {
+            <img [src]="d.card.companyLogoUrl" alt="" />
+          } @else {
+            {{ initials(d.card) }}
+          }
+        </span>
+        <div class="panel__heading">
+          <h2 id="ad-title" class="panel__title">{{ d.card.jobTitle }}</h2>
+          <p class="panel__company">
+            {{ d.card.company || 'Entreprise non renseignée' }}
+            @if (d.card.location) { <span class="sep">{{ d.card.location }}</span> }
+            @if (contract(d.card.contractType)) { <span class="sep">{{ contract(d.card.contractType) }}</span> }
+          </p>
+        </div>
+        <button #closeBtn type="button" class="icon-btn" (click)="close()" aria-label="Fermer le détail">
+          <i class="ti ti-x" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <div class="panel__status">
+        <span class="pill"><span class="pill__dot" aria-hidden="true"></span>{{ statusLabels[d.card.status] }}</span>
+
+        @if (d.card.allowedMoves.length && !d.card.managedByRecruiter) {
+          <label class="move">
+            <span class="visually-hidden">Changer d'étape</span>
+            <select [disabled]="busy() === 'status'" (change)="changeStatus($any($event.target).value); $any($event.target).value = ''">
+              <option value="">Déplacer vers…</option>
+              @for (s of d.card.allowedMoves; track s) {
+                <option [value]="s">{{ statusLabels[s] }}</option>
+              }
+            </select>
+          </label>
+        }
+
+        @if (safeLink(d.card.jobUrl); as link) {
+          <a class="btn btn--small" [href]="link" target="_blank" rel="noopener noreferrer">
+            <i class="ti ti-external-link" aria-hidden="true"></i>Voir l'offre
+          </a>
+        }
+      </div>
+
+      @if (d.card.managedByRecruiter) {
+        <p class="notice">
+          <i class="ti ti-building" aria-hidden="true"></i>
+          @if (d.card.status === 'TO_APPLY') {
+            Offre publiée sur JobRadar : pour l'envoyer, utilisez « Postuler » sur la page Offres (CV et lettre requis).
+          } @else {
+            Offre publiée sur JobRadar : le recruteur fait avancer votre candidature et vous êtes prévenu(e) à chaque étape.
+            @if (d.card.status === 'INTERVIEW' && tab() !== 'tracking') {
+              <button type="button" class="notice__link" (click)="tab.set('tracking')">Voir les créneaux d'entretien</button>
+            }
+          }
+        </p>
+      }
+
+      <nav class="tabs" role="tablist" aria-label="Sections">
+        <button type="button" role="tab" class="tab" [class.is-active]="tab() === 'overview'" [attr.aria-selected]="tab() === 'overview'" (click)="tab.set('overview')">Aperçu</button>
+        <button type="button" role="tab" class="tab" [class.is-active]="tab() === 'tracking'" [attr.aria-selected]="tab() === 'tracking'" (click)="tab.set('tracking')">
+          Suivi
+          @if (upcoming().length) { <span class="tab__count">{{ upcoming().length }}</span> }
+        </button>
+        <button type="button" role="tab" class="tab" [class.is-active]="tab() === 'history'" [attr.aria-selected]="tab() === 'history'" (click)="tab.set('history')">Historique</button>
+      </nav>
+    </header>
+
+    @if (feedback(); as f) {
+      <p class="feedback" [class.feedback--error]="f.kind === 'error'" role="status">
+        <i class="ti" [class.ti-circle-check]="f.kind === 'success'" [class.ti-alert-circle]="f.kind === 'error'" aria-hidden="true"></i>
+        {{ f.text }}
+      </p>
+    }
+
+    <div class="panel__body">
+      <!-- ══ Aperçu ═══════════════════════════════════════ -->
+      @if (tab() === 'overview') {
+        <!-- Offre -->
+        <section class="sec">
+          <h3 class="sec__title">Offre</h3>
+          @if (d.offer; as o) {
+            <dl class="facts">
+              @if (salary(o.salaryMin, o.salaryMax)) {
+                <div><dt>Salaire</dt><dd>{{ salary(o.salaryMin, o.salaryMax) }}</dd></div>
+              }
+              @if (o.remote !== null) {
+                <div><dt>Télétravail</dt><dd>{{ o.remote ? 'Oui' : 'Non' }}</dd></div>
+              }
+              @if (o.publishedAt) {
+                <div><dt>Publiée le</dt><dd>{{ day(o.publishedAt) }}</dd></div>
+              }
+              <div><dt>Statut</dt><dd>{{ o.active ? 'Ouverte' : 'Fermée' }}</dd></div>
+            </dl>
+            @if (o.description) {
+              <p class="desc" [class.is-open]="descriptionOpen()">{{ o.description }}</p>
+              <button type="button" class="link-btn" (click)="descriptionOpen.set(!descriptionOpen())">
+                {{ descriptionOpen() ? 'Réduire' : 'Lire toute la description' }}
+              </button>
+            }
+            @if (o.requirements) {
+              <h4 class="sub">Profil recherché</h4>
+              <p class="desc is-open">{{ o.requirements }}</p>
+            }
+          } @else if (editableJob()) {
+            <form class="form" [formGroup]="jobForm" (ngSubmit)="saveJob()">
+              <label class="field field--full">
+                <span>Intitulé du poste *</span>
+                <input type="text" formControlName="jobTitle" [class.is-invalid]="invalid(jobForm.controls.jobTitle)" />
+                @if (invalid(jobForm.controls.jobTitle)) { <small class="err">Indiquez l'intitulé du poste.</small> }
+              </label>
+              <label class="field">
+                <span>Entreprise</span>
+                <input type="text" formControlName="company" />
+              </label>
+              <label class="field">
+                <span>Localisation</span>
+                <input type="text" formControlName="location" />
+              </label>
+              <label class="field">
+                <span>Type de contrat</span>
+                <input type="text" formControlName="contractType" placeholder="CDI, CDD, Stage…" />
+              </label>
+              <label class="field">
+                <span>Date d'envoi</span>
+                <input type="date" formControlName="appliedAt" />
+              </label>
+              <label class="field field--full">
+                <span>Lien vers l'offre</span>
+                <input type="url" formControlName="jobUrl" placeholder="https://…" [class.is-invalid]="invalid(jobForm.controls.jobUrl)" />
+                @if (invalid(jobForm.controls.jobUrl)) { <small class="err">Lien commençant par http:// ou https://</small> }
+              </label>
+              <div class="form__actions">
+                <button type="submit" class="btn btn--primary btn--small" [disabled]="busy() === 'job' || jobForm.pristine">
+                  {{ busy() === 'job' ? 'Enregistrement…' : 'Enregistrer' }}
+                </button>
+              </div>
+            </form>
+          } @else {
+            <p class="muted">Cette offre n'est plus disponible.</p>
+          }
+        </section>
+
+        <!-- Documents -->
+        <section class="sec">
+          <h3 class="sec__title">Documents envoyés</h3>
+          @if (d.documents.cvUrl || d.documents.coverLetterUrl || d.documents.coverLetterText) {
+            <div class="docs">
+              @if (safeLink(d.documents.cvUrl); as cv) {
+                <a class="doc" [href]="cv" target="_blank" rel="noopener noreferrer">
+                  <span class="doc__icon" aria-hidden="true"><i class="ti ti-file-cv"></i></span>
+                  <span class="doc__text"><strong>CV</strong><small>{{ d.documents.cvName || 'Ouvrir le CV' }}</small></span>
+                  <i class="ti ti-external-link" aria-hidden="true"></i>
+                </a>
+              }
+              @if (safeLink(d.documents.coverLetterUrl); as letter) {
+                <a class="doc" [href]="letter" target="_blank" rel="noopener noreferrer">
+                  <span class="doc__icon" aria-hidden="true"><i class="ti ti-file-text"></i></span>
+                  <span class="doc__text"><strong>Lettre de motivation</strong><small>{{ d.documents.coverLetterName || 'Ouvrir la lettre' }}</small></span>
+                  <i class="ti ti-external-link" aria-hidden="true"></i>
+                </a>
+              }
+            </div>
+            @if (d.documents.coverLetterText) {
+              <details class="letter">
+                <summary>Lettre de motivation (texte)</summary>
+                <p>{{ d.documents.coverLetterText }}</p>
+              </details>
+            }
+          } @else {
+            <p class="muted">Aucun document enregistré pour cette candidature.</p>
+          }
+        </section>
+
+        <!-- Contact -->
+        <section class="sec">
+          <h3 class="sec__title">Contact chez le recruteur</h3>
+          <form class="form" [formGroup]="contactForm" (ngSubmit)="saveContact()">
+            <label class="field">
+              <span>Nom</span>
+              <input type="text" formControlName="contactName" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span>Fonction</span>
+              <input type="text" formControlName="contactRole" placeholder="RH, manager…" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span>E-mail</span>
+              <input type="email" formControlName="contactEmail" autocomplete="off" [class.is-invalid]="invalid(contactForm.controls.contactEmail)" />
+              @if (invalid(contactForm.controls.contactEmail)) { <small class="err">Adresse e-mail non valide.</small> }
+            </label>
+            <label class="field">
+              <span>Téléphone</span>
+              <input type="tel" formControlName="contactPhone" autocomplete="off" [class.is-invalid]="invalid(contactForm.controls.contactPhone)" />
+              @if (invalid(contactForm.controls.contactPhone)) { <small class="err">Chiffres, espaces et + seulement.</small> }
+            </label>
+            <div class="form__actions">
+              @if (contactForm.controls.contactEmail.value && !contactForm.controls.contactEmail.invalid) {
+                <a class="link-btn" [href]="'mailto:' + contactForm.controls.contactEmail.value">
+                  <i class="ti ti-mail" aria-hidden="true"></i> Écrire
+                </a>
+              }
+              <button type="submit" class="btn btn--primary btn--small" [disabled]="busy() === 'contact' || contactForm.pristine">
+                {{ busy() === 'contact' ? 'Enregistrement…' : 'Enregistrer le contact' }}
+              </button>
+            </div>
+          </form>
+        </section>
+      }
+
+      <!-- ══ Suivi : relance, événements, notes ═══════════ -->
+      @if (tab() === 'tracking') {
+        <!-- Créneaux d'entretien proposés par le recruteur -->
+        @if (d.card.managedByRecruiter && d.card.status !== 'TO_APPLY') {
+          <jr-interview-slots [applicationId]="d.card.id" [status]="d.card.status" (changed)="onSlotsChanged($event)" />
+        }
+
+        <section class="sec">
+          <h3 class="sec__title">Relance</h3>
+          @switch (followUpState()) {
+            @case ('late') { <p class="badge badge--warn"><i class="ti ti-bell-ringing" aria-hidden="true"></i>Relance en retard (prévue le {{ day(d.card.followUpAt) }})</p> }
+            @case ('today') { <p class="badge badge--warn"><i class="ti ti-bell-ringing" aria-hidden="true"></i>Relance prévue aujourd'hui</p> }
+            @case ('later') { <p class="badge"><i class="ti ti-bell" aria-hidden="true"></i>Relance prévue le {{ day(d.card.followUpAt) }}</p> }
+          }
+          <div class="followup">
+            <label class="field">
+              <span>Date de relance</span>
+              <input type="date" [formControl]="followUpControl" />
+            </label>
+            <div class="quick">
+              <button type="button" class="chip" (click)="suggestFollowUp(3)">Dans 3 jours</button>
+              <button type="button" class="chip" (click)="suggestFollowUp(7)">Dans 1 semaine</button>
+              <button type="button" class="chip" (click)="suggestFollowUp(14)">Dans 2 semaines</button>
+            </div>
+            <div class="form__actions">
+              @if (d.card.followUpAt) {
+                <button type="button" class="link-btn link-btn--danger" (click)="saveFollowUp(true)" [disabled]="busy() === 'followup'">Supprimer la relance</button>
+              }
+              <button type="button" class="btn btn--primary btn--small" (click)="saveFollowUp()"
+                      [disabled]="busy() === 'followup' || !followUpControl.value || followUpControl.pristine">
+                Enregistrer
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="sec">
+          <div class="sec__head">
+            <h3 class="sec__title">Événements</h3>
+            @if (!showActivityForm()) {
+              <button type="button" class="btn btn--small" (click)="openActivityForm()">
+                <i class="ti ti-plus" aria-hidden="true"></i>Ajouter
+              </button>
+            }
+          </div>
+
+          @if (showActivityForm()) {
+            <form class="form form--boxed" [formGroup]="activityForm" (ngSubmit)="addActivity()">
+              <label class="field">
+                <span>Type</span>
+                <select formControlName="type">
+                  @for (t of activityTypes; track t.value) { <option [value]="t.value">{{ t.label }}</option> }
+                </select>
+              </label>
+              <label class="field">
+                <span>Date et heure *</span>
+                <input type="datetime-local" formControlName="scheduledAt" [class.is-invalid]="invalid(activityForm.controls.scheduledAt)" />
+              </label>
+              <label class="field field--full">
+                <span>Titre *</span>
+                <input type="text" formControlName="title" [class.is-invalid]="invalid(activityForm.controls.title)" />
+              </label>
+              <label class="field field--full">
+                <span>Lieu ou lien de visio</span>
+                <input type="text" formControlName="location" placeholder="Adresse, lien Teams / Meet, numéro…" />
+              </label>
+              <label class="field field--full">
+                <span>Détails</span>
+                <textarea rows="2" formControlName="details" placeholder="Personnes présentes, sujets à préparer…"></textarea>
+              </label>
+              <div class="form__actions">
+                <button type="button" class="link-btn" (click)="showActivityForm.set(false)">Annuler</button>
+                <button type="submit" class="btn btn--primary btn--small" [disabled]="busy() === 'activity'">
+                  {{ busy() === 'activity' ? 'Ajout…' : 'Ajouter l\'événement' }}
+                </button>
+              </div>
+            </form>
+          }
+
+          @if (!d.activities.length && !showActivityForm()) {
+            <p class="muted">Aucun entretien, appel ou test enregistré.</p>
+          }
+
+          @if (upcoming().length) {
+            <h4 class="sub">À venir</h4>
+            <ul class="events">
+              @for (a of upcoming(); track a.id) {
+                <li class="event">
+                  <span class="event__icon" aria-hidden="true"><i [class]="'ti ' + activityIcon(a.type)"></i></span>
+                  <div class="event__text">
+                    <strong>{{ a.title }}</strong>
+                    <span>{{ dateTime(a.scheduledAt) }}</span>
+                    @if (a.location) {
+                      @if (safeLink(a.location); as url) {
+                        <a [href]="url" target="_blank" rel="noopener noreferrer">Rejoindre / ouvrir le lien</a>
+                      } @else {
+                        <span class="muted">{{ a.location }}</span>
+                      }
+                    }
+                    @if (a.details) { <p class="event__details">{{ a.details }}</p> }
+                  </div>
+                  <div class="event__actions">
+                    <button type="button" class="icon-btn" (click)="toggleDone(a)" [disabled]="busy() === 'activity-' + a.id" aria-label="Marquer comme fait">
+                      <i class="ti ti-check" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="icon-btn icon-btn--danger" (click)="deleteActivity(a)" [disabled]="busy() === 'activity-' + a.id" aria-label="Supprimer l'événement">
+                      <i class="ti ti-trash" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+
+          @if (past().length) {
+            <h4 class="sub">Passés ou faits</h4>
+            <ul class="events events--past">
+              @for (a of past(); track a.id) {
+                <li class="event">
+                  <span class="event__icon" aria-hidden="true"><i [class]="'ti ' + activityIcon(a.type)"></i></span>
+                  <div class="event__text">
+                    <strong>{{ a.title }}</strong>
+                    <span>{{ dateTime(a.scheduledAt) }}@if (a.done) { · fait }</span>
+                  </div>
+                  <div class="event__actions">
+                    @if (a.done) {
+                      <button type="button" class="icon-btn" (click)="toggleDone(a)" [disabled]="busy() === 'activity-' + a.id" aria-label="Marquer comme à faire">
+                        <i class="ti ti-arrow-back-up" aria-hidden="true"></i>
+                      </button>
+                    }
+                    <button type="button" class="icon-btn icon-btn--danger" (click)="deleteActivity(a)" [disabled]="busy() === 'activity-' + a.id" aria-label="Supprimer l'événement">
+                      <i class="ti ti-trash" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+
+        <section class="sec">
+          <h3 class="sec__title">Notes personnelles</h3>
+          <div class="note-form">
+            <label class="visually-hidden" for="ad-note">Nouvelle note</label>
+            <textarea id="ad-note" rows="3" [formControl]="noteControl" (keydown)="onNoteKeydown($event)"
+                      placeholder="Impressions, questions à poser, points à préparer…"></textarea>
+            <div class="form__actions">
+              <small class="muted">Ctrl + Entrée pour ajouter</small>
+              <button type="button" class="btn btn--primary btn--small" (click)="addNote()"
+                      [disabled]="busy() === 'note' || !noteControl.value.trim()">Ajouter la note</button>
+            </div>
+          </div>
+          @if (d.notes.length) {
+            <ul class="notes">
+              @for (n of d.notes; track n.id) {
+                <li class="note">
+                  <p>{{ n.content }}</p>
+                  <div class="note__foot">
+                    <span>{{ dateTime(n.createdAt) }}</span>
+                    <button type="button" class="icon-btn icon-btn--danger" (click)="deleteNote(n.id)" [disabled]="busy() === 'note-' + n.id" aria-label="Supprimer la note">
+                      <i class="ti ti-trash" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      }
+
+      <!-- ══ Historique ═══════════════════════════════════ -->
+      @if (tab() === 'history') {
+        <section class="sec">
+          <h3 class="sec__title">Historique des étapes</h3>
+          @if (d.history.length) {
+            <ol class="timeline">
+              @for (h of d.history; track h.id) {
+                <li class="timeline__item" [attr.data-status]="h.toStatus">
+                  <span class="timeline__dot" aria-hidden="true"></span>
+                  <div>
+                    <strong>
+                      @if (h.fromStatus) { {{ statusLabels[h.fromStatus] }} → }{{ statusLabels[h.toStatus] }}
+                    </strong>
+                    <span class="timeline__meta">{{ actor(h.actorRole) }} · {{ dateTime(h.createdAt) }}</span>
+                    @if (h.message) { <blockquote>{{ h.message }}</blockquote> }
+                  </div>
+                </li>
+              }
+            </ol>
+          } @else {
+            <p class="muted">Pas encore d'historique : les prochains changements d'étape apparaîtront ici.</p>
+          }
+        </section>
+      }
+    </div>
+
+    <!-- ── Pied : retirer / supprimer ─────────────────────── -->
+    @if (canWithdraw() || canDelete()) {
+      <footer class="panel__foot">
+        @if (!confirmRemove()) {
+          <button type="button" class="link-btn link-btn--danger" (click)="confirmRemove.set(true)">
+            <i class="ti" [class.ti-arrow-back-up]="canWithdraw()" [class.ti-trash]="!canWithdraw()" aria-hidden="true"></i>
+            {{ canWithdraw() ? 'Retirer ma candidature' : 'Supprimer du suivi' }}
+          </button>
+        } @else {
+          <p class="confirm">
+            {{ canWithdraw() ? 'Le recruteur sera prévenu que vous retirez votre candidature.' : 'Cette candidature et ses notes seront supprimées.' }}
+          </p>
+          <div class="form__actions">
+            <button type="button" class="btn btn--small" (click)="confirmRemove.set(false)">Annuler</button>
+            @if (canWithdraw()) {
+              <button type="button" class="btn btn--danger btn--small" (click)="withdraw()" [disabled]="busy() === 'status'">Confirmer le retrait</button>
+            } @else {
+              <button type="button" class="btn btn--danger btn--small" (click)="remove()" [disabled]="busy() === 'remove'">Confirmer la suppression</button>
+            }
+          </div>
+        }
+      </footer>
+    }
+  }
+  }
+</aside>

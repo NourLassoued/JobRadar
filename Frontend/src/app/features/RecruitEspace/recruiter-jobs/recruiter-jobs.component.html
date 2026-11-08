@@ -197,4 +197,42 @@
       </section>
     }
   }
+
+  <!-- ═══ Fermer une offre qui a des candidats ═══ -->
+  <dialog #closeDialog class="close-dlg" aria-labelledby="close-title" (cancel)="cancelClose()">
+    @if (closing(); as job) {
+      <form method="dialog" class="close-dlg__panel" (submit)="$event.preventDefault(); confirmClose()">
+        <header class="close-dlg__head">
+          <span class="close-dlg__icon" aria-hidden="true"><i class="ti ti-lock"></i></span>
+          <div>
+            <h2 id="close-title">Fermer l'offre</h2>
+            <p>{{ job.title }} · {{ job.applicantsCount }} candidat{{ job.applicantsCount > 1 ? 's' : '' }}</p>
+          </div>
+        </header>
+
+        <p class="close-dlg__text">L'offre disparaît des recherches. Les candidatures déjà reçues restent dans votre espace.</p>
+
+        <label class="close-dlg__check">
+          <input type="checkbox" [checked]="rejectRemaining()" (change)="onRejectToggle($event)" />
+          <span>
+            <strong>Répondre aux candidatures en attente</strong>
+            <small>Les candidats au statut « Nouvelle » ou « Entretien » reçoivent un refus avec ce message.
+              Les propositions et les embauches ne changent pas.</small>
+          </span>
+        </label>
+
+        @if (rejectRemaining()) {
+          <label class="close-dlg__label" for="close-message">Message aux candidats</label>
+          <textarea id="close-message" rows="4" maxlength="2000" [value]="closeMessage()" (input)="onCloseMessage($event)"></textarea>
+        }
+
+        <footer class="close-dlg__actions">
+          <button type="button" class="r-btn" (click)="cancelClose()">Annuler</button>
+          <button type="submit" class="close-dlg__confirm">
+            <i class="ti ti-lock" aria-hidden="true"></i> Fermer l'offre
+          </button>
+        </footer>
+      </form>
+    }
+  </dialog>
 </div>

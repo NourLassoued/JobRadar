@@ -1,4 +1,4 @@
-﻿@use '../recruiter';
+@use '../recruiter';
 
 // Page « Candidats » : en-tête de l'offre avec chiffres clés, étapes du recrutement,
 // liste classée par compatibilité à gauche, dossier du candidat à droite.
@@ -23,8 +23,12 @@
 
 // Couleur de chaque étape
 [data-status='APPLIED'] { --st: var(--r-primary); --st-soft: var(--r-primary-soft); }
+[data-status='UNDER_REVIEW'] { --st: #2563eb; --st-soft: #eff6ff; }
 [data-status='INTERVIEW'] { --st: var(--r-warning); --st-soft: var(--r-warning-soft); }
+[data-status='ASSESSMENT'] { --st: #7c3aed; --st-soft: #f5f3ff; }
 [data-status='OFFER'] { --st: var(--r-success); --st-soft: var(--r-success-soft); }
+[data-status='HIRED'] { --st: var(--r-success); --st-soft: var(--r-success-soft); }
+[data-status='WITHDRAWN'], [data-status='TO_APPLY'] { --st: var(--r-muted); --st-soft: var(--r-bg); }
 [data-status='REJECTED'] { --st: var(--r-danger); --st-soft: var(--r-danger-soft); }
 
 // ═══ En-tête de l'offre ════════════════════════════════
@@ -194,7 +198,7 @@
 
 .pipeline {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
 
   @media (max-width: 760px) {
@@ -572,7 +576,9 @@
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 
+  &--review { --d: #2563eb; --d-soft: #eff6ff; }
   &--interview { --d: var(--r-warning); --d-soft: var(--r-warning-soft); }
+  &--assessment { --d: #7c3aed; --d-soft: #f5f3ff; }
   &--offer { --d: var(--r-success); --d-soft: var(--r-success-soft); }
   &--reject { --d: var(--r-danger); --d-soft: var(--r-danger-soft); }
 
@@ -718,6 +724,58 @@
   white-space: pre-line;
 }
 
+// Lettre de motivation jointe (fichier choisi par le candidat)
+.letter-file {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--r-border);
+  border-radius: 12px;
+  background: var(--r-bg);
+
+  &__icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--r-primary-soft);
+    color: var(--r-primary);
+    font-size: 1.25rem;
+
+    &.is-pdf { background: var(--r-danger-soft); color: var(--r-danger); }
+  }
+
+  &__text {
+    display: grid;
+    flex: 1;
+    min-width: 0;
+
+    strong { font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    small { color: var(--r-muted); font-size: 0.76rem; }
+  }
+}
+
+.letter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  &__btn { flex: 1 1 160px; justify-content: center; }
+}
+
+// Aperçu du PDF directement dans le dossier
+.letter-preview {
+  display: block;
+  width: 100%;
+  height: min(70vh, 640px);
+  border: 1px solid var(--r-border);
+  border-radius: 12px;
+  background: #fff;
+}
+
 .muted {
   display: inline-flex;
   align-items: center;
@@ -768,4 +826,249 @@
 @media (prefers-reduced-motion: reduce) {
   .hero__sweep, .empty__radar span, .pulse { animation: none; }
   .row, .gauge__value, .bar span { transition: none; }
+}
+// ═══ Module 1 : décisions, historique, annulation ═══════
+
+.decision--hire {
+  --d: var(--r-success);
+  --d-soft: var(--r-success-soft);
+  grid-column: 1 / -1;
+  border-color: var(--r-success);
+  background: var(--r-success-soft);
+  color: var(--r-success);
+}
+
+.closed-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--r-success-soft);
+  color: var(--r-success);
+  font-size: 0.88rem;
+  font-weight: 600;
+
+  &--undo { background: var(--r-warning-soft); color: var(--r-warning); }
+}
+
+.link-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+// Historique : frise verticale
+.timeline {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    position: relative;
+    display: flex;
+    gap: 10px;
+    padding-bottom: 12px;
+
+    // trait qui relie les étapes
+    &:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      top: 28px;
+      bottom: 0;
+      left: 13px;
+      width: 2px;
+      background: var(--r-border);
+    }
+  }
+
+  &__dot {
+    position: relative;
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--st-soft, var(--r-bg));
+    color: var(--st, var(--r-muted));
+    font-size: 0.9rem;
+  }
+
+  &__body { min-width: 0; padding-top: 3px; }
+  &__title { margin: 0; font-size: 0.88rem; font-weight: 700; small { margin-left: 4px; color: var(--r-muted); font-weight: 500; } }
+  &__date { margin: 1px 0 0; color: var(--r-muted); font-size: 0.76rem; }
+
+  &__msg {
+    margin: 6px 0 0;
+    padding: 8px 10px;
+    border-left: 3px solid var(--st, var(--r-primary));
+    border-radius: 0 8px 8px 0;
+    background: var(--r-bg);
+    font-size: 0.84rem;
+    line-height: 1.5;
+    white-space: pre-line;
+  }
+}
+
+// Bandeau « Refus envoyé dans 10 s · Annuler »
+.undo {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100vw - 32px);
+  padding: 10px 10px 10px 16px;
+  border-radius: 14px;
+  background: var(--r-text);
+  color: var(--r-surface);
+  font-size: 0.9rem;
+  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.55);
+  transform: translateX(-50%);
+  animation: undo-in 0.2s ease-out;
+
+  &__btn {
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 9px;
+    background: var(--r-surface);
+    color: var(--r-text);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+}
+
+@keyframes undo-in { from { opacity: 0; transform: translate(-50%, 8px); } }
+
+// Fenêtre de décision
+.dlg {
+  width: min(520px, calc(100vw - 32px));
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  background: transparent;
+  color: var(--r-text);
+
+  &::backdrop { background: rgba(10, 22, 26, 0.55); backdrop-filter: blur(2px); }
+
+  // --st / --st-soft viennent de [data-status] (couleur de la décision)
+  &__panel {
+    display: grid;
+    gap: 12px;
+    padding: 20px;
+    border: 1px solid var(--r-border);
+    border-radius: 18px;
+    background: var(--r-surface);
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    h2 { margin: 0; font-size: 1.1rem; }
+    p { margin: 2px 0 0; color: var(--r-muted); font-size: 0.86rem; }
+  }
+
+  &__icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: var(--st-soft, var(--r-primary-soft));
+    color: var(--st, var(--r-primary));
+    font-size: 1.3rem;
+  }
+
+  &__label { font-size: 0.86rem; font-weight: 700; small { color: var(--r-muted); font-weight: 500; } }
+
+  textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border: 1px solid var(--r-border);
+    border-radius: 12px;
+    background: var(--r-surface);
+    color: inherit;
+    font: inherit;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    resize: vertical;
+
+    &:focus { outline: none; border-color: var(--r-primary); box-shadow: 0 0 0 3px var(--r-primary-soft); }
+  }
+
+  &__templates { display: grid; gap: 6px; }
+
+  &__tpl {
+    overflow: hidden;
+    padding: 7px 10px;
+    border: 1px dashed var(--r-border);
+    border-radius: 10px;
+    background: var(--r-bg);
+    color: var(--r-text);
+    font: inherit;
+    font-size: 0.8rem;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:hover { border-color: var(--st, var(--r-primary)); color: var(--st, var(--r-primary)); }
+  }
+
+  &__hint { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--r-muted); font-size: 0.8rem; }
+
+  &__actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+  &__confirm {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 16px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--st, var(--r-primary));
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+
+    &:hover { filter: brightness(1.08); }
+    &:focus-visible { outline: 2px solid var(--st, var(--r-primary)); outline-offset: 2px; }
+  }
+}
+
+@media (max-width: 760px) {
+  .pipeline { display: flex; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .undo { animation: none; }
+}
+
+// Fenêtre « Proposer un entretien » : les créneaux peuvent allonger la fenêtre
+.dlg {
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+
+  &__error {
+    display: flex; align-items: flex-start; gap: 6px; margin: 0; padding: 9px 11px; border-radius: 10px;
+    color: var(--r-danger); background: var(--r-danger-soft); font-size: 0.86rem;
+  }
 }

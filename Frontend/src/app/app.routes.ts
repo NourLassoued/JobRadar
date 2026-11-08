@@ -41,10 +41,12 @@ export const routes: Routes = [
           import('./features/CandiateEspace/jobs/jobs-list.component').then(m => m.JobsListComponent),
         title: 'JobRadar — Offres',
       },
+      // Suivi des candidatures : nouveau Kanban (glisser-déposer, détail, statistiques)
       {
         path: 'candidatures',
         loadComponent: () =>
-          import('./features/applications/kanban.component').then(m => m.KanbanComponent),
+          import('./features/CandiateEspace/applications-board/applications-board.component')
+            .then(m => m.ApplicationsBoardComponent),
         title: 'JobRadar — Mes candidatures',
       },
       {

@@ -14,10 +14,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Une candidature (table applications) = une carte du Kanban.
- * Titre, entreprise et URL sont copiés : la candidature reste lisible même si l'offre disparaît.
- */
+
 @Entity
 @Table(name = "applications",
         uniqueConstraints = @UniqueConstraint(name = "uk_application_candidate_offer",
@@ -51,7 +48,12 @@ public class Application {
     @JoinColumn(name = "cv_id")
     private CandidateCv cv;
 
-    // ── Copie de l'offre ─────────────────────────────────────
+    /** Lettre de motivation choisie au moment de la candidature */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cover_letter_id")
+    private CoverLetterDocument coverLetterDocument;
+
+    // ── Copie de l'offre au moment de la candidature ─────────
     @Column(name = "job_title", nullable = false)
     private String jobTitle;
 
@@ -60,6 +62,14 @@ public class Application {
 
     @Column(name = "job_url", length = 1000)
     private String jobUrl;
+
+    /** Ville / lieu (copié de l'offre, ou saisi pour une candidature externe) */
+    @Column(name = "location", length = 150)
+    private String location;
+
+    /** CDI, CDD, STAGE… (copié de l'offre, ou saisi) */
+    @Column(name = "contract_type", length = 40)
+    private String contractType;
 
     // ── Suivi ────────────────────────────────────────────────
     @Builder.Default
@@ -76,21 +86,42 @@ public class Application {
     @Column(name = "match_score")
     private Integer matchScore;
 
-    /** Lettre de motivation envoyée */
+    /** Lettre de motivation envoyée (texte final, anciennes candidatures) */
     @Column(name = "cover_letter", columnDefinition = "TEXT")
     private String coverLetter;
 
+    /** Date d'envoi de la candidature */
     @Column(name = "applied_at")
     private LocalDate appliedAt;
 
-    /** Prochaine action (relance, entretien…) */
+    /** Date de relance choisie par le candidat */
     @Column(name = "next_action_at")
     private LocalDate nextActionAt;
 
+    // ── Contact chez le recruteur (saisi par le candidat) ────
+    @Column(name = "contact_name", length = 120)
+    private String contactName;
+
+    @Column(name = "contact_role", length = 120)
+    private String contactRole;
+
+    @Column(name = "contact_email", length = 150)
+    private String contactEmail;
+
+    @Column(name = "contact_phone", length = 40)
+    private String contactPhone;
+
+    /** Notes de suivi, de la plus récente à la plus ancienne */
     @Builder.Default
     @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("createdAt DESC")
     private List<ApplicationNote> notes = new ArrayList<>();
+
+    /** Entretiens, appels, tests techniques… */
+    @Builder.Default
+    @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("scheduledAt ASC")
+    private List<ApplicationActivity> activities = new ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -99,9 +130,10 @@ public class Application {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "cover_letter_id")
-    private CoverLetterDocument coverLetterDocument;
+
+    // ── Méthodes utiles ──────────────────────────────────────
+
+    /** Ajoute une note en gardant les deux côtés de la relation à jour */
     public void addNote(ApplicationNote note) {
         notes.add(note);
         note.setApplication(this);
@@ -112,10 +144,23 @@ public class Application {
         note.setApplication(null);
     }
 
-    /** Change d'étape ; « envoyée » renseigne la date si elle est vide */
+    public void addActivity(ApplicationActivity activity) {
+        activities.add(activity);
+        activity.setApplication(this);
+    }
+
+    public void removeActivity(ApplicationActivity activity) {
+        activities.remove(activity);
+        activity.setApplication(null);
+    }
+
+    /**
+     * Change d'étape. Toute étape après « Enregistrée » (sauf un retrait direct) signifie que la
+     * candidature est partie : la date d'envoi est alors renseignée si elle est vide.
+     */
     public void moveTo(ApplicationStatus newStatus) {
         this.status = newStatus;
-        if (newStatus == ApplicationStatus.APPLIED && appliedAt == null) {
+        if (appliedAt == null && newStatus != ApplicationStatus.TO_APPLY && newStatus != ApplicationStatus.WITHDRAWN) {
             appliedAt = LocalDate.now();
         }
     }

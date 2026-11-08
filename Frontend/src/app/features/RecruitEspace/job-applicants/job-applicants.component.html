@@ -182,20 +182,68 @@
             @if (actionError(); as message) {
               <div class="r-alert" role="alert"><i class="ti ti-alert-circle" aria-hidden="true"></i> {{ message }}</div>
             }
-            <div class="decisions" role="group" aria-label="Décision">
-              <button type="button" class="decision decision--interview" [class.is-current]="a.status === 'INTERVIEW'"
-                      [attr.aria-pressed]="a.status === 'INTERVIEW'" [disabled]="busyId() === a.applicationId" (click)="decide(a, 'INTERVIEW')">
-                <i class="ti ti-calendar-event" aria-hidden="true"></i> Entretien
-              </button>
-              <button type="button" class="decision decision--offer" [class.is-current]="a.status === 'OFFER'"
-                      [attr.aria-pressed]="a.status === 'OFFER'" [disabled]="busyId() === a.applicationId" (click)="decide(a, 'OFFER')">
-                <i class="ti ti-rosette-discount-check" aria-hidden="true"></i> Proposition
-              </button>
-              <button type="button" class="decision decision--reject" [class.is-current]="a.status === 'REJECTED'"
-                      [attr.aria-pressed]="a.status === 'REJECTED'" [disabled]="busyId() === a.applicationId" (click)="decide(a, 'REJECTED')">
-                <i class="ti ti-circle-x" aria-hidden="true"></i> Refuser
-              </button>
-            </div>
+            @if (a.status === 'WITHDRAWN') {
+              <p class="closed-note"><i class="ti ti-arrow-back-up" aria-hidden="true"></i> Le candidat a retiré sa candidature : elle est close.</p>
+            } @else if (isClosed(a)) {
+              <p class="closed-note"><i class="ti ti-briefcase" aria-hidden="true"></i> Candidat embauché : cette candidature est close.</p>
+            } @else if (isUndoing(a)) {
+              <p class="closed-note closed-note--undo"><i class="ti ti-clock" aria-hidden="true"></i> Refus envoyé dans {{ undo()?.seconds }} s.
+                <button type="button" class="link-btn" (click)="cancelUndo()">Annuler</button></p>
+            } @else {
+              <div class="decisions" role="group" aria-label="Décision">
+                <button type="button" class="decision decision--review" [class.is-current]="a.status === 'UNDER_REVIEW'"
+                        [attr.aria-pressed]="a.status === 'UNDER_REVIEW'" [disabled]="busyId() === a.applicationId" (click)="openDecision(a, 'UNDER_REVIEW')">
+                  <i class="ti ti-eye" aria-hidden="true"></i> En examen
+                </button>
+                <button type="button" class="decision decision--interview" [class.is-current]="a.status === 'INTERVIEW'"
+                        [attr.aria-pressed]="a.status === 'INTERVIEW'" [disabled]="busyId() === a.applicationId" (click)="openDecision(a, 'INTERVIEW')">
+                  <i class="ti ti-calendar-event" aria-hidden="true"></i> Entretien
+                </button>
+                <button type="button" class="decision decision--assessment" [class.is-current]="a.status === 'ASSESSMENT'"
+                        [attr.aria-pressed]="a.status === 'ASSESSMENT'" [disabled]="busyId() === a.applicationId" (click)="openDecision(a, 'ASSESSMENT')">
+                  <i class="ti ti-clipboard-check" aria-hidden="true"></i> Évaluation
+                </button>
+                <button type="button" class="decision decision--offer" [class.is-current]="a.status === 'OFFER'"
+                        [attr.aria-pressed]="a.status === 'OFFER'" [disabled]="busyId() === a.applicationId" (click)="openDecision(a, 'OFFER')">
+                  <i class="ti ti-rosette-discount-check" aria-hidden="true"></i> Proposition
+                </button>
+                <button type="button" class="decision decision--reject" [class.is-current]="a.status === 'REJECTED'"
+                        [attr.aria-pressed]="a.status === 'REJECTED'" [disabled]="busyId() === a.applicationId" (click)="openDecision(a, 'REJECTED')">
+                  <i class="ti ti-circle-x" aria-hidden="true"></i> Refuser
+                </button>
+                @if (a.status === 'OFFER') {
+                  <button type="button" class="decision decision--hire" [disabled]="busyId() === a.applicationId" (click)="openDecision(a, 'HIRED')">
+                    <i class="ti ti-briefcase" aria-hidden="true"></i> Confirmer l'embauche
+                  </button>
+                }
+              </div>
+            }
+
+            <!-- Rendez-vous d'entretien (créneaux) -->
+            <jr-applicant-interview [applicationId]="a.applicationId" [status]="a.status" (changed)="onInterviewChanged($event)" />
+
+            <!-- Historique -->
+            <section class="card">
+              <header class="card__head"><h3>Historique</h3></header>
+              @if (historyLoading() && !history().length) {
+                <p class="muted"><i class="ti ti-loader-2" aria-hidden="true"></i> Chargement…</p>
+              } @else if (history().length) {
+                <ol class="timeline">
+                  @for (e of history(); track e.id) {
+                    <li [attr.data-status]="e.toStatus">
+                      <span class="timeline__dot" aria-hidden="true"><i [class]="'ti ' + eventIcon(e)"></i></span>
+                      <div class="timeline__body">
+                        <p class="timeline__title">{{ eventLabels[e.toStatus] }} <small>{{ eventActor(e) }}</small></p>
+                        <p class="timeline__date">{{ e.createdAt | date: 'd MMM y, HH:mm' }}</p>
+                        @if (e.message) { <p class="timeline__msg">{{ e.message }}</p> }
+                      </div>
+                    </li>
+                  }
+                </ol>
+              } @else {
+                <p class="muted"><i class="ti ti-history" aria-hidden="true"></i> Pas encore d'historique.</p>
+              }
+            </section>
 
             <!-- Compétences de l'offre -->
             @if (skillRatio(a).total) {
@@ -305,4 +353,53 @@
       </div>
     }
   }
+
+  <!-- ═══ Refus en attente : annulable pendant 10 s ═══ -->
+  @if (undo(); as u) {
+    <div class="undo" role="status">
+      <i class="ti ti-clock" aria-hidden="true"></i>
+      <span>Refus de <strong>{{ fullName(u.a) }}</strong> envoyé dans {{ u.seconds }} s</span>
+      <button type="button" class="undo__btn" (click)="cancelUndo()">Annuler</button>
+    </div>
+  }
+
+  <!-- ═══ Fenêtre de décision ═══ -->
+  <dialog #decisionDialog class="dlg" aria-labelledby="dlg-title" (cancel)="closeDecision()" (close)="pending.set(null)">
+    @if (pending(); as p) {
+      <form method="dialog" class="dlg__panel" [attr.data-status]="p.status" (submit)="$event.preventDefault(); confirmDecision()">
+        <header class="dlg__head">
+          <span class="dlg__icon" aria-hidden="true"><i [class]="'ti ' + statusIcons[p.status]"></i></span>
+          <div>
+            <h2 id="dlg-title">{{ decisions[p.status].title }}</h2>
+            <p>{{ fullName(p.a) }} · {{ job()?.title }}</p>
+          </div>
+        </header>
+
+        @if (p.status === 'INTERVIEW') {
+          <jr-slot-editor [(slots)]="draftSlots" />
+          @if (slotError(); as problem) {
+            <p class="dlg__error" role="alert"><i class="ti ti-alert-circle" aria-hidden="true"></i> {{ problem }}</p>
+          }
+        }
+
+        <label class="dlg__label" for="dlg-message">Message au candidat <small>facultatif</small></label>
+        <textarea id="dlg-message" rows="5" maxlength="2000" [value]="decisionMessage()" (input)="onMessage($event)"
+                  placeholder="Écrivez un message ou choisissez un modèle ci-dessous"></textarea>
+        <div class="dlg__templates" aria-label="Modèles de message">
+          @for (t of decisions[p.status].templates; track t) {
+            <button type="button" class="dlg__tpl" (click)="useTemplate(t)" [title]="t">{{ t }}</button>
+          }
+        </div>
+
+        <p class="dlg__hint"><i class="ti ti-info-circle" aria-hidden="true"></i> {{ decisions[p.status].hint }}</p>
+
+        <footer class="dlg__actions">
+          <button type="button" class="r-btn" (click)="closeDecision()">Annuler</button>
+          <button type="submit" class="dlg__confirm">
+            <i [class]="'ti ' + statusIcons[p.status]" aria-hidden="true"></i> {{ decisions[p.status].action }}
+          </button>
+        </footer>
+      </form>
+    }
+  </dialog>
 </div>

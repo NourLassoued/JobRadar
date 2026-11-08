@@ -1,0 +1,118 @@
+@if (!hidden()) {
+  <section class="slots" [attr.data-state]="data()?.state ?? 'NONE'" aria-labelledby="slots-title">
+    <header class="slots__head">
+      <span class="slots__icon" aria-hidden="true"><i class="ti ti-calendar-event"></i></span>
+      <div>
+        <h3 id="slots-title" class="slots__title">Entretien</h3>
+        @switch (data()?.state) {
+          @case ('WAITING_CANDIDATE') { <p class="slots__sub">Le recruteur vous propose ces créneaux. Choisissez celui qui vous convient.</p> }
+          @case ('WAITING_RECRUITER') { <p class="slots__sub">Votre proposition est envoyée. Le recruteur va l'accepter ou vous proposer d'autres créneaux.</p> }
+          @case ('CONFIRMED') { <p class="slots__sub">Votre entretien est fixé. Il est aussi noté dans vos événements ci-dessous.</p> }
+          @default { <p class="slots__sub">Le recruteur ne vous a pas encore proposé de créneau.</p> }
+        }
+      </div>
+    </header>
+
+    @if (error(); as message) {
+      <p class="slots__error" role="alert"><i class="ti ti-alert-circle" aria-hidden="true"></i>{{ message }}</p>
+    }
+
+    @if (loading() && !data()) {
+      <p class="slots__muted"><i class="ti ti-loader-2 spin" aria-hidden="true"></i>Chargement des créneaux…</p>
+    } @else {
+    @if (data(); as d) {
+      <!-- Entretien fixé -->
+      @if (d.confirmed; as c) {
+        @if (d.state === 'CONFIRMED') {
+          <div class="confirmed">
+            <i class="ti ti-circle-check confirmed__check" aria-hidden="true"></i>
+            <div class="confirmed__body">
+              <p class="confirmed__day">{{ day(c.startsAt) }}</p>
+              <p class="confirmed__meta">
+                {{ hours(c) }} · <i [class]="'ti ' + modeIcon(c.mode)" aria-hidden="true"></i> {{ modeLabel(c.mode) }}
+              </p>
+              @if (c.location) {
+                @if (link(c.location); as url) {
+                  <a class="btn btn--primary btn--small" [href]="url" target="_blank" rel="noopener noreferrer">
+                    <i class="ti ti-video" aria-hidden="true"></i>Rejoindre la visio
+                  </a>
+                } @else {
+                  <p class="confirmed__place"><i class="ti ti-map-pin" aria-hidden="true"></i>{{ c.location }}</p>
+                }
+              }
+            </div>
+          </div>
+        }
+      }
+
+      <!-- Créneaux du recruteur -->
+      @if (d.state === 'WAITING_CANDIDATE') {
+        <ul class="choices" role="list">
+          @for (s of d.proposals; track s.id) {
+            <li>
+              <button type="button" class="choice" [class.is-selected]="selectedId() === s.id"
+                      [attr.aria-pressed]="selectedId() === s.id" [disabled]="busy()" (click)="select(s)">
+                <span class="choice__radio" aria-hidden="true"></span>
+                <span class="choice__body">
+                  <span class="choice__day">{{ day(s.startsAt) }}</span>
+                  <span class="choice__meta">
+                    {{ hours(s) }} · <i [class]="'ti ' + modeIcon(s.mode)" aria-hidden="true"></i> {{ modeLabel(s.mode) }}
+                    @if (s.location && !link(s.location)) { · {{ s.location }} }
+                  </span>
+                </span>
+              </button>
+            </li>
+          }
+        </ul>
+
+        <div class="slots__actions">
+          <button type="button" class="link-btn" (click)="openCounter()" [disabled]="busy()">
+            Aucun ne me convient
+          </button>
+          <button type="button" class="btn btn--primary btn--small" (click)="confirm()" [disabled]="!selected() || busy()">
+            @if (busy()) { <i class="ti ti-loader-2 spin" aria-hidden="true"></i> } @else { <i class="ti ti-check" aria-hidden="true"></i> }
+            Confirmer ce créneau
+          </button>
+        </div>
+      }
+
+      <!-- Moment proposé par le candidat -->
+      @if (d.state === 'WAITING_RECRUITER') {
+        @for (s of d.proposals; track s.id) {
+          <div class="mine">
+            <p class="mine__label">Vous avez proposé</p>
+            <p class="mine__day">{{ day(s.startsAt) }} · {{ hours(s) }}</p>
+            @if (s.message) { <p class="mine__msg">« {{ s.message }} »</p> }
+          </div>
+        }
+        @if (!showCounter()) {
+          <div class="slots__actions">
+            <button type="button" class="link-btn" (click)="openCounter()">Changer ma proposition</button>
+          </div>
+        }
+      }
+
+      <!-- Proposer un autre moment -->
+      @if (showCounter()) {
+        <form class="counter" (submit)="$event.preventDefault(); sendCounter()">
+          <label class="field">
+            <span>Votre disponibilité</span>
+            <input type="datetime-local" required [min]="minDate()" [value]="counterAt()" (input)="onInput('at', $event)" />
+          </label>
+          <label class="field">
+            <span>Message au recruteur <small>facultatif</small></span>
+            <textarea rows="3" maxlength="1000" [value]="counterMessage()" (input)="onInput('message', $event)"
+                      placeholder="Ex. : je suis aussi disponible jeudi toute la journée."></textarea>
+          </label>
+          <div class="slots__actions">
+            <button type="button" class="link-btn" (click)="showCounter.set(false)" [disabled]="busy()">Annuler</button>
+            <button type="submit" class="btn btn--primary btn--small" [disabled]="!counterAt() || busy()">
+              <i class="ti ti-send" aria-hidden="true"></i>Envoyer ma proposition
+            </button>
+          </div>
+        </form>
+      }
+    }
+    }
+  </section>
+}

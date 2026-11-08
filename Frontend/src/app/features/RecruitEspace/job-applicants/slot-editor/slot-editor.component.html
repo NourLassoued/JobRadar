@@ -1,0 +1,53 @@
+<div class="se">
+  <p class="se__label">Créneaux proposés <small>1 à 3 — le candidat choisit en un clic</small></p>
+
+  <ol class="se__list">
+    @for (s of slots(); track $index; let i = $index) {
+      <li class="slot">
+        <div class="slot__head">
+          <span class="slot__num">Créneau {{ i + 1 }}</span>
+          @if (slots().length > 1) {
+            <button type="button" class="slot__remove" (click)="remove(i)" [attr.aria-label]="'Retirer le créneau ' + (i + 1)">
+              <i class="ti ti-x" aria-hidden="true"></i>
+            </button>
+          }
+        </div>
+
+        <div class="slot__row">
+          <label class="f f--date">
+            <span>Date et heure</span>
+            <input type="datetime-local" required [min]="minDate()" [value]="s.startsAt" (input)="onDate(i, $event)" />
+          </label>
+          <label class="f f--dur">
+            <span>Durée</span>
+            <select [value]="s.durationMinutes" (change)="onDuration(i, $event)">
+              @for (d of durations; track d) {
+                <option [value]="d" [selected]="d === s.durationMinutes">{{ d }} min</option>
+              }
+            </select>
+          </label>
+        </div>
+
+        <div class="modes" role="radiogroup" [attr.aria-label]="'Format du créneau ' + (i + 1)">
+          @for (m of modes; track m.value) {
+            <button type="button" class="mode" role="radio" [class.is-on]="s.mode === m.value"
+                    [attr.aria-checked]="s.mode === m.value" (click)="onMode(i, m.value)">
+              <i [class]="'ti ' + m.icon" aria-hidden="true"></i>{{ m.label }}
+            </button>
+          }
+        </div>
+
+        <label class="f">
+          <span class="sr-only">Lien, adresse ou téléphone</span>
+          <input type="text" maxlength="300" [placeholder]="placeholder(s.mode)" [value]="s.location" (input)="onLocation(i, $event)" />
+        </label>
+      </li>
+    }
+  </ol>
+
+  @if (slots().length < max) {
+    <button type="button" class="se__add" (click)="add()">
+      <i class="ti ti-plus" aria-hidden="true"></i>Ajouter un créneau
+    </button>
+  }
+</div>
