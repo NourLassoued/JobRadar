@@ -117,6 +117,29 @@ export interface InterviewPrep {
   remainingQuota: number | null;
 }
 
+/** Action conseillée par l'IA — ScoreExplanationDtos.Action */
+export interface ScoreAction {
+  title: string;
+  detail: string;
+}
+
+/** Réponse de POST /api/ai/score-explanations — ScoreExplanationDtos.ScoreExplanation */
+export interface ScoreExplanation {
+  jobOfferId: number;
+  /** Score calculé par le moteur de matching (pas par l'IA) */
+  score: number;
+  /** Score si toutes les technologies de l'offre étaient maîtrisées (null si déjà au maximum) */
+  potentialScore: number | null;
+  summary: string;
+  strengths: string[];
+  gaps: string[];
+  actions: ScoreAction[];
+  aiModel: string;
+  /** true : réponse en cache, aucune génération consommée */
+  cached: boolean;
+  remainingQuota: number | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AiService {
   private http = inject(HttpClient);
@@ -180,5 +203,12 @@ export class AiService {
   /** GET /api/ai/quota — générations restantes aujourd'hui */
   quota(): Observable<AiQuota> {
     return this.http.get<AiQuota>(`${this.api}/ai/quota`);
+  }
+
+  // ── Explication du score : /api/ai/score-explanations ─────
+
+  /** POST /api/ai/score-explanations — « Pourquoi ce score ? » expliqué par l'IA */
+  explainScore(jobOfferId: number): Observable<ScoreExplanation> {
+    return this.http.post<ScoreExplanation>(`${this.api}/ai/score-explanations`, { jobOfferId });
   }
 }

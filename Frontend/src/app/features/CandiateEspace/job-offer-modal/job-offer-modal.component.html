@@ -163,6 +163,9 @@
               </ul>
             }
 
+            <!-- « Pourquoi ce score ? » expliqué par l'IA -->
+            <app-score-explanation [offerId]="m.offerId" [score]="m.score" />
+
             <!-- Résultat d'une adaptation déjà faite -->
             @if (coverageGain(); as g) {
               <div class="gain">

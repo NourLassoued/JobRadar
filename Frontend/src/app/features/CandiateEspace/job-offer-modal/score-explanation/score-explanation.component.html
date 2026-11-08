@@ -1,0 +1,77 @@
+<section class="why" [class.is-open]="!!explanation()" aria-labelledby="why-title">
+  @if (explanation(); as e) {
+    <header class="why__head">
+      <h3 id="why-title" class="why__title"><i class="ti ti-sparkles" aria-hidden="true"></i>Pourquoi {{ e.score }} % ?</h3>
+      <span class="why__model">
+        {{ e.cached ? 'Déjà généré' : 'IA' }}@if (e.remainingQuota !== null && !e.cached) { · {{ e.remainingQuota }} restantes aujourd'hui }
+      </span>
+    </header>
+
+    <p class="why__summary">{{ e.summary }}</p>
+
+    @if (e.potentialScore !== null) {
+      <div class="potential" role="note">
+        <span class="potential__now">{{ e.score }} %</span>
+        <i class="ti ti-arrow-right" aria-hidden="true"></i>
+        <span class="potential__max">{{ e.potentialScore }} %</span>
+        <span class="potential__text">si vous maîtrisiez toutes les technologies de l'offre</span>
+      </div>
+    }
+
+    <div class="cols">
+      @if (e.strengths.length) {
+        <div>
+          <p class="cols__label cols__label--ok"><i class="ti ti-circle-check" aria-hidden="true"></i>Ce qui joue pour vous</p>
+          <ul class="list">
+            @for (s of e.strengths; track $index) { <li>{{ s }}</li> }
+          </ul>
+        </div>
+      }
+      @if (e.gaps.length) {
+        <div>
+          <p class="cols__label cols__label--gap"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Ce qui fait baisser le score</p>
+          <ul class="list">
+            @for (g of e.gaps; track $index) { <li>{{ g }}</li> }
+          </ul>
+        </div>
+      }
+    </div>
+
+    @if (e.actions.length) {
+      <p class="cols__label"><i class="ti ti-list-check" aria-hidden="true"></i>Pour améliorer votre candidature</p>
+      <ol class="actions">
+        @for (a of e.actions; track $index; let i = $index) {
+          <li>
+            <span class="actions__num" aria-hidden="true">{{ i + 1 }}</span>
+            <span>
+              <strong>{{ a.title }}</strong>
+              @if (a.detail) { <span class="actions__detail">{{ a.detail }}</span> }
+            </span>
+          </li>
+        }
+      </ol>
+    }
+
+    <p class="why__note">
+      <i class="ti ti-info-circle" aria-hidden="true"></i>
+      Le score est calculé par JobRadar ; l'IA l'explique seulement. Vérifiez ses conseils avant de les appliquer.
+    </p>
+  } @else {
+    <div class="why__cta">
+      <div>
+        <p id="why-title" class="why__title"><i class="ti ti-sparkles" aria-hidden="true"></i>Pourquoi ce score ?</p>
+        <p class="why__hint">L'IA vous explique le score en clair et vous donne 3 actions pour l'améliorer.</p>
+      </div>
+      <button type="button" class="why__btn" (click)="explain()" [disabled]="loading()" [attr.aria-busy]="loading()">
+        @if (loading()) {
+          <span class="spinner" aria-hidden="true"></span>Analyse en cours…
+        } @else {
+          <i class="ti ti-wand" aria-hidden="true"></i>Expliquer avec l'IA
+        }
+      </button>
+    </div>
+    @if (error(); as message) {
+      <p class="why__error" role="alert"><i class="ti ti-alert-circle" aria-hidden="true"></i>{{ message }}</p>
+    }
+  }
+</section>
