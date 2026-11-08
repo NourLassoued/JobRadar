@@ -1,0 +1,61 @@
+<section class="ad" [class.is-open]="open()">
+  <button type="button" class="ad__toggle" (click)="open.set(!open())" [attr.aria-expanded]="open()" aria-controls="ad-body">
+    <span class="ad__icon" aria-hidden="true"><i class="ti ti-sparkles"></i></span>
+    <span class="ad__title">
+      <strong>Rédiger l'offre avec l'IA</strong>
+      <small>Écrivez 3 lignes, l'IA propose l'intitulé, la description, le profil et les compétences.</small>
+    </span>
+    <i class="ti ad__chev" [class.ti-chevron-down]="!open()" [class.ti-chevron-up]="open()" aria-hidden="true"></i>
+  </button>
+
+  @if (open()) {
+    <div id="ad-body" class="ad__body">
+      <label class="ad__label" for="ad-brief">Le poste en quelques mots</label>
+      <textarea id="ad-brief" rows="4" maxlength="1500" [value]="brief()" (input)="onBrief($event)" [placeholder]="example"></textarea>
+      <p class="ad__hint">Indiquez ce que vous savez : missions, équipe, technologies, expérience, avantages. L'IA n'ajoute rien que vous n'ayez dit.</p>
+
+      @if (error(); as e) { <p class="ad__error" role="alert"><i class="ti ti-alert-circle" aria-hidden="true"></i> {{ e }}</p> }
+
+      <div class="ad__actions">
+        <button type="button" class="ad__btn" (click)="generate()" [disabled]="loading()" [attr.aria-busy]="loading()">
+          @if (loading()) { <span class="spinner" aria-hidden="true"></span> Rédaction… }
+          @else { <i class="ti ti-wand" aria-hidden="true"></i> {{ draft() ? 'Proposer une autre version' : 'Rédiger l\'offre' }} }
+        </button>
+      </div>
+
+      @if (draft(); as d) {
+        <article class="preview" aria-label="Brouillon proposé">
+          <p class="preview__title">{{ d.title }}</p>
+          <p class="preview__text">{{ excerpt(d.description) }}</p>
+          @if (d.skills.length) {
+            <ul class="preview__skills" aria-label="Compétences proposées">
+              @for (s of d.skills; track s) { <li>{{ s }}</li> }
+            </ul>
+          }
+          <p class="preview__meta">
+            @if (d.experienceYears !== null) { {{ d.experienceYears }} an{{ d.experienceYears > 1 ? 's' : '' }} d'expérience · }
+            {{ d.description.length }} caractères@if (d.remainingQuota !== null) { · {{ d.remainingQuota }} générations restantes }
+          </p>
+          @if (d.tips.length) {
+            <ul class="preview__tips">
+              @for (t of d.tips; track $index) { <li><i class="ti ti-bulb" aria-hidden="true"></i> {{ t }}</li> }
+            </ul>
+          }
+
+          <div class="ad__actions">
+            @if (hasContent() && !applied()) {
+              <span class="ad__warn">Remplacera l'intitulé, la description et le profil déjà saisis.</span>
+            }
+            <button type="button" class="ad__btn" (click)="useDraft()" [disabled]="applied()">
+              @if (applied()) { <i class="ti ti-check" aria-hidden="true"></i> Formulaire rempli }
+              @else { <i class="ti ti-arrow-down" aria-hidden="true"></i> Remplir le formulaire }
+            </button>
+          </div>
+          @if (applied()) {
+            <p class="ad__hint">Relisez et ajustez chaque champ avant de publier : vous restez l'auteur de l'offre.</p>
+          }
+        </article>
+      }
+    </div>
+  }
+</section>

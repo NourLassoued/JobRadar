@@ -22,6 +22,8 @@ import {
   toRecruiterError,
 } from '../../../core/services/recruiter.service';
 import { RECRUITER_BASE } from '../recruiter.routes';
+import { JobDraft } from '../../../core/services/recruiter-ai.service';
+import { JobAiDraftComponent, JobDraftContext } from './job-ai-draft/job-ai-draft.component';
 
 export const MAX_SKILLS = 20;
 export const MIN_DESCRIPTION = 50;
@@ -59,7 +61,7 @@ export function addSkills(current: string[], raw: string): string[] {
 @Component({
   selector: 'app-job-form',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, JobAiDraftComponent],
   templateUrl: './job-form.component.html',
   styleUrl: './job-form.component.scss',
 })
@@ -287,6 +289,42 @@ export class JobFormComponent implements OnInit {
     return touched && this.form.hasError('salaryRange')
       ? 'Le salaire minimum doit être inférieur ou égal au maximum.'
       : null;
+  }
+
+  // ── Rédaction assistée par l'IA ─────────────────────────
+
+  /** Ce que le recruteur a déjà saisi : l'IA s'en sert pour rester cohérente */
+  readonly draftContext = computed<JobDraftContext>(() => {
+    this.formValue();
+    const v = this.form.getRawValue();
+    return {
+      title: v.title.trim() || null,
+      contractType: v.contractType || null,
+      location: v.location.trim() || null,
+      remote: v.remote,
+      sector: (v.sector || null) as SectorType | null,
+      experienceYears: v.experienceYears,
+    };
+  });
+
+  readonly hasWrittenContent = computed(() => {
+    this.formValue();
+    const v = this.form.getRawValue();
+    return !!(v.title.trim() || v.description.trim() || v.requirements.trim());
+  });
+
+  /** Copie le brouillon de l'IA dans le formulaire ; le recruteur relit avant de publier */
+  applyDraft(d: JobDraft): void {
+    const v = this.form.getRawValue();
+    this.form.patchValue({
+      title: d.title,
+      description: d.description,
+      requirements: d.requirements,
+      ...(d.experienceYears !== null && v.experienceYears === null ? { experienceYears: d.experienceYears } : {}),
+      ...(d.suggestedSector && !v.sector ? { sector: d.suggestedSector } : {}),
+    });
+    if (d.skills.length) this.skills.update(list => addSkills(list, d.skills.join(',')));
+    this.form.markAsDirty();
   }
 
   private fill(job: RecruiterJob): void {

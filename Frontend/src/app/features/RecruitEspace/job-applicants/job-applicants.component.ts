@@ -23,6 +23,7 @@ import { RECRUITER_BASE } from '../recruiter.routes';
 import { InterviewSlotsService, SlotDraft, checkDrafts } from '../../../core/services/interview-slots.service';
 import { SlotEditorComponent, newSlotDraft } from './slot-editor/slot-editor.component';
 import { ApplicantInterviewComponent } from './applicant-interview/applicant-interview.component';
+import { ApplicantInsightComponent } from './applicant-insight/applicant-insight.component';
 
 export type ScoreTone = 'high' | 'mid' | 'low' | 'none';
 type SortBy = 'score' | 'date' | 'name';
@@ -123,7 +124,7 @@ const UNDO_SECONDS = 10;
 @Component({
   selector: 'app-job-applicants',
   standalone: true,
-  imports: [RouterLink, DatePipe, SlotEditorComponent, ApplicantInterviewComponent],
+  imports: [RouterLink, DatePipe, SlotEditorComponent, ApplicantInterviewComponent, ApplicantInsightComponent],
   templateUrl: './job-applicants.component.html',
   styleUrl: './job-applicants.component.scss',
 })

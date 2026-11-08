@@ -220,6 +220,9 @@
             }
 
             <!-- Rendez-vous d'entretien (créneaux) -->
+            <!-- Résumé IA : points forts, point à vérifier, questions d'entretien -->
+            <jr-applicant-insight [applicationId]="a.applicationId" />
+
             <jr-applicant-interview [applicationId]="a.applicationId" [status]="a.status" (changed)="onInterviewChanged($event)" />
 
             <!-- Historique -->

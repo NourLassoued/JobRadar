@@ -1,0 +1,52 @@
+<section class="ai" aria-labelledby="ai-title">
+  <header class="ai__head">
+    <h3 id="ai-title"><i class="ti ti-sparkles" aria-hidden="true"></i> Résumé IA</h3>
+    @if (insight(); as i) {
+      <span class="ai__meta">{{ i.cached ? 'Déjà généré' : 'IA' }}@if (!i.cached && i.remainingQuota !== null) { · {{ i.remainingQuota }} restantes }</span>
+    }
+  </header>
+
+  @if (insight(); as i) {
+    <p class="ai__summary">{{ i.summary }}</p>
+    @if (!i.cvUsed) {
+      <p class="ai__note"><i class="ti ti-info-circle" aria-hidden="true"></i> CV illisible ou absent : résumé fait à partir du profil.</p>
+    }
+
+    @if (i.strengths.length) {
+      <p class="ai__label ai__label--ok"><i class="ti ti-circle-check" aria-hidden="true"></i> Points forts</p>
+      <ul class="ai__list">
+        @for (s of i.strengths; track $index) { <li>{{ s }}</li> }
+      </ul>
+    }
+
+    @if (i.watchPoint) {
+      <div class="ai__watch">
+        <i class="ti ti-eye-search" aria-hidden="true"></i>
+        <span><strong>À vérifier en entretien :</strong> {{ i.watchPoint }}</span>
+      </div>
+    }
+
+    @if (i.questions.length) {
+      <div class="ai__qhead">
+        <p class="ai__label"><i class="ti ti-message-question" aria-hidden="true"></i> Questions à poser</p>
+        <button type="button" class="ai__copy" (click)="copyQuestions(i)">
+          <i class="ti" [class.ti-copy]="!copied()" [class.ti-check]="copied()" aria-hidden="true"></i>{{ copied() ? 'Copié' : 'Copier' }}
+        </button>
+      </div>
+      <ol class="ai__questions">
+        @for (q of i.questions; track $index) {
+          <li><strong>{{ q.question }}</strong>@if (q.purpose) { <small>{{ q.purpose }}</small> }</li>
+        }
+      </ol>
+    }
+
+    <p class="ai__note">Aide à la lecture du dossier : la décision vous appartient. L'IA ne tient compte que des compétences et de l'expérience.</p>
+  } @else {
+    <p class="ai__hint">3 points forts, 1 point à vérifier et des questions d'entretien tirées du CV.</p>
+    <button type="button" class="ai__btn" (click)="generate()" [disabled]="loading()" [attr.aria-busy]="loading()">
+      @if (loading()) { <span class="spinner" aria-hidden="true"></span> Analyse du dossier… }
+      @else { <i class="ti ti-wand" aria-hidden="true"></i> Analyser ce candidat }
+    </button>
+    @if (error(); as e) { <p class="ai__error" role="alert"><i class="ti ti-alert-circle" aria-hidden="true"></i> {{ e }}</p> }
+  }
+</section>

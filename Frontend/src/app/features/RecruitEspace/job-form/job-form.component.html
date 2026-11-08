@@ -38,6 +38,9 @@
           </div>
         }
 
+        <!-- Rédaction assistée : 3 lignes → offre complète -->
+        <jr-job-ai-draft [context]="draftContext()" [hasContent]="hasWrittenContent()" (apply)="applyDraft($event)" />
+
         <!-- 1. Le poste -->
         <section class="step">
           <header class="step__head">
