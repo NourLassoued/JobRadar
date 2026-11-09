@@ -3,6 +3,7 @@
 # 🎯 JobRadar
 
 **Plateforme de recrutement Full Stack avec IA générative, scoring adaptatif et temps réel**
+[🎬 Démo](https://drive.google.com/file/d/1ZvtpNAwj4o1AaMtngAzpCa7uvOBpbCJ9/view) · [Portfolio](https://nourstack.netlify.app) · [GitHub](https://github.com/NourLassoued) · [LinkedIn](https://www.linkedin.com/in/lassouednourelhouda)
 
 [![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://www.java.com/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2-brightgreen.svg)](https://spring.io/projects/spring-boot)
