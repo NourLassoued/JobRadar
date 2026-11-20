@@ -1,0 +1,8 @@
+target/
+data/
+.idea/
+.mvn/wrapper/maven-wrapper.jar
+*.log
+.env
+src/main/resources/application.properties
+src/main/resources/application.yml

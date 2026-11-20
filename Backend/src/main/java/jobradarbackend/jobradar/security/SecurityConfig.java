@@ -67,6 +67,8 @@ public class SecurityConfig {
                                 "/oauth2/**",
                                 "/login/oauth2/**",
                                 "/error",
+                                "/actuator/health/**",
+                                "/actuator/prometheus",
                                 "/api/sectors",
                                 "/api/sectors/IT/skills",
                                 "/api/sectors/skills").permitAll()
