@@ -4,7 +4,7 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm config set fetch-retries 5 && npm config set fetch-retry-mintimeout 20000 && npm config set fetch-retry-maxtimeout 120000 && npm ci --no-audit --no-fund
 COPY . .
 # Dans le cluster, le frontend appelle l'API sur la même adresse (/api), nginx fait le relais vers le backend
 RUN sed -i "s#apiUrl: '[^']*'#apiUrl: '/api'#" src/environments/environment.ts
