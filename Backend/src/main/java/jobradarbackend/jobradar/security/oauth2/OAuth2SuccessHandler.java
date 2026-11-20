@@ -58,6 +58,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 .build()
                 .toUriString();
 
+        var session = request.getSession(false);
+        if (session != null) { session.invalidate(); }
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }
 
