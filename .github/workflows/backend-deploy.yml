@@ -1,0 +1,28 @@
+# À chaque push sur main qui touche Backend/ : nouvelle image backend + mise à jour automatique de jobradar-gitops.
+name: backend — build et déploiement
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Backend/**"
+      - ".github/workflows/backend-deploy.yml"
+      - ".github/workflows/_build-deploy.yml"
+  workflow_dispatch:   # bouton « Run workflow » dans l'onglet Actions
+
+concurrency:
+  group: deploy-backend       # deux déploiements du backend jamais en même temps
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/_build-deploy.yml
+    with:
+      component: backend
+      context: Backend
+    secrets:
+      GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}

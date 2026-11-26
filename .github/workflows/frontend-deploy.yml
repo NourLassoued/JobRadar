@@ -1,0 +1,28 @@
+# À chaque push sur main qui touche Frontend/ : nouvelle image frontend + mise à jour automatique de jobradar-gitops.
+name: frontend — build et déploiement
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Frontend/**"
+      - ".github/workflows/frontend-deploy.yml"
+      - ".github/workflows/_build-deploy.yml"
+  workflow_dispatch:   # bouton « Run workflow » dans l'onglet Actions
+
+concurrency:
+  group: deploy-frontend       # deux déploiements du frontend jamais en même temps
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/_build-deploy.yml
+    with:
+      component: frontend
+      context: Frontend
+    secrets:
+      GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}
